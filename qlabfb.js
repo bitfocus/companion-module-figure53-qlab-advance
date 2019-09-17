@@ -37,7 +37,7 @@ function instance(system, id, config) {
 	self.actions(); // export actions
 
 	// shouldn't need this, we're a new module
-/* 	// some prior button actions were created 
+/* 	// some prior button actions were created
 	// from a preset with a case typo
 	self.addUpgradeScript(function (config, actions) {
 		var changed = false;
@@ -64,7 +64,7 @@ function instance(system, id, config) {
 var qCueRequest = [
 	{
 		type: "s",
-		value: '["number","uniqueID","listName","type",' + 
+		value: '["number","uniqueID","listName","type",' +
 			'"colorName","isRunning","isLoaded","armed","isBroken"]'
 	}
 ];
@@ -116,7 +116,7 @@ instance.prototype.updateNextCue = function () {
 
 instance.prototype.updateRunning = function () {
 	var self = this;
-	
+
 	self.setVariable('r_id',self.runningCue.ID);
 	self.setVariable('r_name', self.runningCue.Name);
 	self.setVariable('r_num', self.runningCue.Num);
@@ -126,7 +126,7 @@ instance.prototype.updateRunning = function () {
 
 instance.prototype.JSONtoCue = function(j,i) {
 	var self = this;
-	
+
 	self.uniqueID = j.uniqueID;
 	self.qName = j.listName;
 	self.qNumber = j.number;
@@ -255,7 +255,7 @@ instance.prototype.init_variables = function () {
 			name: 'r_num'
 		}
 	];
-	
+
 	self.setVariableDefinitions(variables);
 	self.updateRunning();
 	self.updateNextCue();
@@ -275,8 +275,8 @@ instance.prototype.prime_vars = function(ws) {
 	if (self.needWorkspace && self.ready) {
 		if (self.config.passcode !== undefined && self.config.passcode !== "") {
 			self.debug("sending passcode to", self.config.host);
-			self.sendOSC(ws + "/connect", [ 
-				{	
+			self.sendOSC(ws + "/connect", [
+				{
 					type: "s",
 					value: self.config.passcode
 				}]
@@ -304,7 +304,7 @@ instance.prototype.prime_vars = function(ws) {
 instance.prototype.init_osc = function () {
 	var self = this;
 	var ws = self.ws;
-	
+
 	if (self.connecting) {
 		return;
 	}
@@ -323,60 +323,60 @@ instance.prototype.init_osc = function () {
 		});
 		self.connecting = true;
 		self.qSocket.open();
-	}
-
-	self.qSocket.on("error", function(err) {
-		debug("Network error", err);
-		self.log('error',"Network error: " + err.message);
-		self.connecting = false;
-		self.ready = false;
-		self.status(self.STATUS_ERROR,"Can't connect to QLab");
-		if (err.code == "ECONNREFUSED") {
-			self.qSocket.removeAllListeners();
-			setTimeout(function() { self.connect();	}, 5000);
-		}
-	});
-
-	self.qSocket.on("close", function(){
-		self.log('error',"Connection Closed");
-		self.connecting = false;
-		if (self.ready) {
-			self.needWorkspace = true;
-			self.needPasscode = false;
-			self.resetVars(true);
-			self.qSocket.removeAllListeners();
-			debug("Connection closed");
-			self.log("Closed");
-			self.ready = false;
-			self.status(self.STATUS_WARNING,"CLOSED");
-			setTimeout(function() { self.connect(); }, 5000);
-		}
-	});
-
-	self.qSocket.on("ready", function () {
-		self.ready = true;
-		self.connecting = false;
-		self.log("Connected to",self.config.host);
-		self.status(self.STATUS_WARNING, "No Workspaces");
-		self.needWorkspace = true;
-				
-		self.prime_vars(ws);
-
-	});
 	
-	self.qSocket.on("message", function (message) {
-		// debug("received ", message, "from", self.qSocket.options.address);
-		if (message.address.match(/^\/update\//)) {
-			// debug("readUpdate");
-			self.readUpdate(message);
-		} else if (message.address.match(/^\/reply\//)) {
-			// debug("readReply");
-			self.readReply(message);
-		} else {
-			debug(message.address,message.args);
-		}
-	});
 
+		self.qSocket.on("error", function(err) {
+			debug("Network error", err);
+			self.log('error',"Network error: " + err.message);
+			self.connecting = false;
+			self.ready = false;
+			self.status(self.STATUS_ERROR,"Can't connect to QLab");
+			if (err.code == "ECONNREFUSED") {
+				self.qSocket.removeAllListeners();
+				setTimeout(function() { self.connect();	}, 5000);
+			}
+		});
+
+		self.qSocket.on("close", function(){
+			self.log('error',"Connection Closed");
+			self.connecting = false;
+			if (self.ready) {
+				self.needWorkspace = true;
+				self.needPasscode = false;
+				self.resetVars(true);
+				self.qSocket.removeAllListeners();
+				debug("Connection closed");
+				self.log("Closed");
+				self.ready = false;
+				self.status(self.STATUS_WARNING,"CLOSED");
+				setTimeout(function() { self.connect(); }, 5000);
+			}
+		});
+
+		self.qSocket.on("ready", function () {
+			self.ready = true;
+			self.connecting = false;
+			self.log("Connected to",self.config.host);
+			self.status(self.STATUS_WARNING, "No Workspaces");
+			self.needWorkspace = true;
+
+			self.prime_vars(ws);
+
+		});
+
+		self.qSocket.on("message", function (message) {
+			// debug("received ", message, "from", self.qSocket.options.address);
+			if (message.address.match(/^\/update\//)) {
+				// debug("readUpdate");
+				self.readUpdate(message);
+			} else if (message.address.match(/^\/reply\//)) {
+				// debug("readReply");
+				self.readReply(message);
+			} else {
+				debug(message.address,message.args);
+			}
+		});
+	}
 	// self.qSocket.on("data", function(data){
 	// 	debug ("Got",data, "from",self.qSocket.options.address);
 	// });
@@ -439,7 +439,7 @@ instance.prototype.updatePlaying = function() {
 	var cues = self.cueList;
 	var lastRunID = self.runningCue.ID;
 	var runningCues = [];
-	
+
 	Object.keys(cues).forEach(function(cue) {
 		if (cues[cue].running==true){
 			runningCues.push([cue,cues[cue].startedAt]);
@@ -452,7 +452,7 @@ instance.prototype.updatePlaying = function() {
 	runningCues.sort(function(a, b){
 		return b[1] - a[1];
 	});
-	
+
 	if (runningCues.length == 0) {
 		self.runningCue = {
 			ID: '',
@@ -491,9 +491,9 @@ instance.prototype.readUpdate = function(message) {
 	var self = this;
 	var ws = self.ws;
 	var ma = message.address;
-	
-	/** 
-	 * A QLab 'update' message is just the uniqueID for a cue where something 'changed'. 
+
+	/**
+	 * A QLab 'update' message is just the uniqueID for a cue where something 'changed'.
 	 * We have to request any other information we need (name, number, isRunning, etc.)
 	 */
 
@@ -503,7 +503,7 @@ instance.prototype.readUpdate = function(message) {
 			if (oa !== self.nextCue) {
 				// playhead changed
 				self.nextCue.ID = oa;
-				self.sendOSC(ws + "/cue/playhead/valuesForKeys", qCueRequest);	
+				self.sendOSC(ws + "/cue/playhead/valuesForKeys", qCueRequest);
 			}
 		} else {
 			self.nextCue.ID = '';
@@ -576,7 +576,7 @@ instance.prototype.readReply = function(message) {
 		}
 	} else if (ma.match(/valuesForKeys$/)) {
 		self.updateCues(j.data, 'v');
-	}	
+	}
 };
 
 // Return config fields for web config
@@ -1611,13 +1611,13 @@ instance.prototype.action = function (action) {
 	if (arg == null) {
 		arg = [];
 	}
-	
+
 	if (!self.ready) {
 		debug("Not connected",self.config.host);
 	} else if (cmd !== undefined) {
 		debug('sending', ws + cmd, arg, "to", self.config.host);
 		self.sendOSC(ws + cmd, arg);
-	} 
+	}
 
 };
 
