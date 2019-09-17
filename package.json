@@ -1,0 +1,23 @@
+{
+	"name": "qlabfb",
+	"version": "1.0.0",
+	"api_version": "1.0.0",
+	"keywords": [
+		"Software",
+		"Media Server"
+	],
+	"manufacturer": "Figure 53",
+	"product": "QLab with feedback",
+	"shortname": "qlabfb",
+	"description": "QLab plugin for Companion with feedback",
+	"main": "qlabfb.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"author": "John A Knight Jr <jjr@ayesti.com>",
+	"contributors": [ "Per Røine <per.roine@gmail.com>" ],
+	"license": "MIT",
+	"dependencies": {
+		"osc": "^2.3.0"
+	}
+}
