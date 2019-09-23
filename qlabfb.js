@@ -731,13 +731,29 @@ instance.prototype.init_presets = function () {
 		},
 		{
 			category: 'CueList',
+			label: 'Preview',
+			bank: {
+				style: 'text',
+				text: 'Preview',
+				size: '18',
+				color: '16777215',
+				bgcolor: self.rgb(0, 128, 0)
+			},
+			actions: [
+				{
+					action: 'preview',
+				}
+			]
+		},
+		{
+			category: 'CueList',
 			label: 'Previous Cue',
 			bank: {
 				style: 'text',
 				text: 'Prev\\nCue',
 				size: '24',
 				color: '16777215',
-				bgcolor: self.rgb(0, 0, 100)
+				bgcolor: self.rgb(0, 0, 128)
 			},
 			actions: [
 				{
@@ -1467,8 +1483,9 @@ instance.prototype.actions = function (system) {
 		'previous': { label: 'Previous Cue' },
 		'next': { label: 'Next Cue' },
 		'resume': { label: 'Resume' },
-		'load': { label: 'Load Cue' }
-	});
+		'load': { label: 'Load Cue' },
+		'preview': { label: 'Preview'}
+		});
 };
 
 instance.prototype.action = function (action) {
@@ -1488,6 +1505,11 @@ instance.prototype.action = function (action) {
 		case 'go':
 			arg = null;
 			cmd = '/go';
+			break;
+
+		case 'preview':
+			arg = null;
+			cmd = '/cue/selected/preview';
 			break;
 
 		case 'pause':
