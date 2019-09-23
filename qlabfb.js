@@ -16,15 +16,15 @@ function instance(system, id, config) {
 	self.resetVars();
 
 	self.colorRGB = {
-		none: self.rgb(32,32,32),
-		red: self.rgb(160,0,0),
-		orange: self.rgb(160,100,0),
-		green: self.rgb(0,160,0),
-		blue: self.rgb(0,0,160),
-		purple: self.rgb(160,0,160)
+		none: self.rgb(32, 32, 32),
+		red: self.rgb(160, 0, 0),
+		orange: self.rgb(160, 100, 0),
+		green: self.rgb(0, 160, 0),
+		blue: self.rgb(0, 0, 160),
+		purple: self.rgb(160, 0, 160)
 	};
 
-		// each instance needs a separate local port
+	// each instance needs a separate local port
 	id.split('').forEach(function (c) {
 		po += c.charCodeAt(0);
 	});
@@ -37,27 +37,27 @@ function instance(system, id, config) {
 	self.actions(); // export actions
 
 	// shouldn't need this, we're a new module
-/* 	// some prior button actions were created
-	// from a preset with a case typo
-	self.addUpgradeScript(function (config, actions) {
-		var changed = false;
+	/* 	// some prior button actions were created
+		// from a preset with a case typo
+		self.addUpgradeScript(function (config, actions) {
+			var changed = false;
 
-		for (var k in actions) {
-			var action = actions[k];
+			for (var k in actions) {
+				var action = actions[k];
 
-			if (action.action == "autoLoad") {
-				if (action.options.autoId==1) {
-					action.action = "autoload";
-					action.label = action.id + ":" + action.action;
-					changed = true;
+				if (action.action == "autoLoad") {
+					if (action.options.autoId==1) {
+						action.action = "autoload";
+						action.label = action.id + ":" + action.action;
+						changed = true;
+					}
 				}
+
 			}
 
-		}
-
-		return changed;
-	});
- */
+			return changed;
+		});
+	 */
 	return self;
 }
 
@@ -87,7 +87,7 @@ instance.prototype.resetVars = function (doUpdate) {
 		Num: '',
 		Loaded: false,
 		Broken: false,
-		Color: self.rgb(0,0,0)
+		Color: self.rgb(0, 0, 0)
 	};
 	// most recent running cue
 	self.runningCue = {
@@ -96,7 +96,7 @@ instance.prototype.resetVars = function (doUpdate) {
 		Num: '',
 		Loaded: false,
 		Broken: false,
-		Color: self.rgb(0,0,0)
+		Color: self.rgb(0, 0, 0)
 	};
 	if (doUpdate) {
 		self.updateNextCue();
@@ -107,24 +107,24 @@ instance.prototype.resetVars = function (doUpdate) {
 instance.prototype.updateNextCue = function () {
 	var self = this;
 
-	self.setVariable('n_id',self.nextCue.ID);
+	self.setVariable('n_id', self.nextCue.ID);
 	self.setVariable('n_name', self.nextCue.Name);
 	self.setVariable('n_num', self.nextCue.Num);
-	self.setVariable('n_status',self.nextCue.Broken ? "\u2715" : self.nextCue.Loaded ? "!" : ":");
+	self.setVariable('n_status', self.nextCue.Broken ? "\u2715" : self.nextCue.Loaded ? "!" : ":");
 	self.checkFeedbacks('playhead_bg');
 };
 
 instance.prototype.updateRunning = function () {
 	var self = this;
 
-	self.setVariable('r_id',self.runningCue.ID);
+	self.setVariable('r_id', self.runningCue.ID);
 	self.setVariable('r_name', self.runningCue.Name);
 	self.setVariable('r_num', self.runningCue.Num);
 	//self.setVariable('r_loaded',self.runningCue.Loaded ? "!" : ":");
 	self.checkFeedbacks('run_bg');
 };
 
-instance.prototype.JSONtoCue = function(j,i) {
+instance.prototype.JSONtoCue = function (j, i) {
 	var self = this;
 
 	self.uniqueID = j.uniqueID;
@@ -261,15 +261,15 @@ instance.prototype.init_variables = function () {
 	self.updateNextCue();
 };
 
-instance.prototype.connect = function() {
+instance.prototype.connect = function () {
 	var self = this;
-	self.status(self.STATUS_UNKNOWN,"Connecting");
+	self.status(self.STATUS_UNKNOWN, "Connecting");
 	self.init_osc();
 };
 
 // get current status of QLab cues and playhead
 // and ask for updates
-instance.prototype.prime_vars = function(ws) {
+instance.prototype.prime_vars = function (ws) {
 	var self = this;
 
 	if (self.needWorkspace && self.ready) {
@@ -282,7 +282,7 @@ instance.prototype.prime_vars = function(ws) {
 				}]
 			);
 		} else {
-			self.sendOSC(ws + "/connect",[]);
+			self.sendOSC(ws + "/connect", []);
 		}
 		// request variable/feedback info
 		self.sendOSC(ws + "/runningCues", []);
@@ -295,8 +295,8 @@ instance.prototype.prime_vars = function(ws) {
 			}]
 		);
 		self.sendOSC(ws + "/updates", []);
-		self.sendOSC(ws + "/cueLists",[]);
-		setTimeout(function() { self.prime_vars(ws); }, 5000);
+		self.sendOSC(ws + "/cueLists", []);
+		setTimeout(function () { self.prime_vars(ws); }, 5000);
 	}
 };
 
@@ -323,22 +323,22 @@ instance.prototype.init_osc = function () {
 		});
 		self.connecting = true;
 		self.qSocket.open();
-	
 
-		self.qSocket.on("error", function(err) {
+
+		self.qSocket.on("error", function (err) {
 			debug("Network error", err);
-			self.log('error',"Network error: " + err.message);
+			self.log('error', "Network error: " + err.message);
 			self.connecting = false;
 			self.ready = false;
-			self.status(self.STATUS_ERROR,"Can't connect to QLab");
+			self.status(self.STATUS_ERROR, "Can't connect to QLab");
 			if (err.code == "ECONNREFUSED") {
 				self.qSocket.removeAllListeners();
-				setTimeout(function() { self.connect();	}, 5000);
+				setTimeout(function () { self.connect(); }, 5000);
 			}
 		});
 
-		self.qSocket.on("close", function(){
-			self.log('error',"Connection Closed");
+		self.qSocket.on("close", function () {
+			self.log('error', "Connection Closed");
 			self.connecting = false;
 			if (self.ready) {
 				self.needWorkspace = true;
@@ -348,15 +348,15 @@ instance.prototype.init_osc = function () {
 				debug("Connection closed");
 				self.log("Closed");
 				self.ready = false;
-				self.status(self.STATUS_WARNING,"CLOSED");
-				setTimeout(function() { self.connect(); }, 5000);
+				self.status(self.STATUS_WARNING, "CLOSED");
+				setTimeout(function () { self.connect(); }, 5000);
 			}
 		});
 
 		self.qSocket.on("ready", function () {
 			self.ready = true;
 			self.connecting = false;
-			self.log("Connected to",self.config.host);
+			self.log("Connected to", self.config.host);
 			self.status(self.STATUS_WARNING, "No Workspaces");
 			self.needWorkspace = true;
 
@@ -373,7 +373,7 @@ instance.prototype.init_osc = function () {
 				// debug("readReply");
 				self.readReply(message);
 			} else {
-				debug(message.address,message.args);
+				debug(message.address, message.args);
 			}
 		});
 	}
@@ -385,34 +385,34 @@ instance.prototype.init_osc = function () {
 /**
  * update list cues
  */
-instance.prototype.updateCues = function(cue, stat) {
+instance.prototype.updateCues = function (cue, stat) {
 	var self = this;
 	// list of useful cue types don't really need status for a 'cue list'
-	var qTypes = [ 'audio','mic','video','camera',
-		'text','light','fade','network','midi','midi file',
-		'timecode','group','start','stop','pause','load',
-		'reset','devamp','goto','target',
-		'arm','disarm','wait','memo','script'
+	var qTypes = ['audio', 'mic', 'video', 'camera',
+		'text', 'light', 'fade', 'network', 'midi', 'midi file',
+		'timecode', 'group', 'start', 'stop', 'pause', 'load',
+		'reset', 'devamp', 'goto', 'target',
+		'arm', 'disarm', 'wait', 'memo', 'script'
 	];
 	var q = {};
 
 	if (Array.isArray(cue)) {
 		var i = 0;
-		while( i < cue.length) {
-			q = new self.JSONtoCue(cue[i],self);
+		while (i < cue.length) {
+			q = new self.JSONtoCue(cue[i], self);
 			q.qOrder = i;
 			if (qTypes.includes(q.qType)) {
-				q.running = (stat=='r');
+				q.running = (stat == 'r');
 				q.startedAt = Date.now();
 				self.cueList[q.uniqueID] = q;
 			}
-			if (stat=='l') {
+			if (stat == 'l') {
 				self.cueOrder[i] = q.uniqueID;
 			}
 			i += 1;
 		}
 	} else {
-		q = new self.JSONtoCue(cue,self);
+		q = new self.JSONtoCue(cue, self);
 		if (qTypes.includes(q.qType)) {
 			self.cueList[q.uniqueID] = q;
 			if (q.uniqueID == self.nextCue.ID) {
@@ -432,7 +432,7 @@ instance.prototype.updateCues = function(cue, stat) {
 /**
  * update list of running cues
  */
-instance.prototype.updatePlaying = function() {
+instance.prototype.updatePlaying = function () {
 	var self = this;
 	var hasGroup = false;
 	var i = 0;
@@ -440,16 +440,16 @@ instance.prototype.updatePlaying = function() {
 	var lastRunID = self.runningCue.ID;
 	var runningCues = [];
 
-	Object.keys(cues).forEach(function(cue) {
-		if (cues[cue].running==true){
-			runningCues.push([cue,cues[cue].startedAt]);
-			if (cues[cue].qType=="group") {
+	Object.keys(cues).forEach(function (cue) {
+		if (cues[cue].running == true) {
+			runningCues.push([cue, cues[cue].startedAt]);
+			if (cues[cue].qType == "group") {
 				hasGroup = true;
 			}
 		}
 	});
 
-	runningCues.sort(function(a, b){
+	runningCues.sort(function (a, b) {
 		return b[1] - a[1];
 	});
 
@@ -459,15 +459,15 @@ instance.prototype.updatePlaying = function() {
 			Name: '[none]',
 			Num: '',
 			Loaded: false,
-			Color: self.rgb(0,0,0)
+			Color: self.rgb(0, 0, 0)
 		};
 	} else {
 		if (hasGroup) {
-			while (cues[runningCues[i][0]].qType != "group" && i<runningCues.length) {
+			while (cues[runningCues[i][0]].qType != "group" && i < runningCues.length) {
 				i += 1;
 			}
 		}
-		if (i<runningCues.length) {
+		if (i < runningCues.length) {
 			var q = cues[runningCues[i][0]];
 			self.runningCue = {
 				ID: q.uniqueID,
@@ -478,7 +478,7 @@ instance.prototype.updatePlaying = function() {
 			};
 		}
 	}
-// update if changed
+	// update if changed
 	if (self.runningCue.ID != lastRunID) {
 		self.updateRunning();
 	}
@@ -487,7 +487,7 @@ instance.prototype.updatePlaying = function() {
 /**
  * process QLab 'update'
  */
-instance.prototype.readUpdate = function(message) {
+instance.prototype.readUpdate = function (message) {
 	var self = this;
 	var ws = self.ws;
 	var ma = message.address;
@@ -498,7 +498,7 @@ instance.prototype.readUpdate = function(message) {
 	 */
 
 	if (ma.match(/playbackPosition$/)) {
-			if (message.args.length>0) {
+		if (message.args.length > 0) {
 			var oa = message.args[0].value;
 			if (oa !== self.nextCue) {
 				// playhead changed
@@ -516,7 +516,7 @@ instance.prototype.readUpdate = function(message) {
 	} else if (ma.match(/\/cue_id\//) && !(ma.match(/cue lists\]$/))) {
 		// get cue information for 'updated' cue
 		var node = ma.substring(7) + "/valuesForKeys";
-		self.sendOSC(node,qCueRequest);
+		self.sendOSC(node, qCueRequest);
 	} else if (ma.match(/\/disconnect$/)) {
 		self.status(self.STATUS_WARNING, "No Workspaces");
 		self.needWorkspace = true;
@@ -529,7 +529,7 @@ instance.prototype.readUpdate = function(message) {
 /**
  * process QLab 'reply'
  */
-instance.prototype.readReply = function(message) {
+instance.prototype.readReply = function (message) {
 	var self = this;
 	var ws = self.ws;
 	var ma = message.address;
@@ -537,25 +537,25 @@ instance.prototype.readReply = function(message) {
 
 	try {
 		j = JSON.parse(message.args[0].value);
-	} catch(error) { /* ingnore errors */ }
+	} catch (error) { /* ingnore errors */ }
 
 	if (ma.match(/\/connect$/)) {
-		if (j.data=="badpass") {
+		if (j.data == "badpass") {
 			self.needPasscode = true;
-			self.status(self.STATUS_WARNING,"Bad or missing Passcode");
+			self.status(self.STATUS_WARNING, "Bad or missing Passcode");
 			self.prime_vars(ws);
-		} else if (j.data=="error") {
+		} else if (j.data == "error") {
 			self.needPasscode = false;
-			self.status(self.STATUS_WARNING,"No Workspaces");
-		} else if (j.data=="ok") {
+			self.status(self.STATUS_WARNING, "No Workspaces");
+		} else if (j.data == "ok") {
 			self.needPasscode = false;
-			self.status(self.STATUS_OK,"Connected");
+			self.status(self.STATUS_OK, "Connected");
 			self.needWorkspace = false;
 		}
 	}
 	if (ma.match(/updates$/)) {
 		self.needWorkspace = false;
-		self.status(self.STATUS_OK,"Connected to QLab");
+		self.status(self.STATUS_OK, "Connected to QLab");
 	} else if (ma.match(/version$/)) {
 		if (j.data != undefined) {
 			self.setVariable('q_ver', j.data);
@@ -1613,7 +1613,7 @@ instance.prototype.action = function (action) {
 	}
 
 	if (!self.ready) {
-		debug("Not connected",self.config.host);
+		debug("Not connected", self.config.host);
 	} else if (cmd !== undefined) {
 		debug('sending', ws + cmd, arg, "to", self.config.host);
 		self.sendOSC(ws + cmd, arg);
