@@ -347,7 +347,7 @@ instance.prototype.init_osc = function () {
 		});
 
 		self.qSocket.on("close", function () {
-			self.log('error', "Connection Closed");
+			self.log('error', "Connection to QLab Closed");
 			self.connecting = false;
 			if (self.ready) {
 				self.needWorkspace = true;
@@ -355,7 +355,6 @@ instance.prototype.init_osc = function () {
 				self.resetVars(true);
 				self.qSocket.removeAllListeners();
 				debug("Connection closed");
-				self.log("Closed");
 				self.ready = false;
 				self.status(self.STATUS_WARNING, "CLOSED");
 				self.timer = setTimeout(function () { self.connect(); }, 5000);
@@ -365,7 +364,7 @@ instance.prototype.init_osc = function () {
 		self.qSocket.on("ready", function () {
 			self.ready = true;
 			self.connecting = false;
-			self.log("Connected to", self.config.host);
+			self.log('info',"Connected to QLab:" + self.config.host);
 			self.status(self.STATUS_WARNING, "No Workspaces");
 			self.needWorkspace = true;
 
