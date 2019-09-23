@@ -22,6 +22,7 @@ The following actions are available:
 * **Next:** Move the selection down one cue.
 * **Previous:** Move the selection up one cue.
 * **Start (cue):** Start the specified cue. If the specified cue is playing, this command has no effect.
+* **Preview:** Preview the selected cue without moving the Playhead.
 * **Increase Prewait:** Increases the prewait time by given time for the selected cue
 * **Decrease Prewait:** Decreases the prewait time by given time for the selected cue
 * **Increase postwait:** Increases the postwait time by given time for the selected cue
@@ -35,11 +36,11 @@ The following actions are available:
 
 There are presets included for most of these actions.
 
-for additional actions please raise a feature request at [github](https://github.com/bitfocus/companion-module-qlabfb)
+for additional actions please raise a feature request at [github](https://github.com/bitfocus/companion-module-qlab-advance/issues)
 
 ## Variables available
 
-To use the following, replace INSTANCENAME with the name of your module instance. 
+To use the following, replace INSTANCENAME with the name of your module instance.
 
 * **$(INSTANCENAME:q_ver)**: Version of QLab attached
 * **$(INSTANCENAME:n_id)**: UniqueID of the current Playhead Cue
