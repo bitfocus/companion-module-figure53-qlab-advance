@@ -100,7 +100,7 @@ instance.prototype.resetVars = function (doUpdate) {
 	};
 	if (doUpdate) {
 		self.updateNextCue();
-		self.updatePlaying();
+		self.updateRunning();
 	}
 };
 
