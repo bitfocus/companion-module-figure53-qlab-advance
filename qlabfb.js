@@ -272,7 +272,16 @@ instance.prototype.connect = function () {
 instance.prototype.prime_vars = function (ws) {
 	var self = this;
 
-	if (self.needWorkspace && self.ready) {
+	if (self.needPasscode && (self.config.passcode == undefined || self.config.passcode == "")) {
+		self.status(self.STATUS_UNKNOWN, "Wrong Passcode");
+		self.status(self.STATUS_WARNING, "Wrong Passcode");
+		self.debug("waiting for passcode");
+		self.sendOSC(ws + "/connect", []);
+		if (self.timer !== undefined) {
+			clearTimeout(self.timer);
+		}
+		self.timer = setTimeout(function () { self.prime_vars(ws); }, 5000);
+	} else if (self.needWorkspace && self.ready) {
 		if (self.config.passcode !== undefined && self.config.passcode !== "") {
 			self.debug("sending passcode to", self.config.host);
 			self.sendOSC(ws + "/connect", [
@@ -296,7 +305,7 @@ instance.prototype.prime_vars = function (ws) {
 		);
 		self.sendOSC(ws + "/updates", []);
 		self.sendOSC(ws + "/cueLists", []);
-		setTimeout(function () { self.prime_vars(ws); }, 5000);
+		self.timer = setTimeout(function () { self.prime_vars(ws); }, 5000);
 	}
 };
 
@@ -333,7 +342,7 @@ instance.prototype.init_osc = function () {
 			self.status(self.STATUS_ERROR, "Can't connect to QLab");
 			if (err.code == "ECONNREFUSED") {
 				self.qSocket.removeAllListeners();
-				setTimeout(function () { self.connect(); }, 5000);
+				self.timer = setTimeout(function () { self.connect(); }, 5000);
 			}
 		});
 
@@ -349,7 +358,7 @@ instance.prototype.init_osc = function () {
 				self.log("Closed");
 				self.ready = false;
 				self.status(self.STATUS_WARNING, "CLOSED");
-				setTimeout(function () { self.connect(); }, 5000);
+				self.timer = setTimeout(function () { self.connect(); }, 5000);
 			}
 		});
 
@@ -520,6 +529,7 @@ instance.prototype.readUpdate = function (message) {
 	} else if (ma.match(/\/disconnect$/)) {
 		self.status(self.STATUS_WARNING, "No Workspaces");
 		self.needWorkspace = true;
+		self.needPasscode = false;
 		self.resetVars(true);
 		self.prime_vars(ws);
 	}
@@ -541,9 +551,11 @@ instance.prototype.readReply = function (message) {
 
 	if (ma.match(/\/connect$/)) {
 		if (j.data == "badpass") {
-			self.needPasscode = true;
-			self.status(self.STATUS_WARNING, "Bad or missing Passcode");
-			self.prime_vars(ws);
+			if (!self.needPasscode) {
+				self.needPasscode = true;
+				self.status(self.STATUS_WARNING, "Wrong Passcode");
+				self.prime_vars(ws);
+			}
 		} else if (j.data == "error") {
 			self.needPasscode = false;
 			self.status(self.STATUS_WARNING, "No Workspaces");
