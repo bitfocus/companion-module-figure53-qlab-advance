@@ -79,6 +79,7 @@ instance.prototype.resetVars = function (doUpdate) {
 	// list of cues and info for by this QLab workspace
 	self.cueList = {};
 	self.cueOrder = [];
+	self.lastRunID = '-';
 
 	// play head info
 	self.nextCue = {
@@ -100,7 +101,7 @@ instance.prototype.resetVars = function (doUpdate) {
 	};
 	if (doUpdate) {
 		self.updateNextCue();
-		self.updateRunning();
+		self.updatePlaying();
 	}
 };
 
@@ -423,6 +424,7 @@ instance.prototype.updateCues = function (cue, stat) {
 		q = new self.JSONtoCue(cue, self);
 		if (qTypes.includes(q.qType)) {
 			self.cueList[q.uniqueID] = q;
+			self.updatePlaying();
 			if (q.uniqueID == self.nextCue.ID) {
 				self.nextCue.Name = q.qName;
 				self.nextCue.Num = q.qNumber;
@@ -430,8 +432,6 @@ instance.prototype.updateCues = function (cue, stat) {
 				self.nextCue.Loaded = q.isLoaded;
 				self.nextCue.Broken = q.isBroken;
 				self.updateNextCue();
-			} else {
-				self.updatePlaying();
 			}
 		}
 	}
@@ -488,7 +488,7 @@ instance.prototype.updatePlaying = function () {
 	}
 	// update if changed
 	if (self.runningCue.ID != lastRunID) {
-		self.updateRunning();
+		self.updateRunning(true);
 	}
 };
 
@@ -557,11 +557,12 @@ instance.prototype.readReply = function (message) {
 			}
 		} else if (j.data == "error") {
 			self.needPasscode = false;
+			self.needWorkspace = true;
 			self.status(self.STATUS_WARNING, "No Workspaces");
 		} else if (j.data == "ok") {
 			self.needPasscode = false;
+			self.needWorkspace = true;
 			self.status(self.STATUS_OK, "Connected");
-			self.needWorkspace = false;
 		}
 	}
 	if (ma.match(/updates$/)) {
@@ -1646,7 +1647,7 @@ instance.prototype.action = function (action) {
 	}
 
 	if (!self.ready) {
-		debug("Not connected", self.config.host);
+		debug("Not connected to", self.config.host);
 	} else if (cmd !== undefined) {
 		debug('sending', ws + cmd, arg, "to", self.config.host);
 		self.sendOSC(ws + cmd, arg);
