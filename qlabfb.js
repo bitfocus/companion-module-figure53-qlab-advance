@@ -64,7 +64,7 @@ function instance(system, id, config) {
 var qCueRequest = [
 	{
 		type: "s",
-		value: '["number","uniqueID","listName","type",' +
+		value: '["number","uniqueID","listName","type","isPaused",' +
 			'"colorName","isRunning","isLoaded","armed","isBroken"]'
 	}
 ];
@@ -88,6 +88,8 @@ instance.prototype.resetVars = function (doUpdate) {
 		Num: '',
 		Loaded: false,
 		Broken: false,
+		Running: false,
+		Paused: false,
 		Color: self.rgb(0, 0, 0)
 	};
 	// most recent running cue
@@ -97,6 +99,8 @@ instance.prototype.resetVars = function (doUpdate) {
 		Num: '',
 		Loaded: false,
 		Broken: false,
+		Running: false,
+		Paused: false,
 		Color: self.rgb(0, 0, 0)
 	};
 	if (doUpdate) {
@@ -111,7 +115,11 @@ instance.prototype.updateNextCue = function () {
 	self.setVariable('n_id', self.nextCue.ID);
 	self.setVariable('n_name', self.nextCue.Name);
 	self.setVariable('n_num', self.nextCue.Num);
-	self.setVariable('n_status', self.nextCue.Broken ? "\u2715" : self.nextCue.Loaded ? "!" : ":");
+	self.setVariable('n_stat', self.nextCue.Broken ? "\u2715" :
+							self.nextCue.Running ? ">" :
+							self.nextCue.Paused ? "\u23F8" :
+							self.nextCue.Loaded ? "|" :
+							"\u23EF");
 	self.checkFeedbacks('playhead_bg');
 };
 
@@ -121,7 +129,11 @@ instance.prototype.updateRunning = function () {
 	self.setVariable('r_id', self.runningCue.ID);
 	self.setVariable('r_name', self.runningCue.Name);
 	self.setVariable('r_num', self.runningCue.Num);
-	//self.setVariable('r_loaded',self.runningCue.Loaded ? "!" : ":");
+	self.setVariable('r_stat', self.runningCue.Broken ? "\u2715" :
+							self.runningCue.Running ? ">" :
+							self.runningCue.Paused ? "\u23F8" :
+							self.runningCue.Loaded ? "|" :
+							"\u23EF");
 	self.checkFeedbacks('run_bg');
 };
 
@@ -133,12 +145,13 @@ instance.prototype.JSONtoCue = function (j, i) {
 	self.qNumber = j.number;
 	self.qColorName = j.colorName;
 	self.qType = j.type.toLowerCase();
-	self.running = j.isRunning;
+	self.isRunning = j.isRunning;
 	self.isLoaded = j.isLoaded;
 	self.isBroken = j.isBroken;
+	self.isPaused = j.isPaused;
 	self.qOrder = j.qOrder;
 
-	if (self.running) {
+	if (self.isRunning || self.isPaused) {
 		self.startedAt = Date.now();
 	} else {
 		self.startedAt = 0;
@@ -225,35 +238,39 @@ instance.prototype.init_variables = function () {
 	var variables = [
 		{
 			label: 'Version of QLab attached to this instance',
-			name: 'q_ver'
+			name:  'q_ver'
 		},
 		{
 			label: 'Playhead Cue UniqueID',
-			name: 'n_id'
+			name:  'n_id'
 		},
 		{
 			label: 'Playhead Cue Name',
-			name: 'n_name'
+			name:  'n_name'
 		},
 		{
 			label: 'Playhead Cue Number',
-			name: 'n_num'
+			name:  'n_num'
 		},
 		{
-			label: 'Playhead Status "\u2715" if broken,  "!" if loaded, or ":"',
-			name: 'n_status'
+			label: 'Playhead Cue Status',
+			name:  'n_stat'
 		},
 		{
 			label: 'Running Cue UniqueID',
-			name: 'r_id'
+			name:  'r_id'
 		},
 		{
 			label: 'Running Cue Name',
-			name: 'r_name'
+			name:  'r_name'
 		},
 		{
 			label: 'Running Cue Number',
-			name: 'r_num'
+			name:  'r_num'
+		},
+		{
+			label: 'Running Cue Status',
+			name:  'r_stat'
 		}
 	];
 
@@ -295,7 +312,8 @@ instance.prototype.prime_vars = function (ws) {
 			self.sendOSC(ws + "/connect", []);
 		}
 		// request variable/feedback info
-		self.sendOSC(ws + "/runningCues", []);
+		// get list of running cues
+		self.sendOSC(ws + "/runningCues",[]);
 		self.sendOSC(ws + "/version");
 		self.sendOSC(ws + "/cue/playhead/uniqueID", []);
 		self.sendOSC(ws + "/updates", [
@@ -336,8 +354,8 @@ instance.prototype.init_osc = function () {
 
 
 		self.qSocket.on("error", function (err) {
-			debug("Network error", err);
-			self.log('error', "Network error: " + err.message);
+			debug("Error", err);
+			self.log('error', "Error: " + err.message);
 			self.connecting = false;
 			self.ready = false;
 			self.status(self.STATUS_ERROR, "Can't connect to QLab");
@@ -411,7 +429,18 @@ instance.prototype.updateCues = function (cue, stat) {
 			q = new self.JSONtoCue(cue[i], self);
 			q.qOrder = i;
 			if (qTypes.includes(q.qType)) {
-				q.running = (stat == 'r');
+				if (stat == 'p') {
+					if (q.uniqueID in self.cueList) {
+						q.isRunning = (self.cueList[q.uniqueID].isRunning);
+						q.isPaused = !q.isRunning;
+
+					} else {
+						q.isPaused = true;
+					}
+				} else if (stat == 'r') {
+					q.isRunning = true;
+					q.isPaused = false;
+				}
 				q.startedAt = Date.now();
 				self.cueList[q.uniqueID] = q;
 			}
@@ -431,6 +460,8 @@ instance.prototype.updateCues = function (cue, stat) {
 				self.nextCue.Color = q.qColor;
 				self.nextCue.Loaded = q.isLoaded;
 				self.nextCue.Broken = q.isBroken;
+				self.nextCue.Running = q.isRunning;
+				self.nextCue.Paused = q.isPaused;
 				self.updateNextCue();
 			}
 		}
@@ -449,7 +480,7 @@ instance.prototype.updatePlaying = function () {
 	var runningCues = [];
 
 	Object.keys(cues).forEach(function (cue) {
-		if (cues[cue].running == true) {
+		if (cues[cue].isRunning || cues[cue].isPaused) {
 			runningCues.push([cue, cues[cue].startedAt]);
 			if (cues[cue].qType == "group") {
 				hasGroup = true;
@@ -467,6 +498,8 @@ instance.prototype.updatePlaying = function () {
 			Name: '[none]',
 			Num: '',
 			Loaded: false,
+			Running: false,
+			Paused: false,
 			Color: self.rgb(0, 0, 0)
 		};
 	} else {
@@ -482,14 +515,16 @@ instance.prototype.updatePlaying = function () {
 				Name: q.qName,
 				Num: q.qNumber,
 				Color: q.qColor,
-				Loaded: q.isLoaded
+				Loaded: q.isLoaded,
+				Paused: q.isPaused,
+				Running: q.isRunning
 			};
 		}
 	}
 	// update if changed
-	if (self.runningCue.ID != lastRunID) {
+//	if (self.runningCue.ID != lastRunID) {
 		self.updateRunning(true);
-	}
+//	}
 };
 
 /**
@@ -580,6 +615,11 @@ instance.prototype.readReply = function (message) {
 		}
 	} else if (ma.match(/runningCues$/)) {
 		self.updateCues(j.data, 'r');
+		// paused cues are ones in this next list
+		// that aren't in the last (running) one
+		self.sendOSC(ws + "/runningOrPausedCues", []);
+	} else if (ma.match(/runningOrPausedCues$/)) {
+		self.updateCues(j.data, 'p');
 		self.updatePlaying();
 	} else if (ma.match(/\/cueLists$/)) {
 		if (j.data != undefined) {

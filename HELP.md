@@ -46,10 +46,11 @@ To use the following, replace INSTANCENAME with the name of your module instance
 * **$(INSTANCENAME:n_id)**: UniqueID of the current Playhead Cue
 * **$(INSTANCENAME:n_name)**: Name of the current Playhead Cue or [none]
 * **$(INSTANCENAME:n_num)**: Number of the current Playhead Cue
-* **$(INSTANCENAME:n_status)**: Playhead Status: "✕" if broken, "!" if loaded, or ":"
+* **$(INSTANCENAME:n_stat)**: Playhead Cue Status: "✕" if broken, "|" if loaded, ">" if running, "⏸" if paused, "⏯" if ready
 * **$(INSTANCENAME:r_id)**: UniqueID of the current Running Cue
 * **$(INSTANCENAME:r_name)**: Name of the current Running Cue or [none]
 * **$(INSTANCENAME:r_num)**: Number of the current Running Cue
+* **$(INSTANCENAME:r_stat)**: Running Cue Status: "✕" if broken, "|" if loaded, ">" if running, "⏸" if paused, "⏯" if ready
 
 ## Feedback available
 
