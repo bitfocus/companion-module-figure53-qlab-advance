@@ -116,10 +116,10 @@ instance.prototype.updateNextCue = function () {
 	self.setVariable('n_name', self.nextCue.Name);
 	self.setVariable('n_num', self.nextCue.Num);
 	self.setVariable('n_stat', self.nextCue.Broken ? "\u2715" :
-							self.nextCue.Running ? ">" :
+							self.nextCue.Running ? "\u23F5" :
 							self.nextCue.Paused ? "\u23F8" :
-							self.nextCue.Loaded ? "|" :
-							"\u23EF");
+							self.nextCue.Loaded ? "\u23FD" :
+							"\u00b7");
 	self.checkFeedbacks('playhead_bg');
 };
 
@@ -130,10 +130,10 @@ instance.prototype.updateRunning = function () {
 	self.setVariable('r_name', self.runningCue.Name);
 	self.setVariable('r_num', self.runningCue.Num);
 	self.setVariable('r_stat', self.runningCue.Broken ? "\u2715" :
-							self.runningCue.Running ? ">" :
+							self.runningCue.Running ? "\u23F5" :
 							self.runningCue.Paused ? "\u23F8" :
-							self.runningCue.Loaded ? "|" :
-							"\u23EF");
+							self.runningCue.Loaded ? "\u23FD" :
+							"\u00b7");
 	self.checkFeedbacks('run_bg');
 };
 
@@ -313,7 +313,6 @@ instance.prototype.prime_vars = function (ws) {
 		}
 		// request variable/feedback info
 		// get list of running cues
-		self.sendOSC(ws + "/runningCues",[]);
 		self.sendOSC(ws + "/version");
 		self.sendOSC(ws + "/cue/playhead/uniqueID", []);
 		self.sendOSC(ws + "/updates", [
@@ -472,11 +471,23 @@ instance.prototype.updateCues = function (cue, stat) {
  * update list of running cues
  */
 instance.prototype.updatePlaying = function () {
+
+	function qState (q) {
+		var ret = q.ID + ':';
+		ret +=
+			q.Broken ? '0' :
+			q.Running ? '1' :
+			q.Paused ? '2' :
+			q.Loaded ? '3' :
+			'4';
+		return ret;
+	}
+
 	var self = this;
 	var hasGroup = false;
 	var i = 0;
 	var cues = self.cueList;
-	var lastRunID = self.runningCue.ID;
+	var lastRun = qState(self.runningCue);
 	var runningCues = [];
 
 	Object.keys(cues).forEach(function (cue) {
@@ -522,9 +533,9 @@ instance.prototype.updatePlaying = function () {
 		}
 	}
 	// update if changed
-//	if (self.runningCue.ID != lastRunID) {
+	if (qState(self.runningCue) != lastRun) {
 		self.updateRunning(true);
-//	}
+	}
 };
 
 /**
@@ -625,6 +636,7 @@ instance.prototype.readReply = function (message) {
 		if (j.data != undefined) {
 			var q = j.data[0];
 			self.updateCues(q.cues, 'l');
+			self.sendOSC(ws + "/runningCues",[]);
 		}
 	} else if (ma.match(/valuesForKeys$/)) {
 		self.updateCues(j.data, 'v');
@@ -1364,16 +1376,16 @@ instance.prototype.destroy = function () {
 
 instance.prototype.continueMode = [
 	{ label: 'Do Not Continue', id: '0' },
-	{ label: 'Auto Continue', id: '1' },
-	{ label: 'Auto Follow', id: '2' }
+	{ label: 'Auto Continue',   id: '1' },
+	{ label: 'Auto Follow',     id: '2' }
 ];
 
 instance.prototype.colorName = [
-	{ label: 'None', id: 'none' },
-	{ label: 'Red', id: 'red' },
+	{ label: 'None',   id: 'none' },
+	{ label: 'Red',    id: 'red' },
 	{ label: 'Orange', id: 'orange' },
-	{ label: 'Green', id: 'green' },
-	{ label: 'Blue', id: 'blue' },
+	{ label: 'Green',  id: 'green' },
+	{ label: 'Blue',   id: 'blue' },
 	{ label: 'Purple', id: 'purple' }
 ];
 
@@ -1384,147 +1396,141 @@ instance.prototype.actions = function (system) {
 	self.system.emit('instance_actions', self.id, {
 		'start': {
 			label: 'Start (cue)',
-			options: [
-				{
-					type: 'textinput',
-					label: 'Cue',
-					id: 'cue',
-					default: "1"
-				}
-			]
+			options: [{
+				type: 'textinput',
+				label: 'Cue',
+				id: 'cue',
+				default: "1"
+			}]
 		},
 		'prewait_dec': {
 			label: 'Decrease Prewait',
-			options: [
-				{
-					type: 'textinput',
-					label: 'Time in seconds',
-					id: 'time',
-					default: "1"
-				}
-			]
+			options: [{
+				type: 'textinput',
+				label: 'Time in seconds',
+				id: 'time',
+				default: "1"
+			}]
 		},
 		'prewait_inc': {
 			label: 'Increase Prewait',
-			options: [
-				{
-					type: 'textinput',
-					label: 'Time in seconds',
-					id: 'time',
-					default: "1"
-				}
-			]
+			options: [{
+				type: 'textinput',
+				label: 'Time in seconds',
+				id: 'time',
+				default: "1"
+			}]
 		},
 		'postwait_dec': {
 			label: 'Decrease Postwait',
-			options: [
-				{
-					type: 'textinput',
-					label: 'Time in seconds',
-					id: 'time',
-					default: "1"
-				}
-			]
+			options: [{
+				type: 'textinput',
+				label: 'Time in seconds',
+				id: 'time',
+				default: "1"
+			}]
 		},
 		'postwait_inc': {
 			label: 'Increase Postwait',
-			options: [
-				{
-					type: 'textinput',
-					label: 'Time in seconds',
-					id: 'time',
-					default: "1"
-				}
-			]
+			options: [{
+				type: 'textinput',
+				label: 'Time in seconds',
+				id: 'time',
+				default: "1"
+			}]
 		},
 		'duration_dec': {
 			label: 'Decrease Duration',
-			options: [
-				{
-					type: 'textinput',
-					label: 'Time in seconds',
-					id: 'time',
-					default: "1"
-				}
-			]
+			options: [{
+				type: 'textinput',
+				label: 'Time in seconds',
+				id: 'time',
+				default: "1"
+			}]
 		},
 		'duration_inc': {
 			label: 'Increase Duration',
-			options: [
-				{
-					type: 'textinput',
-					label: 'Time in seconds',
-					id: 'time',
-					default: "1"
-				}
-			]
+			options: [{
+				type: 'textinput',
+				label: 'Time in seconds',
+				id: 'time',
+				default: "1"
+			}]
 		},
 		'continue': {
 			label: 'Set Continue Mode',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Continue Mode',
-					id: 'contId',
-					choices: self.continueMode
-				}
-			]
+			options: [{
+				type: 'dropdown',
+				label: 'Continue Mode',
+				id: 'contId',
+				choices: self.continueMode
+			}]
 		},
 		'arm': {
 			label: 'Arm/Disarm Cue',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Arm/Disarm',
-					id: 'armId',
-					choices: [{ id: '0', label: 'Disarm' }, { id: '1', label: 'Arm' }]
-				}
-			]
+			options: [{
+				type: 'dropdown',
+				label: 'Arm/Disarm',
+				id: 'armId',
+				choices: [{
+					id: '0',
+					label: 'Disarm'
+				}, {
+					id: '1',
+					label: 'Arm'
+				}]
+			}]
 		},
 		'autoload': {
 			label: 'Enable/Disable Cue Autoload ',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Autoload',
-					id: 'autoId',
-					choices: [{ id: '0', label: 'Disable' }, { id: '1', label: 'Enable' }]
-				}
-			]
+			options: [{
+				type: 'dropdown',
+				label: 'Autoload',
+				id: 'autoId',
+				choices: [{
+					id: '0',
+					label: 'Disable'
+				}, {
+					id: '1',
+					label: 'Enable'
+				}]
+			}]
 		},
 		'flagged': {
 			label: 'Flagged/Unflagged Cue',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Flagged',
-					id: 'flaggId',
-					choices: [{ id: '0', label: 'Disable' }, { id: '1', label: 'Enable' }]
-				}
-			]
+			options: [{
+				type: 'dropdown',
+				label: 'Flagged',
+				id: 'flaggId',
+				choices: [{
+					id: '0',
+					label: 'Disable'
+				}, {
+					id: '1',
+					label: 'Enable'
+				}]
+			}]
 		},
 		'cueColor': {
 			label: 'Set Selected Cue Color',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Color',
-					id: 'colorId',
-					choices: self.colorName
-				}
-			]
+			options: [{
+				type: 'dropdown',
+				label: 'Color',
+				id: 'colorId',
+				choices: self.colorName
+			}]
 		},
 
-		'go': { label: 'GO' },
-		'pause': { label: 'Pause' },
-		'stop': { label: 'Stop' },
-		'panic': { label: 'Panic' },
-		'reset': { label: 'Reset' },
+		'go': 	    { label: 'GO' },
+		'pause':    { label: 'Pause' },
+		'stop':     { label: 'Stop' },
+		'panic':    { label: 'Panic' },
+		'reset':    { label: 'Reset' },
 		'previous': { label: 'Previous Cue' },
-		'next': { label: 'Next Cue' },
-		'resume': { label: 'Resume' },
-		'load': { label: 'Load Cue' },
-		'preview': { label: 'Preview'}
+		'next':     { label: 'Next Cue' },
+		'resume':   { label: 'Resume' },
+		'load':     { label: 'Load Cue' },
+		'preview':  { label: 'Preview'}
 		});
 };
 
