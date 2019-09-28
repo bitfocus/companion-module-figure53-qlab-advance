@@ -1371,7 +1371,10 @@ instance.prototype.init_presets = function () {
 // When module gets deleted
 instance.prototype.destroy = function () {
 	var self = this;
-	debug("destory", self.id);
+	if (self.timer !== undefined) {
+		clearTimeout(self.timer);
+	}
+	debug("destroy", self.id);
 };
 
 instance.prototype.continueMode = [
