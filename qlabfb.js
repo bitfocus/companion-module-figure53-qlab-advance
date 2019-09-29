@@ -16,15 +16,15 @@ function instance(system, id, config) {
 	self.resetVars();
 
 	self.colorRGB = {
-		none: self.rgb(32,32,32),
-		red: self.rgb(160,0,0),
-		orange: self.rgb(160,100,0),
-		green: self.rgb(0,160,0),
-		blue: self.rgb(0,0,160),
-		purple: self.rgb(160,0,160)
+		none: self.rgb(32, 32, 32),
+		red: self.rgb(160, 0, 0),
+		orange: self.rgb(160, 100, 0),
+		green: self.rgb(0, 160, 0),
+		blue: self.rgb(0, 0, 160),
+		purple: self.rgb(160, 0, 160)
 	};
 
-		// each instance needs a separate local port
+	// each instance needs a separate local port
 	id.split('').forEach(function (c) {
 		po += c.charCodeAt(0);
 	});
@@ -37,34 +37,34 @@ function instance(system, id, config) {
 	self.actions(); // export actions
 
 	// shouldn't need this, we're a new module
-/* 	// some prior button actions were created
-	// from a preset with a case typo
-	self.addUpgradeScript(function (config, actions) {
-		var changed = false;
+	/* 	// some prior button actions were created
+		// from a preset with a case typo
+		self.addUpgradeScript(function (config, actions) {
+			var changed = false;
 
-		for (var k in actions) {
-			var action = actions[k];
+			for (var k in actions) {
+				var action = actions[k];
 
-			if (action.action == "autoLoad") {
-				if (action.options.autoId==1) {
-					action.action = "autoload";
-					action.label = action.id + ":" + action.action;
-					changed = true;
+				if (action.action == "autoLoad") {
+					if (action.options.autoId==1) {
+						action.action = "autoload";
+						action.label = action.id + ":" + action.action;
+						changed = true;
+					}
 				}
+
 			}
 
-		}
-
-		return changed;
-	});
- */
+			return changed;
+		});
+	 */
 	return self;
 }
 
 var qCueRequest = [
 	{
 		type: "s",
-		value: '["number","uniqueID","listName","type",' +
+		value: '["number","uniqueID","listName","type","isPaused",' +
 			'"colorName","isRunning","isLoaded","armed","isBroken"]'
 	}
 ];
@@ -79,6 +79,7 @@ instance.prototype.resetVars = function (doUpdate) {
 	// list of cues and info for by this QLab workspace
 	self.cueList = {};
 	self.cueOrder = [];
+	self.lastRunID = '-';
 
 	// play head info
 	self.nextCue = {
@@ -87,7 +88,9 @@ instance.prototype.resetVars = function (doUpdate) {
 		Num: '',
 		Loaded: false,
 		Broken: false,
-		Color: self.rgb(0,0,0)
+		Running: false,
+		Paused: false,
+		Color: self.rgb(0, 0, 0)
 	};
 	// most recent running cue
 	self.runningCue = {
@@ -96,7 +99,9 @@ instance.prototype.resetVars = function (doUpdate) {
 		Num: '',
 		Loaded: false,
 		Broken: false,
-		Color: self.rgb(0,0,0)
+		Running: false,
+		Paused: false,
+		Color: self.rgb(0, 0, 0)
 	};
 	if (doUpdate) {
 		self.updateNextCue();
@@ -107,24 +112,32 @@ instance.prototype.resetVars = function (doUpdate) {
 instance.prototype.updateNextCue = function () {
 	var self = this;
 
-	self.setVariable('n_id',self.nextCue.ID);
+	self.setVariable('n_id', self.nextCue.ID);
 	self.setVariable('n_name', self.nextCue.Name);
 	self.setVariable('n_num', self.nextCue.Num);
-	self.setVariable('n_status',self.nextCue.Broken ? "\u2715" : self.nextCue.Loaded ? "!" : ":");
+	self.setVariable('n_stat', self.nextCue.Broken ? "\u2715" :
+							self.nextCue.Running ? "\u23F5" :
+							self.nextCue.Paused ? "\u23F8" :
+							self.nextCue.Loaded ? "\u23FD" :
+							"\u00b7");
 	self.checkFeedbacks('playhead_bg');
 };
 
 instance.prototype.updateRunning = function () {
 	var self = this;
 
-	self.setVariable('r_id',self.runningCue.ID);
+	self.setVariable('r_id', self.runningCue.ID);
 	self.setVariable('r_name', self.runningCue.Name);
 	self.setVariable('r_num', self.runningCue.Num);
-	//self.setVariable('r_loaded',self.runningCue.Loaded ? "!" : ":");
+	self.setVariable('r_stat', self.runningCue.Broken ? "\u2715" :
+							self.runningCue.Running ? "\u23F5" :
+							self.runningCue.Paused ? "\u23F8" :
+							self.runningCue.Loaded ? "\u23FD" :
+							"\u00b7");
 	self.checkFeedbacks('run_bg');
 };
 
-instance.prototype.JSONtoCue = function(j,i) {
+instance.prototype.JSONtoCue = function (j, i) {
 	var self = this;
 
 	self.uniqueID = j.uniqueID;
@@ -132,12 +145,13 @@ instance.prototype.JSONtoCue = function(j,i) {
 	self.qNumber = j.number;
 	self.qColorName = j.colorName;
 	self.qType = j.type.toLowerCase();
-	self.running = j.isRunning;
+	self.isRunning = j.isRunning;
 	self.isLoaded = j.isLoaded;
 	self.isBroken = j.isBroken;
+	self.isPaused = j.isPaused;
 	self.qOrder = j.qOrder;
 
-	if (self.running) {
+	if (self.isRunning || self.isPaused) {
 		self.startedAt = Date.now();
 	} else {
 		self.startedAt = 0;
@@ -224,35 +238,39 @@ instance.prototype.init_variables = function () {
 	var variables = [
 		{
 			label: 'Version of QLab attached to this instance',
-			name: 'q_ver'
+			name:  'q_ver'
 		},
 		{
 			label: 'Playhead Cue UniqueID',
-			name: 'n_id'
+			name:  'n_id'
 		},
 		{
 			label: 'Playhead Cue Name',
-			name: 'n_name'
+			name:  'n_name'
 		},
 		{
 			label: 'Playhead Cue Number',
-			name: 'n_num'
+			name:  'n_num'
 		},
 		{
-			label: 'Playhead Status "\u2715" if broken,  "!" if loaded, or ":"',
-			name: 'n_status'
+			label: 'Playhead Cue Status',
+			name:  'n_stat'
 		},
 		{
 			label: 'Running Cue UniqueID',
-			name: 'r_id'
+			name:  'r_id'
 		},
 		{
 			label: 'Running Cue Name',
-			name: 'r_name'
+			name:  'r_name'
 		},
 		{
 			label: 'Running Cue Number',
-			name: 'r_num'
+			name:  'r_num'
+		},
+		{
+			label: 'Running Cue Status',
+			name:  'r_stat'
 		}
 	];
 
@@ -261,18 +279,27 @@ instance.prototype.init_variables = function () {
 	self.updateNextCue();
 };
 
-instance.prototype.connect = function() {
+instance.prototype.connect = function () {
 	var self = this;
-	self.status(self.STATUS_UNKNOWN,"Connecting");
+	self.status(self.STATUS_UNKNOWN, "Connecting");
 	self.init_osc();
 };
 
 // get current status of QLab cues and playhead
 // and ask for updates
-instance.prototype.prime_vars = function(ws) {
+instance.prototype.prime_vars = function (ws) {
 	var self = this;
 
-	if (self.needWorkspace && self.ready) {
+	if (self.needPasscode && (self.config.passcode == undefined || self.config.passcode == "")) {
+		self.status(self.STATUS_UNKNOWN, "Wrong Passcode");
+		self.status(self.STATUS_WARNING, "Wrong Passcode");
+		self.debug("waiting for passcode");
+		self.sendOSC(ws + "/connect", []);
+		if (self.timer !== undefined) {
+			clearTimeout(self.timer);
+		}
+		self.timer = setTimeout(function () { self.prime_vars(ws); }, 5000);
+	} else if (self.needWorkspace && self.ready) {
 		if (self.config.passcode !== undefined && self.config.passcode !== "") {
 			self.debug("sending passcode to", self.config.host);
 			self.sendOSC(ws + "/connect", [
@@ -282,10 +309,10 @@ instance.prototype.prime_vars = function(ws) {
 				}]
 			);
 		} else {
-			self.sendOSC(ws + "/connect",[]);
+			self.sendOSC(ws + "/connect", []);
 		}
 		// request variable/feedback info
-		self.sendOSC(ws + "/runningCues", []);
+		// get list of running cues
 		self.sendOSC(ws + "/version");
 		self.sendOSC(ws + "/cue/playhead/uniqueID", []);
 		self.sendOSC(ws + "/updates", [
@@ -295,8 +322,8 @@ instance.prototype.prime_vars = function(ws) {
 			}]
 		);
 		self.sendOSC(ws + "/updates", []);
-		self.sendOSC(ws + "/cueLists",[]);
-		setTimeout(function() { self.prime_vars(ws); }, 5000);
+		self.sendOSC(ws + "/cueLists", []);
+		self.timer = setTimeout(function () { self.prime_vars(ws); }, 5000);
 	}
 };
 
@@ -323,22 +350,22 @@ instance.prototype.init_osc = function () {
 		});
 		self.connecting = true;
 		self.qSocket.open();
-	
 
-		self.qSocket.on("error", function(err) {
-			debug("Network error", err);
-			self.log('error',"Network error: " + err.message);
+
+		self.qSocket.on("error", function (err) {
+			debug("Error", err);
+			self.log('error', "Error: " + err.message);
 			self.connecting = false;
 			self.ready = false;
-			self.status(self.STATUS_ERROR,"Can't connect to QLab");
+			self.status(self.STATUS_ERROR, "Can't connect to QLab");
 			if (err.code == "ECONNREFUSED") {
 				self.qSocket.removeAllListeners();
-				setTimeout(function() { self.connect();	}, 5000);
+				self.timer = setTimeout(function () { self.connect(); }, 5000);
 			}
 		});
 
-		self.qSocket.on("close", function(){
-			self.log('error',"Connection Closed");
+		self.qSocket.on("close", function () {
+			self.log('error', "Connection to QLab Closed");
 			self.connecting = false;
 			if (self.ready) {
 				self.needWorkspace = true;
@@ -346,17 +373,16 @@ instance.prototype.init_osc = function () {
 				self.resetVars(true);
 				self.qSocket.removeAllListeners();
 				debug("Connection closed");
-				self.log("Closed");
 				self.ready = false;
-				self.status(self.STATUS_WARNING,"CLOSED");
-				setTimeout(function() { self.connect(); }, 5000);
+				self.status(self.STATUS_WARNING, "CLOSED");
+				self.timer = setTimeout(function () { self.connect(); }, 5000);
 			}
 		});
 
 		self.qSocket.on("ready", function () {
 			self.ready = true;
 			self.connecting = false;
-			self.log("Connected to",self.config.host);
+			self.log('info',"Connected to QLab:" + self.config.host);
 			self.status(self.STATUS_WARNING, "No Workspaces");
 			self.needWorkspace = true;
 
@@ -373,7 +399,7 @@ instance.prototype.init_osc = function () {
 				// debug("readReply");
 				self.readReply(message);
 			} else {
-				debug(message.address,message.args);
+				debug(message.address, message.args);
 			}
 		});
 	}
@@ -385,45 +411,57 @@ instance.prototype.init_osc = function () {
 /**
  * update list cues
  */
-instance.prototype.updateCues = function(cue, stat) {
+instance.prototype.updateCues = function (cue, stat) {
 	var self = this;
 	// list of useful cue types don't really need status for a 'cue list'
-	var qTypes = [ 'audio','mic','video','camera',
-		'text','light','fade','network','midi','midi file',
-		'timecode','group','start','stop','pause','load',
-		'reset','devamp','goto','target',
-		'arm','disarm','wait','memo','script'
+	var qTypes = ['audio', 'mic', 'video', 'camera',
+		'text', 'light', 'fade', 'network', 'midi', 'midi file',
+		'timecode', 'group', 'start', 'stop', 'pause', 'load',
+		'reset', 'devamp', 'goto', 'target',
+		'arm', 'disarm', 'wait', 'memo', 'script'
 	];
 	var q = {};
 
 	if (Array.isArray(cue)) {
 		var i = 0;
-		while( i < cue.length) {
-			q = new self.JSONtoCue(cue[i],self);
+		while (i < cue.length) {
+			q = new self.JSONtoCue(cue[i], self);
 			q.qOrder = i;
 			if (qTypes.includes(q.qType)) {
-				q.running = (stat=='r');
+				if (stat == 'p') {
+					if (q.uniqueID in self.cueList) {
+						q.isRunning = (self.cueList[q.uniqueID].isRunning);
+						q.isPaused = !q.isRunning;
+
+					} else {
+						q.isPaused = true;
+					}
+				} else if (stat == 'r') {
+					q.isRunning = true;
+					q.isPaused = false;
+				}
 				q.startedAt = Date.now();
 				self.cueList[q.uniqueID] = q;
 			}
-			if (stat=='l') {
+			if (stat == 'l') {
 				self.cueOrder[i] = q.uniqueID;
 			}
 			i += 1;
 		}
 	} else {
-		q = new self.JSONtoCue(cue,self);
+		q = new self.JSONtoCue(cue, self);
 		if (qTypes.includes(q.qType)) {
 			self.cueList[q.uniqueID] = q;
+			self.updatePlaying();
 			if (q.uniqueID == self.nextCue.ID) {
 				self.nextCue.Name = q.qName;
 				self.nextCue.Num = q.qNumber;
 				self.nextCue.Color = q.qColor;
 				self.nextCue.Loaded = q.isLoaded;
 				self.nextCue.Broken = q.isBroken;
+				self.nextCue.Running = q.isRunning;
+				self.nextCue.Paused = q.isPaused;
 				self.updateNextCue();
-			} else {
-				self.updatePlaying();
 			}
 		}
 	}
@@ -432,24 +470,36 @@ instance.prototype.updateCues = function(cue, stat) {
 /**
  * update list of running cues
  */
-instance.prototype.updatePlaying = function() {
+instance.prototype.updatePlaying = function () {
+
+	function qState (q) {
+		var ret = q.ID + ':';
+		ret +=
+			q.Broken ? '0' :
+			q.Running ? '1' :
+			q.Paused ? '2' :
+			q.Loaded ? '3' :
+			'4';
+		return ret;
+	}
+
 	var self = this;
 	var hasGroup = false;
 	var i = 0;
 	var cues = self.cueList;
-	var lastRunID = self.runningCue.ID;
+	var lastRun = qState(self.runningCue);
 	var runningCues = [];
 
-	Object.keys(cues).forEach(function(cue) {
-		if (cues[cue].running==true){
-			runningCues.push([cue,cues[cue].startedAt]);
-			if (cues[cue].qType=="group") {
+	Object.keys(cues).forEach(function (cue) {
+		if (cues[cue].isRunning || cues[cue].isPaused) {
+			runningCues.push([cue, cues[cue].startedAt]);
+			if (cues[cue].qType == "group") {
 				hasGroup = true;
 			}
 		}
 	});
 
-	runningCues.sort(function(a, b){
+	runningCues.sort(function (a, b) {
 		return b[1] - a[1];
 	});
 
@@ -459,35 +509,39 @@ instance.prototype.updatePlaying = function() {
 			Name: '[none]',
 			Num: '',
 			Loaded: false,
-			Color: self.rgb(0,0,0)
+			Running: false,
+			Paused: false,
+			Color: self.rgb(0, 0, 0)
 		};
 	} else {
 		if (hasGroup) {
-			while (cues[runningCues[i][0]].qType != "group" && i<runningCues.length) {
+			while (cues[runningCues[i][0]].qType != "group" && i < runningCues.length) {
 				i += 1;
 			}
 		}
-		if (i<runningCues.length) {
+		if (i < runningCues.length) {
 			var q = cues[runningCues[i][0]];
 			self.runningCue = {
 				ID: q.uniqueID,
 				Name: q.qName,
 				Num: q.qNumber,
 				Color: q.qColor,
-				Loaded: q.isLoaded
+				Loaded: q.isLoaded,
+				Paused: q.isPaused,
+				Running: q.isRunning
 			};
 		}
 	}
-// update if changed
-	if (self.runningCue.ID != lastRunID) {
-		self.updateRunning();
+	// update if changed
+	if (qState(self.runningCue) != lastRun) {
+		self.updateRunning(true);
 	}
 };
 
 /**
  * process QLab 'update'
  */
-instance.prototype.readUpdate = function(message) {
+instance.prototype.readUpdate = function (message) {
 	var self = this;
 	var ws = self.ws;
 	var ma = message.address;
@@ -498,7 +552,7 @@ instance.prototype.readUpdate = function(message) {
 	 */
 
 	if (ma.match(/playbackPosition$/)) {
-			if (message.args.length>0) {
+		if (message.args.length > 0) {
 			var oa = message.args[0].value;
 			if (oa !== self.nextCue) {
 				// playhead changed
@@ -516,10 +570,11 @@ instance.prototype.readUpdate = function(message) {
 	} else if (ma.match(/\/cue_id\//) && !(ma.match(/cue lists\]$/))) {
 		// get cue information for 'updated' cue
 		var node = ma.substring(7) + "/valuesForKeys";
-		self.sendOSC(node,qCueRequest);
+		self.sendOSC(node, qCueRequest);
 	} else if (ma.match(/\/disconnect$/)) {
 		self.status(self.STATUS_WARNING, "No Workspaces");
 		self.needWorkspace = true;
+		self.needPasscode = false;
 		self.resetVars(true);
 		self.prime_vars(ws);
 	}
@@ -529,7 +584,7 @@ instance.prototype.readUpdate = function(message) {
 /**
  * process QLab 'reply'
  */
-instance.prototype.readReply = function(message) {
+instance.prototype.readReply = function (message) {
 	var self = this;
 	var ws = self.ws;
 	var ma = message.address;
@@ -537,25 +592,28 @@ instance.prototype.readReply = function(message) {
 
 	try {
 		j = JSON.parse(message.args[0].value);
-	} catch(error) { /* ingnore errors */ }
+	} catch (error) { /* ingnore errors */ }
 
 	if (ma.match(/\/connect$/)) {
-		if (j.data=="badpass") {
-			self.needPasscode = true;
-			self.status(self.STATUS_WARNING,"Bad or missing Passcode");
-			self.prime_vars(ws);
-		} else if (j.data=="error") {
+		if (j.data == "badpass") {
+			if (!self.needPasscode) {
+				self.needPasscode = true;
+				self.status(self.STATUS_WARNING, "Wrong Passcode");
+				self.prime_vars(ws);
+			}
+		} else if (j.data == "error") {
 			self.needPasscode = false;
-			self.status(self.STATUS_WARNING,"No Workspaces");
-		} else if (j.data=="ok") {
+			self.needWorkspace = true;
+			self.status(self.STATUS_WARNING, "No Workspaces");
+		} else if (j.data == "ok") {
 			self.needPasscode = false;
-			self.status(self.STATUS_OK,"Connected");
-			self.needWorkspace = false;
+			self.needWorkspace = true;
+			self.status(self.STATUS_OK, "Connected");
 		}
 	}
 	if (ma.match(/updates$/)) {
 		self.needWorkspace = false;
-		self.status(self.STATUS_OK,"Connected to QLab");
+		self.status(self.STATUS_OK, "Connected to QLab");
 	} else if (ma.match(/version$/)) {
 		if (j.data != undefined) {
 			self.setVariable('q_ver', j.data);
@@ -568,11 +626,17 @@ instance.prototype.readReply = function(message) {
 		}
 	} else if (ma.match(/runningCues$/)) {
 		self.updateCues(j.data, 'r');
+		// paused cues are ones in this next list
+		// that aren't in the last (running) one
+		self.sendOSC(ws + "/runningOrPausedCues", []);
+	} else if (ma.match(/runningOrPausedCues$/)) {
+		self.updateCues(j.data, 'p');
 		self.updatePlaying();
 	} else if (ma.match(/\/cueLists$/)) {
 		if (j.data != undefined) {
 			var q = j.data[0];
 			self.updateCues(q.cues, 'l');
+			self.sendOSC(ws + "/runningCues",[]);
 		}
 	} else if (ma.match(/valuesForKeys$/)) {
 		self.updateCues(j.data, 'v');
@@ -719,13 +783,29 @@ instance.prototype.init_presets = function () {
 		},
 		{
 			category: 'CueList',
+			label: 'Preview',
+			bank: {
+				style: 'text',
+				text: 'Preview',
+				size: '18',
+				color: '16777215',
+				bgcolor: self.rgb(0, 128, 0)
+			},
+			actions: [
+				{
+					action: 'preview',
+				}
+			]
+		},
+		{
+			category: 'CueList',
 			label: 'Previous Cue',
 			bank: {
 				style: 'text',
 				text: 'Prev\\nCue',
 				size: '24',
 				color: '16777215',
-				bgcolor: self.rgb(0, 0, 100)
+				bgcolor: self.rgb(0, 0, 128)
 			},
 			actions: [
 				{
@@ -1291,21 +1371,24 @@ instance.prototype.init_presets = function () {
 // When module gets deleted
 instance.prototype.destroy = function () {
 	var self = this;
-	debug("destory", self.id);
+	if (self.timer !== undefined) {
+		clearTimeout(self.timer);
+	}
+	debug("destroy", self.id);
 };
 
 instance.prototype.continueMode = [
 	{ label: 'Do Not Continue', id: '0' },
-	{ label: 'Auto Continue', id: '1' },
-	{ label: 'Auto Follow', id: '2' }
+	{ label: 'Auto Continue',   id: '1' },
+	{ label: 'Auto Follow',     id: '2' }
 ];
 
 instance.prototype.colorName = [
-	{ label: 'None', id: 'none' },
-	{ label: 'Red', id: 'red' },
+	{ label: 'None',   id: 'none' },
+	{ label: 'Red',    id: 'red' },
 	{ label: 'Orange', id: 'orange' },
-	{ label: 'Green', id: 'green' },
-	{ label: 'Blue', id: 'blue' },
+	{ label: 'Green',  id: 'green' },
+	{ label: 'Blue',   id: 'blue' },
 	{ label: 'Purple', id: 'purple' }
 ];
 
@@ -1316,147 +1399,142 @@ instance.prototype.actions = function (system) {
 	self.system.emit('instance_actions', self.id, {
 		'start': {
 			label: 'Start (cue)',
-			options: [
-				{
-					type: 'textinput',
-					label: 'Cue',
-					id: 'cue',
-					default: "1"
-				}
-			]
+			options: [{
+				type: 'textinput',
+				label: 'Cue',
+				id: 'cue',
+				default: "1"
+			}]
 		},
 		'prewait_dec': {
 			label: 'Decrease Prewait',
-			options: [
-				{
-					type: 'textinput',
-					label: 'Time in seconds',
-					id: 'time',
-					default: "1"
-				}
-			]
+			options: [{
+				type: 'textinput',
+				label: 'Time in seconds',
+				id: 'time',
+				default: "1"
+			}]
 		},
 		'prewait_inc': {
 			label: 'Increase Prewait',
-			options: [
-				{
-					type: 'textinput',
-					label: 'Time in seconds',
-					id: 'time',
-					default: "1"
-				}
-			]
+			options: [{
+				type: 'textinput',
+				label: 'Time in seconds',
+				id: 'time',
+				default: "1"
+			}]
 		},
 		'postwait_dec': {
 			label: 'Decrease Postwait',
-			options: [
-				{
-					type: 'textinput',
-					label: 'Time in seconds',
-					id: 'time',
-					default: "1"
-				}
-			]
+			options: [{
+				type: 'textinput',
+				label: 'Time in seconds',
+				id: 'time',
+				default: "1"
+			}]
 		},
 		'postwait_inc': {
 			label: 'Increase Postwait',
-			options: [
-				{
-					type: 'textinput',
-					label: 'Time in seconds',
-					id: 'time',
-					default: "1"
-				}
-			]
+			options: [{
+				type: 'textinput',
+				label: 'Time in seconds',
+				id: 'time',
+				default: "1"
+			}]
 		},
 		'duration_dec': {
 			label: 'Decrease Duration',
-			options: [
-				{
-					type: 'textinput',
-					label: 'Time in seconds',
-					id: 'time',
-					default: "1"
-				}
-			]
+			options: [{
+				type: 'textinput',
+				label: 'Time in seconds',
+				id: 'time',
+				default: "1"
+			}]
 		},
 		'duration_inc': {
 			label: 'Increase Duration',
-			options: [
-				{
-					type: 'textinput',
-					label: 'Time in seconds',
-					id: 'time',
-					default: "1"
-				}
-			]
+			options: [{
+				type: 'textinput',
+				label: 'Time in seconds',
+				id: 'time',
+				default: "1"
+			}]
 		},
 		'continue': {
 			label: 'Set Continue Mode',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Continue Mode',
-					id: 'contId',
-					choices: self.continueMode
-				}
-			]
+			options: [{
+				type: 'dropdown',
+				label: 'Continue Mode',
+				id: 'contId',
+				choices: self.continueMode
+			}]
 		},
 		'arm': {
 			label: 'Arm/Disarm Cue',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Arm/Disarm',
-					id: 'armId',
-					choices: [{ id: '0', label: 'Disarm' }, { id: '1', label: 'Arm' }]
-				}
-			]
+			options: [{
+				type: 'dropdown',
+				label: 'Arm/Disarm',
+				id: 'armId',
+				choices: [{
+					id: '0',
+					label: 'Disarm'
+				}, {
+					id: '1',
+					label: 'Arm'
+				}]
+			}]
 		},
 		'autoload': {
 			label: 'Enable/Disable Cue Autoload ',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Autoload',
-					id: 'autoId',
-					choices: [{ id: '0', label: 'Disable' }, { id: '1', label: 'Enable' }]
-				}
-			]
+			options: [{
+				type: 'dropdown',
+				label: 'Autoload',
+				id: 'autoId',
+				choices: [{
+					id: '0',
+					label: 'Disable'
+				}, {
+					id: '1',
+					label: 'Enable'
+				}]
+			}]
 		},
 		'flagged': {
 			label: 'Flagged/Unflagged Cue',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Flagged',
-					id: 'flaggId',
-					choices: [{ id: '0', label: 'Disable' }, { id: '1', label: 'Enable' }]
-				}
-			]
+			options: [{
+				type: 'dropdown',
+				label: 'Flagged',
+				id: 'flaggId',
+				choices: [{
+					id: '0',
+					label: 'Disable'
+				}, {
+					id: '1',
+					label: 'Enable'
+				}]
+			}]
 		},
 		'cueColor': {
 			label: 'Set Selected Cue Color',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Color',
-					id: 'colorId',
-					choices: self.colorName
-				}
-			]
+			options: [{
+				type: 'dropdown',
+				label: 'Color',
+				id: 'colorId',
+				choices: self.colorName
+			}]
 		},
 
-		'go': { label: 'GO' },
-		'pause': { label: 'Pause' },
-		'stop': { label: 'Stop' },
-		'panic': { label: 'Panic' },
-		'reset': { label: 'Reset' },
+		'go': 	    { label: 'GO' },
+		'pause':    { label: 'Pause' },
+		'stop':     { label: 'Stop' },
+		'panic':    { label: 'Panic' },
+		'reset':    { label: 'Reset' },
 		'previous': { label: 'Previous Cue' },
-		'next': { label: 'Next Cue' },
-		'resume': { label: 'Resume' },
-		'load': { label: 'Load Cue' }
-	});
+		'next':     { label: 'Next Cue' },
+		'resume':   { label: 'Resume' },
+		'load':     { label: 'Load Cue' },
+		'preview':  { label: 'Preview'}
+		});
 };
 
 instance.prototype.action = function (action) {
@@ -1476,6 +1554,11 @@ instance.prototype.action = function (action) {
 		case 'go':
 			arg = null;
 			cmd = '/go';
+			break;
+
+		case 'preview':
+			arg = null;
+			cmd = '/cue/selected/preview';
 			break;
 
 		case 'pause':
@@ -1613,7 +1696,7 @@ instance.prototype.action = function (action) {
 	}
 
 	if (!self.ready) {
-		debug("Not connected",self.config.host);
+		debug("Not connected to", self.config.host);
 	} else if (cmd !== undefined) {
 		debug('sending', ws + cmd, arg, "to", self.config.host);
 		self.sendOSC(ws + cmd, arg);
