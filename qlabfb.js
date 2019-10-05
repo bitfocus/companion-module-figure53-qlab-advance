@@ -10,6 +10,7 @@ function instance(system, id, config) {
 	var po = 0;
 	self.connecting = false;
 	self.needPasscode = false;
+	self.useTCP = false;
 
 	self.ws = '';
 
@@ -35,29 +36,23 @@ function instance(system, id, config) {
 	instance_skel.apply(this, arguments);
 
 	self.actions(); // export actions
+	self.addUpgradeScript(function (config, actions) {
+		var changed = false;
 
-	// shouldn't need this, we're a new module
-	/* 	// some prior button actions were created
-		// from a preset with a case typo
-		self.addUpgradeScript(function (config, actions) {
-			var changed = false;
+		for (var k in actions) {
+			var action = actions[k];
 
-			for (var k in actions) {
-				var action = actions[k];
-
-				if (action.action == "autoLoad") {
-					if (action.options.autoId==1) {
-						action.action = "autoload";
-						action.label = action.id + ":" + action.action;
-						changed = true;
-					}
+			if (action.action == "autoLoad") {
+				if (action.options.autoId==1) {
+					action.action = "autoload";
+					action.label = action.id + ":" + action.action;
+					changed = true;
 				}
-
 			}
+		}
+		return changed;
+	});
 
-			return changed;
-		});
-	 */
 	return self;
 }
 
@@ -103,7 +98,7 @@ instance.prototype.resetVars = function (doUpdate) {
 		Paused: false,
 		Color: self.rgb(0, 0, 0)
 	};
-	if (doUpdate) {
+	if (doUpdate && self.useTCP) {
 		self.updateNextCue();
 		self.updatePlaying();
 	}
@@ -172,10 +167,22 @@ instance.prototype.updateConfig = function (config) {
 		self.ws = "";
 	}
 
+	if (config.useTCP == undefined ) {
+		config.useTCP = true;
+	}
+
+	self.useTCP = config.useTCP;
+
+	self.resetVars();
 	self.init_osc();
-	self.init_variables();
-	self.init_feedbacks();
 	self.init_presets();
+	if (self.useTCP) {
+		self.init_variables();
+		self.init_feedbacks();
+	} else {
+		self.setFeedbackDefinitions({});
+		self.setVariableDefinitions([]);
+	}
 };
 
 instance.prototype.init = function () {
@@ -186,9 +193,14 @@ instance.prototype.init = function () {
 	debug = self.debug;
 	log = self.log;
 	self.init_osc();
-	self.init_variables();
-	self.init_feedbacks();
 	self.init_presets();
+	if (self.useTCP){
+		self.init_variables();
+		self.init_feedbacks();
+	} else {
+		self.setFeedbackDefinitions({});
+		self.setVariableDefinitions([]);
+	}
 };
 
 instance.prototype.init_feedbacks = function () {
@@ -224,7 +236,13 @@ instance.prototype.feedback = function (feedback, bank) {
 instance.prototype.sendOSC = function (node, arg) {
 	var self = this;
 
-	if (self.ready) {
+	if (!self.useTCP) {
+		var host = "";
+		if (self.config.host !== undefined && self.config.host !== ""){
+			host = self.config.host;
+		}
+		self.system.emit('osc_send',host, 53000, node, arg);
+	} else 	if (self.ready) {
 		self.qSocket.send({
 			address: node,
 			args: arg
@@ -340,6 +358,11 @@ instance.prototype.init_osc = function () {
 		self.qSocket.close();
 	}
 
+	if (!self.useTCP) {
+		self.status(self.STATUS_OK, "UDP Mode");
+		return;
+	}
+
 	if (self.config.host) {
 		self.qSocket = new OSC.TCPSocketPort({
 			localAddress: "0.0.0.0",
@@ -349,8 +372,8 @@ instance.prototype.init_osc = function () {
 			metadata: true
 		});
 		self.connecting = true;
-		self.qSocket.open();
 
+		self.qSocket.open();
 
 		self.qSocket.on("error", function (err) {
 			debug("Error", err);
@@ -652,7 +675,8 @@ instance.prototype.config_fields = function () {
 			id: 'info',
 			width: 12,
 			label: 'Information',
-			value: 'Controls Qlab by <a href="https://figure53.com/" target="_new">Figure 53</a> with feedbacks.'
+			value: 'Controls Qlab by <a href="https://figure53.com/" target="_new">Figure 53</a>' +
+				'<br>Feedback and variables require TCP<br>which will increase network traffic.'
 		},
 		{
 			type: 'textinput',
@@ -661,6 +685,14 @@ instance.prototype.config_fields = function () {
 			width: 6,
 			tooltip: 'The IP of the computer running QLab',
 			regex: self.REGEX_IP
+		},
+		{
+			type: 'checkbox',
+			label: 'Use TCP?',
+			id: 'useTCP',
+			width: 20,
+			tooltip: 'Use TCP instead of UDP',
+			default: false
 		},
 		{
 			type: 'textinput',
@@ -1695,7 +1727,7 @@ instance.prototype.action = function (action) {
 		arg = [];
 	}
 
-	if (!self.ready) {
+	if (self.useTCP && !self.ready) {
 		debug("Not connected to", self.config.host);
 	} else if (cmd !== undefined) {
 		debug('sending', ws + cmd, arg, "to", self.config.host);
