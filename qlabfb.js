@@ -241,6 +241,9 @@ instance.prototype.sendOSC = function (node, arg) {
 		if (self.config.host !== undefined && self.config.host !== ""){
 			host = self.config.host;
 		}
+		if (self.config.passcode !== undefined && self.config.passcode !== "") {
+			self.system.emit('osc_send', host, 53000, "/connect", [self.config.passcode]);
+		}
 		self.system.emit('osc_send',host, 53000, node, arg);
 	} else 	if (self.ready) {
 		self.qSocket.send({
@@ -388,7 +391,7 @@ instance.prototype.init_osc = function () {
 		});
 
 		self.qSocket.on("close", function () {
-			self.log('error', "Connection to QLab Closed");
+			self.log('error', "TCP Connection to QLab Closed");
 			self.connecting = false;
 			if (self.ready) {
 				self.needWorkspace = true;
