@@ -6,7 +6,9 @@ QLab allows you to lock in exactly how you want the light, sound, and video to p
 
 Go over to [figure 53](https://figure53.com/) and checkout the software.
 
-This (FB) module adds feedback and variables to the *QLab* module. Due to the nature and volume of information this module uses a TCP connection. This may cause a noticible increase in network traffic.
+This module adds a TCP mode option to the *QLab* module.
+Due to the nature and volume of information feedback and variables are only available in TCP mode.
+This may cause a noticible increase in network traffic.
 
 This module was tested against QLab4. Nothing specific to QLab4 is used, so QLab3 should work, too.
 
@@ -23,22 +25,24 @@ The following actions are available:
 * **Previous:** Move the selection up one cue.
 * **Start (cue):** Start the specified cue. If the specified cue is playing, this command has no effect.
 * **Preview:** Preview the selected cue without moving the Playhead.
-* **Increase Prewait:** Increases the prewait time by given time for the selected cue
-* **Decrease Prewait:** Decreases the prewait time by given time for the selected cue
-* **Increase postwait:** Increases the postwait time by given time for the selected cue
-* **Decrease postwait:** Decreases the postwait time by given time for the selected cue
-* **Increase duration:** Increases the duration time by given time for the selected cue
-* **Decrease duration:** Decreases the duration time by given time for the selected cue
-* **Set/Unset Arm:** Set / Unset the Arm property of the selected cue
-* **Set/Unset Autoload:** Set / Unset the Autoload property of the selected cue
-* **Set Continue Mode:** Sets the continue mode of the selected cue
-* **Set Cue Color:** Sets the color of the selected cue
+* **Show Mode** Enable for Show Mode, Disable for Edit Mode.
+* **Audition Window** Show or Hide the Audition Window.
+* **Increase Prewait:** Increases the prewait time by given time for the selected cue.
+* **Decrease Prewait:** Decreases the prewait time by given time for the selected cue.
+* **Increase postwait:** Increases the postwait time by given time for the selected cue.
+* **Decrease postwait:** Decreases the postwait time by given time for the selected cue.
+* **Increase duration:** Increases the duration time by given time for the selected cue.
+* **Decrease duration:** Decreases the duration time by given time for the selected cue.
+* **Set/Unset Arm:** Set / Unset the Arm property of the selected cue.
+* **Set/Unset Autoload:** Set / Unset the Autoload property of the selected cue.
+* **Set Continue Mode:** Sets the continue mode of the selected cue.
+* **Set Cue Color:** Sets the color of the selected cue.
 
 There are presets included for most of these actions.
 
 for additional actions please raise a feature request at [github](https://github.com/bitfocus/companion-module-qlab-advance/issues)
 
-## Variables available
+## Variables available (TCP mode only)
 
 To use the following, replace INSTANCENAME with the name of your module instance.
 
@@ -52,10 +56,11 @@ To use the following, replace INSTANCENAME with the name of your module instance
 * **$(INSTANCENAME:r_num)**: Number of the current Running Cue
 * **$(INSTANCENAME:r_stat)**: Running Cue Status: "✕" if broken, "⏽" if loaded, "⏵" if running, "⏸" if paused, otherwise "·"
 
-## Feedback available
+## Feedback available (TCP mode only)
 
-* **Background Color of Playhead Cue**: Sets the button backgound to QLab color of the current playhead cue
-* **Background Color of Running Cue**: Sets the button background to QLab color of the currently running cue
+* **Playhead Cue Color as Background**: Sets the button backgound to QLab color of the current playhead cue
+* **Running Cue Color as Background**: Sets the button background to QLab color of the currently running cue
+* **Colors for Workspace Mode**: Set colors for QLab workspace modes: Audition (window on), Show Mode, Edit Mode
 
 ## OSC
 This module connects to QLab on port 53000.

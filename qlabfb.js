@@ -10,6 +10,7 @@ function instance(system, id, config) {
 	var po = 0;
 	self.connecting = false;
 	self.needPasscode = false;
+	self.useTCP = config.useTCP;
 
 	self.ws = '';
 
@@ -35,29 +36,23 @@ function instance(system, id, config) {
 	instance_skel.apply(this, arguments);
 
 	self.actions(); // export actions
+	self.addUpgradeScript(function (config, actions) {
+		var changed = false;
 
-	// shouldn't need this, we're a new module
-	/* 	// some prior button actions were created
-		// from a preset with a case typo
-		self.addUpgradeScript(function (config, actions) {
-			var changed = false;
+		for (var k in actions) {
+			var action = actions[k];
 
-			for (var k in actions) {
-				var action = actions[k];
-
-				if (action.action == "autoLoad") {
-					if (action.options.autoId==1) {
-						action.action = "autoload";
-						action.label = action.id + ":" + action.action;
-						changed = true;
-					}
+			if (action.action == "autoLoad") {
+				if (action.options.autoId==1) {
+					action.action = "autoload";
+					action.label = action.id + ":" + action.action;
+					changed = true;
 				}
-
 			}
+		}
+		return changed;
+	});
 
-			return changed;
-		});
-	 */
 	return self;
 }
 
@@ -80,6 +75,8 @@ instance.prototype.resetVars = function (doUpdate) {
 	self.cueList = {};
 	self.cueOrder = [];
 	self.lastRunID = '-';
+	self.showMode = false;
+	self.audition = false;
 
 	// play head info
 	self.nextCue = {
@@ -103,7 +100,7 @@ instance.prototype.resetVars = function (doUpdate) {
 		Paused: false,
 		Color: self.rgb(0, 0, 0)
 	};
-	if (doUpdate) {
+	if (doUpdate && self.useTCP) {
 		self.updateNextCue();
 		self.updatePlaying();
 	}
@@ -172,10 +169,22 @@ instance.prototype.updateConfig = function (config) {
 		self.ws = "";
 	}
 
+	if (config.useTCP == undefined ) {
+		config.useTCP = true;
+	}
+
+	self.useTCP = config.useTCP;
+
+	self.resetVars();
 	self.init_osc();
-	self.init_variables();
-	self.init_feedbacks();
 	self.init_presets();
+	if (self.useTCP) {
+		self.init_variables();
+		self.init_feedbacks();
+	} else {
+		self.setFeedbackDefinitions({});
+		self.setVariableDefinitions([]);
+	}
 };
 
 instance.prototype.init = function () {
@@ -186,9 +195,14 @@ instance.prototype.init = function () {
 	debug = self.debug;
 	log = self.log;
 	self.init_osc();
-	self.init_variables();
-	self.init_feedbacks();
 	self.init_presets();
+	if (self.useTCP){
+		self.init_variables();
+		self.init_feedbacks();
+	} else {
+		self.setFeedbackDefinitions({});
+		self.setVariableDefinitions([]);
+	}
 };
 
 instance.prototype.init_feedbacks = function () {
@@ -202,7 +216,35 @@ instance.prototype.init_feedbacks = function () {
 		run_bg: {
 			label: 'Running Que color for Background',
 			description: 'Use the QLab color of the running cue as background'
-		}
+		},
+		ws_mode: {
+			label: 'Color for Workspace Mode',
+			description: 'Set Button colors for Show/Edit/Audition Mode',
+			options: [{
+				type: 'colorpicker',
+				label: 'Foreground color',
+				id: 'fg',
+				default: '16777215'
+			},
+			{
+				type: 'colorpicker',
+				label: 'Background color',
+				id: 'bg',
+				default: this.rgb(0, 128, 0)
+			},
+			{
+				type: 'dropdown',
+				label: 'Which Mode?',
+				id: 'showMode',
+				default: '1',
+				choices: [
+					{ id: '0', label: 'Edit' },
+					{ id: '1', label: 'Show' },
+					{ id: '2', label: 'Audition'}
+				]
+			}],
+		},
+
 	};
 	self.setFeedbackDefinitions(feedbacks);
 };
@@ -210,13 +252,25 @@ instance.prototype.init_feedbacks = function () {
 // eslint-disable-next-line no-unused-vars
 instance.prototype.feedback = function (feedback, bank) {
 	var self = this;
+	var options = feedback.options;
 	var ret = {};
 
-	if (feedback.type == 'playhead_bg') {
+	switch (feedback.type) {
+	case 'playhead_bg':
 		ret = { bgcolor: self.nextCue.Color };
-	}
-	if (feedback.type == 'run_bg') {
+		break;
+	case 'run_bg':
 		ret = { bgcolor: self.runningCue.Color };
+		break;
+	case 'ws_mode':
+		if (self.auditMode && (options.showMode == '2')) {
+			ret = { color: options.fg, bgcolor: options.bg };
+		} else if (self.showMode && (options.showMode == '1')) {
+			ret = { color: options.fg, bgcolor: options.bg };
+		} else if (!self.showMode && (options.showMode == '0')) {
+			ret = { color: options.fg, bgcolor: options.bg };
+		}
+		break;
 	}
 	return ret;
 };
@@ -224,7 +278,16 @@ instance.prototype.feedback = function (feedback, bank) {
 instance.prototype.sendOSC = function (node, arg) {
 	var self = this;
 
-	if (self.ready) {
+	if (!self.useTCP) {
+		var host = "";
+		if (self.config.host !== undefined && self.config.host !== ""){
+			host = self.config.host;
+		}
+		if (self.config.passcode !== undefined && self.config.passcode !== "") {
+			self.system.emit('osc_send', host, 53000, "/connect", [self.config.passcode]);
+		}
+		self.system.emit('osc_send',host, 53000, node, arg);
+	} else 	if (self.ready) {
 		self.qSocket.send({
 			address: node,
 			args: arg
@@ -323,6 +386,8 @@ instance.prototype.prime_vars = function (ws) {
 		);
 		self.sendOSC(ws + "/updates", []);
 		self.sendOSC(ws + "/cueLists", []);
+		self.sendOSC(ws + "/auditionWindow",[]);
+		self.sendOSC(ws + "/showMode",[]);
 		self.timer = setTimeout(function () { self.prime_vars(ws); }, 5000);
 	}
 };
@@ -340,6 +405,11 @@ instance.prototype.init_osc = function () {
 		self.qSocket.close();
 	}
 
+	if (!self.useTCP) {
+		self.status(self.STATUS_OK, "UDP Mode");
+		return;
+	}
+
 	if (self.config.host) {
 		self.qSocket = new OSC.TCPSocketPort({
 			localAddress: "0.0.0.0",
@@ -349,8 +419,8 @@ instance.prototype.init_osc = function () {
 			metadata: true
 		});
 		self.connecting = true;
-		self.qSocket.open();
 
+		self.qSocket.open();
 
 		self.qSocket.on("error", function (err) {
 			debug("Error", err);
@@ -365,7 +435,7 @@ instance.prototype.init_osc = function () {
 		});
 
 		self.qSocket.on("close", function () {
-			self.log('error', "Connection to QLab Closed");
+			self.log('error', "TCP Connection to QLab Closed");
 			self.connecting = false;
 			if (self.ready) {
 				self.needWorkspace = true;
@@ -545,6 +615,7 @@ instance.prototype.readUpdate = function (message) {
 	var self = this;
 	var ws = self.ws;
 	var ma = message.address;
+	var mf = ma.split('/');
 
 	/**
 	 * A QLab 'update' message is just the uniqueID for a cue where something 'changed'.
@@ -577,7 +648,11 @@ instance.prototype.readUpdate = function (message) {
 		self.needPasscode = false;
 		self.resetVars(true);
 		self.prime_vars(ws);
+	} else if ((mf.length == 4) && (mf[2] == 'workspace')) {
+		self.sendOSC("/showMode",[]);
+		self.sendOSC("/auditionWindow",[]);
 	}
+	// add generic 'workspace' update, probably show/edit toggle
 };
 
 
@@ -640,6 +715,12 @@ instance.prototype.readReply = function (message) {
 		}
 	} else if (ma.match(/valuesForKeys$/)) {
 		self.updateCues(j.data, 'v');
+	} else if (ma.match(/showMode$/)) {
+		self.showMode = j.data;
+		self.checkFeedbacks('ws_mode');
+	} else if (ma.match(/auditionWindow$/)) {
+		self.auditMode = j.data;
+		self.checkFeedbacks('ws_mode');
 	}
 };
 
@@ -652,7 +733,8 @@ instance.prototype.config_fields = function () {
 			id: 'info',
 			width: 12,
 			label: 'Information',
-			value: 'Controls Qlab by <a href="https://figure53.com/" target="_new">Figure 53</a> with feedbacks.'
+			value: 'Controls Qlab by <a href="https://figure53.com/" target="_new">Figure 53</a>' +
+				'<br>Feedback and variables require TCP<br>which will increase network traffic.'
 		},
 		{
 			type: 'textinput',
@@ -661,6 +743,14 @@ instance.prototype.config_fields = function () {
 			width: 6,
 			tooltip: 'The IP of the computer running QLab',
 			regex: self.REGEX_IP
+		},
+		{
+			type: 'checkbox',
+			label: 'Use TCP?',
+			id: 'useTCP',
+			width: 20,
+			tooltip: 'Use TCP instead of UDP\nRequired for feedbacks',
+			default: false
 		},
 		{
 			type: 'textinput',
@@ -842,6 +932,84 @@ instance.prototype.init_presets = function () {
 			actions: [
 				{
 					action: 'load',
+				}
+			]
+		},
+		{
+			category: 'CueList',
+			label: 'Show Mode',
+			bank: {
+				style: 'text',
+				text: 'Show\\nMode',
+				size: '24',
+				color: '16777215',
+				bgcolor: self.rgb(0, 128, 0)
+			},
+			actions: [
+				{
+					action: 'showMode',
+					options: {
+						onOff: '1'
+					}
+				}
+			]
+		},
+		{
+			category: 'CueList',
+			label: 'Edit Mode',
+			bank: {
+				style: 'text',
+				text: 'Edit\\nMode',
+				size: '24',
+				color: '16777215',
+				bgcolor: self.rgb(72, 96, 96)
+			},
+			actions: [
+				{
+					action: 'showMode',
+					options: {
+						onOff: '0'
+					}
+				}
+			]
+		},
+		{
+			category: 'CueList',
+			label: 'Audition ON',
+			bank: {
+				style: 'text',
+				text: 'Audition\\nON',
+				size: '18',
+				color: '16777215',
+				tooltip: 'Opens the Audition Window',
+				bgcolor: self.rgb(0, 64, 128)
+			},
+			actions: [
+				{
+					action: 'auditMode',
+					options: {
+						onOff: '1'
+					}
+				}
+			]
+		},
+		{
+			category: 'CueList',
+			label: 'Audition OFF',
+			bank: {
+				style: 'text',
+				text: 'Audition\\nOFF',
+				size: '18',
+				color: '16777215',
+				tooltip: 'Closes the Audition Window',
+				bgcolor: self.rgb(64, 96, 96)
+			},
+			actions: [
+				{
+					action: 'auditMode',
+					options: {
+						onOff: '0'
+					}
 				}
 			]
 		},
@@ -1523,7 +1691,36 @@ instance.prototype.actions = function (system) {
 				choices: self.colorName
 			}]
 		},
-
+		'showMode': {
+			label: 'Show mode',
+			options: [{
+				type: 	'dropdown',
+				label: 	'Mode',
+				id:		'onOff',
+				choices: [{
+					id: '1',
+					label: 'On'
+				}, {
+					id: '0',
+					label: 'Off'
+				}]
+			}]
+		},
+		'auditMode': {
+			label: 'Audition Window',
+			options: [{
+				type: 	'dropdown',
+				label: 	'Mode',
+				id:		'onOff',
+				choices: [{
+					id: '1',
+					label: 'On'
+				}, {
+					id: '0',
+					label: 'Off'
+				}]
+			}]
+		},
 		'go': 	    { label: 'GO' },
 		'pause':    { label: 'Pause' },
 		'stop':     { label: 'Stop' },
@@ -1688,18 +1885,35 @@ instance.prototype.action = function (action) {
 			};
 			cmd = '/cue/selected/colorName';
 			break;
-
+		case 'showMode':
+			arg = {
+				type: "i",
+				value: parseInt(opt.onOff)
+			};
+			cmd = '/showMode';
+			break;
+		case 'auditMode':
+			arg = {
+				type: "i",
+				value: parseInt(opt.onOff)
+			};
+			cmd = '/auditionWindow';
+			break;
+		// switch
 	}
 
 	if (arg == null) {
 		arg = [];
 	}
 
-	if (!self.ready) {
+	if (self.useTCP && !self.ready) {
 		debug("Not connected to", self.config.host);
 	} else if (cmd !== undefined) {
 		debug('sending', ws + cmd, arg, "to", self.config.host);
 		self.sendOSC(ws + cmd, arg);
+	}
+	if (self.useTCP && cmd == '/auditionWindow') {
+		self.sendOSC(ws + cmd, []);
 	}
 
 };
