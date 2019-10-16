@@ -59,8 +59,8 @@ function instance(system, id, config) {
 var qCueRequest = [
 	{
 		type: "s",
-		value: '["number","uniqueID","listName","type","isPaused",' +
-			'"colorName","isRunning","isLoaded","armed","isBroken"]'
+		value: '["number","uniqueID","listName","type","isPaused","currentDuration", "actionElapsed",' +
+			'"colorName","isRunning","isLoaded","armed","isBroken", "percentActionElapsed"]'
 	}
 ];
 
@@ -98,6 +98,8 @@ instance.prototype.resetVars = function (doUpdate) {
 		Broken: false,
 		Running: false,
 		Paused: false,
+		Duration: 0,
+		PctElapsed: 0,
 		Color: self.rgb(0, 0, 0)
 	};
 	if (doUpdate && self.useTCP) {
@@ -122,6 +124,23 @@ instance.prototype.updateNextCue = function () {
 
 instance.prototype.updateRunning = function () {
 	var self = this;
+	var tLeft = self.runningCue.Duration * (1 - self.runningCue.PctElapsed);
+	var h = Math.floor(tLeft / 3600);
+	var hh = ('00' + h).slice(-2);
+	var m = Math.floor(tLeft / 60) % 60;
+	var mm = ('00' + m).slice(-2);
+	var s = Math.floor(tLeft % 60);
+	var ss = ('00' + s).slice(-2);
+	var ms = tLeft - Math.trunc(tLeft);
+	var ft = '';
+
+	if (hh>0) {
+		ft = hh + ":";
+	}
+	if (mm>0) {
+		ft = ft + mm + ":";
+	}
+	ft = ft + ss;
 
 	self.setVariable('r_id', self.runningCue.ID);
 	self.setVariable('r_name', self.runningCue.Name);
@@ -131,6 +150,11 @@ instance.prototype.updateRunning = function () {
 							self.runningCue.Paused ? "\u23F8" :
 							self.runningCue.Loaded ? "\u23FD" :
 							"\u00b7");
+	self.setVariable('r_hhmmss',hh + ":" + mm + ":" + ss);
+	self.setVariable('r_hh', hh);
+	self.setVariable('r_mm', mm);
+	self.setVariable('r_ss', ss);
+	self.setVariable('r_left',ft);
 	self.checkFeedbacks('run_bg');
 };
 
@@ -146,10 +170,19 @@ instance.prototype.JSONtoCue = function (j, i) {
 	self.isLoaded = j.isLoaded;
 	self.isBroken = j.isBroken;
 	self.isPaused = j.isPaused;
+	self.duration = j.currentDuration;
+	self.pctElapsed = j.percentActionElapsed;
 	self.qOrder = j.qOrder;
 
 	if (self.isRunning || self.isPaused) {
-		self.startedAt = Date.now();
+		if (self.uniqueID in i.cueList) {
+			if (0 == (self.startedAt = i.cueList[self.uniqueID].startedAt)) {
+				self.startedAt = Date.now();
+			}
+		} else {
+			self.startedAt = Date.now();
+			debug("Cue " + self.qNumber + "@" + self.startedAt);
+		}
 	} else {
 		self.startedAt = 0;
 	}
@@ -334,6 +367,26 @@ instance.prototype.init_variables = function () {
 		{
 			label: 'Running Cue Status',
 			name:  'r_stat'
+		},
+		{
+			label: 'Running Cue Time left, variable size',
+			name:  'r_left'
+		},
+		{
+			label: 'Running Cue Time left, HH:MM:SS',
+			name:  'r_hhmmss'
+		},
+		{
+			label: 'Running Cue Time left, Hour',
+			name:  'r_hh'
+		},
+		{
+			label: 'Running Cue Time left, Minute',
+			name:  'r_mm'
+		},
+		{
+			label: 'Running Cue Time left, Second',
+			name:  'r_ss'
 		}
 	];
 
@@ -360,6 +413,11 @@ instance.prototype.prime_vars = function (ws) {
 		self.sendOSC(ws + "/connect", []);
 		if (self.timer !== undefined) {
 			clearTimeout(self.timer);
+			self.timer = undefined;
+		}
+		if (self.pulse !== undefined) {
+			clearInterval(self.pulse);
+			self.pulse = undefined;
 		}
 		self.timer = setTimeout(function () { self.prime_vars(ws); }, 5000);
 	} else if (self.needWorkspace && self.ready) {
@@ -392,6 +450,19 @@ instance.prototype.prime_vars = function (ws) {
 	}
 };
 
+/**
+ * heartbeat/poll function for 'updates' that aren't automatic
+ */
+instance.prototype.rePulse = function (ws) {
+	var self = this;
+	var rc = self.runningCue.ID;
+
+	self.sendOSC(ws + "/auditionWindow", []);
+	if (rc !== undefined && rc !== '') {
+//		self.sendOSC(ws + "/cue/" + rc + "/valuesForKeys", qCueRequest);
+		self.sendOSC(ws + "/cue/active/valuesForKeys", qCueRequest);
+	}
+};
 
 instance.prototype.init_osc = function () {
 	var self = this;
@@ -430,6 +501,13 @@ instance.prototype.init_osc = function () {
 			self.status(self.STATUS_ERROR, "Can't connect to QLab");
 			if (err.code == "ECONNREFUSED") {
 				self.qSocket.removeAllListeners();
+				if (self.timer !== undefined) {
+					clearTimeout(self.timer);
+				}
+				if (self.pulse !== undefined) {
+					clearInterval(self.pulse);
+					self.pulse = undefined;
+				}
 				self.timer = setTimeout(function () { self.connect(); }, 5000);
 			}
 		});
@@ -445,6 +523,13 @@ instance.prototype.init_osc = function () {
 				debug("Connection closed");
 				self.ready = false;
 				self.status(self.STATUS_WARNING, "CLOSED");
+				if (self.timer !== undefined) {
+					clearTimeout(self.timer);
+				}
+				if (self.pulse !== undefined) {
+					clearInterval(self.pulse);
+					self.pulse = undefined;
+				}
 				self.timer = setTimeout(function () { self.connect(); }, 5000);
 			}
 		});
@@ -498,19 +583,6 @@ instance.prototype.updateCues = function (cue, stat) {
 			q = new self.JSONtoCue(cue[i], self);
 			q.qOrder = i;
 			if (qTypes.includes(q.qType)) {
-				if (stat == 'p') {
-					if (q.uniqueID in self.cueList) {
-						q.isRunning = (self.cueList[q.uniqueID].isRunning);
-						q.isPaused = !q.isRunning;
-
-					} else {
-						q.isPaused = true;
-					}
-				} else if (stat == 'r') {
-					q.isRunning = true;
-					q.isPaused = false;
-				}
-				q.startedAt = Date.now();
 				self.cueList[q.uniqueID] = q;
 			}
 			if (stat == 'l') {
@@ -550,6 +622,7 @@ instance.prototype.updatePlaying = function () {
 			q.Paused ? '2' :
 			q.Loaded ? '3' :
 			'4';
+		ret += ":" + q.Duration + ":" + q.PctElapsed;
 		return ret;
 	}
 
@@ -575,13 +648,15 @@ instance.prototype.updatePlaying = function () {
 
 	if (runningCues.length == 0) {
 		self.runningCue = {
-			ID: '',
-			Name: '[none]',
-			Num: '',
-			Loaded: false,
-			Running: false,
-			Paused: false,
-			Color: self.rgb(0, 0, 0)
+			ID: 		'',
+			Name: 		'[none]',
+			Num: 		'',
+			Loaded: 	false,
+			Running: 	false,
+			Paused: 	false,
+			Duration:	0,
+			PctElapsed: 0,
+			Color: 		self.rgb(0, 0, 0)
 		};
 	} else {
 		if (hasGroup) {
@@ -592,13 +667,15 @@ instance.prototype.updatePlaying = function () {
 		if (i < runningCues.length) {
 			var q = cues[runningCues[i][0]];
 			self.runningCue = {
-				ID: q.uniqueID,
-				Name: q.qName,
-				Num: q.qNumber,
-				Color: q.qColor,
-				Loaded: q.isLoaded,
-				Paused: q.isPaused,
-				Running: q.isRunning
+				ID: 		q.uniqueID,
+				Name: 		q.qName,
+				Num: 		q.qNumber,
+				Color: 		q.qColor,
+				Loaded: 	q.isLoaded,
+				Paused: 	q.isPaused,
+				Running: 	q.isRunning,
+				Duration: 	q.duration,
+				PctElapsed: q.pctElapsed
 			};
 		}
 	}
@@ -689,6 +766,7 @@ instance.prototype.readReply = function (message) {
 	if (ma.match(/updates$/)) {
 		self.needWorkspace = false;
 		self.status(self.STATUS_OK, "Connected to QLab");
+		self.pulse = setInterval(function() { self.rePulse(ws); }, 50);
 	} else if (ma.match(/version$/)) {
 		if (j.data != undefined) {
 			self.setVariable('q_ver', j.data);
@@ -699,19 +777,12 @@ instance.prototype.readReply = function (message) {
 			self.nextCue.ID = j.data;
 			self.sendOSC(ws + "/cue/playhead/valuesForKeys", qCueRequest);
 		}
-	} else if (ma.match(/runningCues$/)) {
-		self.updateCues(j.data, 'r');
-		// paused cues are ones in this next list
-		// that aren't in the last (running) one
-		self.sendOSC(ws + "/runningOrPausedCues", []);
-	} else if (ma.match(/runningOrPausedCues$/)) {
-		self.updateCues(j.data, 'p');
-		self.updatePlaying();
 	} else if (ma.match(/\/cueLists$/)) {
 		if (j.data != undefined) {
 			var q = j.data[0];
 			self.updateCues(q.cues, 'l');
-			self.sendOSC(ws + "/runningCues",[]);
+			// self.sendOSC(ws + "/runningCues")
+			self.sendOSC(ws + "/cue/active/valuesForKeys",qCueRequest);
 		}
 	} else if (ma.match(/valuesForKeys$/)) {
 		self.updateCues(j.data, 'v');
