@@ -1613,6 +1613,9 @@ instance.prototype.destroy = function () {
 	if (self.timer !== undefined) {
 		clearTimeout(self.timer);
 	}
+	if (self.pulse !== undefined) {
+		clearInterval(self.pulse);
+	}
 	debug("destroy", self.id);
 };
 
