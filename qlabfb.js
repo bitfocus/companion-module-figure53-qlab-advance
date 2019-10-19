@@ -131,7 +131,7 @@ instance.prototype.updateRunning = function () {
 	var mm = ('00' + m).slice(-2);
 	var s = Math.floor(tLeft % 60);
 	var ss = ('00' + s).slice(-2);
-	var ms = tLeft - Math.trunc(tLeft);
+	// var ms = tLeft - Math.trunc(tLeft);
 	var ft = '';
 
 	if (hh>0) {
@@ -432,9 +432,10 @@ instance.prototype.prime_vars = function (ws) {
 		} else {
 			self.sendOSC(ws + "/connect", []);
 		}
+		self.sendOSC(ws + "/version");
+
 		// request variable/feedback info
 		// get list of running cues
-		self.sendOSC(ws + "/version");
 		self.sendOSC(ws + "/cue/playhead/uniqueID", []);
 		self.sendOSC(ws + "/updates", [
 			{
@@ -497,7 +498,6 @@ instance.prototype.init_osc = function () {
 			debug("Error", err);
 			self.log('error', "Error: " + err.message);
 			self.connecting = false;
-			self.ready = false;
 			self.status(self.STATUS_ERROR, "Can't connect to QLab");
 			if (err.code == "ECONNREFUSED") {
 				self.qSocket.removeAllListeners();
@@ -523,15 +523,15 @@ instance.prototype.init_osc = function () {
 				debug("Connection closed");
 				self.ready = false;
 				self.status(self.STATUS_WARNING, "CLOSED");
-				if (self.timer !== undefined) {
-					clearTimeout(self.timer);
-				}
-				if (self.pulse !== undefined) {
-					clearInterval(self.pulse);
-					self.pulse = undefined;
-				}
-				self.timer = setTimeout(function () { self.connect(); }, 5000);
 			}
+			if (self.timer !== undefined) {
+				clearTimeout(self.timer);
+			}
+			if (self.pulse !== undefined) {
+				clearInterval(self.pulse);
+				self.pulse = undefined;
+			}
+			self.timer = setTimeout(function () { self.connect(); }, 5000);
 		});
 
 		self.qSocket.on("ready", function () {
@@ -766,7 +766,7 @@ instance.prototype.readReply = function (message) {
 	if (ma.match(/updates$/)) {
 		self.needWorkspace = false;
 		self.status(self.STATUS_OK, "Connected to QLab");
-		self.pulse = setInterval(function() { self.rePulse(ws); }, 50);
+		self.pulse = setInterval(function() { self.rePulse(ws); }, 100);
 	} else if (ma.match(/version$/)) {
 		if (j.data != undefined) {
 			self.setVariable('q_ver', j.data);
@@ -1988,6 +1988,7 @@ instance.prototype.action = function (action) {
 	}
 	if (self.useTCP && cmd == '/auditionWindow') {
 		self.sendOSC(ws + cmd, []);
+		self.sendOSC(ws + "/cue/playhead/valuesForKeys",qCueRequest);
 	}
 
 };
