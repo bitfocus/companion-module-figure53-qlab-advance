@@ -55,15 +55,29 @@ To use the following, replace INSTANCENAME with the name of your module instance
 * **$(INSTANCENAME:r_name)**: Name of the current Running Cue or [none]
 * **$(INSTANCENAME:r_num)**: Number of the current Running Cue
 * **$(INSTANCENAME:r_stat)**: Running Cue Status: "✕" if broken, "⏽" if loaded, "⏵" if running, "⏸" if paused, otherwise "·"
+* **$(INSTANCENAME:r_hhmmss)**: Remaining time for Running Cue as "HH:MM:SS"
+* **$(INSTANCENAME:r_hh)**: Hours left for Running Cue
+* **$(INSTANCENAME:r_mm)**: Minutes left for Running Cue
+* **$(INSTANCENAME:r_ss)**: Seconds left for Running Cue
+* **$(INSTANCENAME:r_left)**: Shortest display time left for Running Cue
+
+Explaination of 'Running Cue'. [^1]
+
 
 ## Feedback available (TCP mode only)
 
 * **Playhead Cue Color as Background**: Sets the button backgound to QLab color of the current playhead cue
 * **Running Cue Color as Background**: Sets the button background to QLab color of the currently running cue
-* **Colors for Workspace Mode**: Set colors for QLab workspace modes: Audition (window on), Show Mode, Edit Mode
+* **Colors for Workspace Mode**: Set the button color for QLab workspace modes: Audition (window on), Show Mode, Edit Mode
 
 ## OSC
 This module connects to QLab on port 53000.
 
 From Qlab preferences OSC controls tab make sure you have the "Use OSC controls" checkbox ticked.
 ![Qlab](images/qlab.jpg?raw=true "Qlab")
+
+
+[^1]: QLab can run many cues at the same time so which *one* cue is the most useful to show on a button?
+This module looks for the most recent running (GO) cue and favors **Group** cues over other types of cues.
+An example: In a video show, 5 slides overlap in order (Slide 1, Slide 2, etc) from separate cues,
+after 5 'GO's all 5 cues are 'Running' resulting in a 5 picture overlay. This module uses the last 'GO' in the sequence for the 'Running' cue. More complex: add 2 more screens and wrap each slide in a **Group** cue (with left, right, and center screens for each slide). Now there are 20 cues running, 5 sllides for each screen plus 5 groups cues. The last 'GO' **Group** cue will be source for the variables and feedback.
