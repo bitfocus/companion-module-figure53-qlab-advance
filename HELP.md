@@ -66,7 +66,7 @@ To use the following, replace INSTANCENAME with the name of your module instance
 * **$(INSTANCENAME:r_hh)**: Hours left for Running Cue
 * **$(INSTANCENAME:r_mm)**: Minutes left for Running Cue
 * **$(INSTANCENAME:r_ss)**: Seconds left for Running Cue
-* **$(INSTANCENAME:r_left)**: Shortest display time left for Running Cue
+* **$(INSTANCENAME:r_left)**: Shortest display time left for Running Cue. Shows .1 increments if tenths option set.
 
 
 ## Feedback available (TCP mode only)
