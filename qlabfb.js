@@ -17,11 +17,11 @@ function instance(system, id, config) {
 	self.resetVars();
 
 	self.colorRGB = {
-		none: self.rgb(32, 32, 32),
-		red: self.rgb(160, 0, 0),
+		none: 	self.rgb(32, 32, 32),
+		red: 	self.rgb(160, 0, 0),
 		orange: self.rgb(160, 100, 0),
-		green: self.rgb(0, 160, 0),
-		blue: self.rgb(0, 0, 160),
+		green: 	self.rgb(0, 160, 0),
+		blue: 	self.rgb(0, 0, 160),
 		purple: self.rgb(160, 0, 160)
 	};
 
@@ -43,12 +43,16 @@ function instance(system, id, config) {
 			var action = actions[k];
 
 			if (action.action == "autoLoad") {
-				if (action.options.autoId==1) {
+				if (action.options.autoId == 1) {
 					action.action = "autoload";
 					action.label = action.id + ":" + action.action;
 					changed = true;
 				}
 			}
+		}
+		if (config.useTenths == undefined) {
+			config.useTenths = false;
+			changed = true;
 		}
 		return changed;
 	});
@@ -74,7 +78,7 @@ instance.prototype.resetVars = function (doUpdate) {
 	// list of cues and info for by this QLab workspace
 	self.cueList = {};
 	self.cueOrder = [];
-	self.lastRunID = '-';
+	self.lastRunID = '-' + self.lastRunID;
 	self.showMode = false;
 	self.audition = false;
 
@@ -124,23 +128,35 @@ instance.prototype.updateNextCue = function () {
 
 instance.prototype.updateRunning = function () {
 	var self = this;
+	var tenths = (self.config.useTenths ? 0 : 1);
+
 	var tLeft = self.runningCue.Duration * (1 - self.runningCue.PctElapsed);
+	if (tLeft > 0) {
+		tLeft += tenths;
+	}
 	var h = Math.floor(tLeft / 3600);
 	var hh = ('00' + h).slice(-2);
 	var m = Math.floor(tLeft / 60) % 60;
 	var mm = ('00' + m).slice(-2);
 	var s = Math.floor(tLeft % 60);
 	var ss = ('00' + s).slice(-2);
-	// var ms = tLeft - Math.trunc(tLeft);
 	var ft = '';
 
-	if (hh>0) {
+	if (hh > 0) {
 		ft = hh + ":";
 	}
-	if (mm>0) {
+	if (mm > 0) {
 		ft = ft + mm + ":";
 	}
 	ft = ft + ss;
+
+	if (tenths == 0) {
+		var f = Math.floor((tLeft - Math.trunc(tLeft)) * 10);
+		var ms = ('0' + f).slice(-1);
+		if (tLeft < 5 && tLeft != 0) {
+			ft = ft.slice(-1) + "." + ms;
+		}
+	}
 
 	self.setVariable('r_id', self.runningCue.ID);
 	self.setVariable('r_name', self.runningCue.Name);
@@ -634,7 +650,7 @@ instance.prototype.updatePlaying = function () {
 	var runningCues = [];
 
 	Object.keys(cues).forEach(function (cue) {
-		if (cues[cue].isRunning || cues[cue].isPaused) {
+		if (cues[cue].duration > 0  && (cues[cue].isRunning || cues[cue].isPaused)) {
 			runningCues.push([cue, cues[cue].startedAt]);
 			if (cues[cue].qType == "group") {
 				hasGroup = true;
@@ -648,7 +664,7 @@ instance.prototype.updatePlaying = function () {
 
 	if (runningCues.length == 0) {
 		self.runningCue = {
-			ID: 		'',
+			ID: 		'-',
 			Name: 		'[none]',
 			Num: 		'',
 			Loaded: 	false,
@@ -723,6 +739,7 @@ instance.prototype.readUpdate = function (message) {
 		self.status(self.STATUS_WARNING, "No Workspaces");
 		self.needWorkspace = true;
 		self.needPasscode = false;
+		self.lastRunID = 'x';
 		self.resetVars(true);
 		self.prime_vars(ws);
 	} else if ((mf.length == 4) && (mf[2] == 'workspace')) {
@@ -821,6 +838,14 @@ instance.prototype.config_fields = function () {
 			id: 'useTCP',
 			width: 20,
 			tooltip: 'Use TCP instead of UDP\nRequired for feedbacks',
+			default: false
+		},
+		{
+			type: 'checkbox',
+			label: 'Use Tenths',
+			id: 'useTenths',
+			width: 20,
+			tooltip: 'Show .1 second resolution for cue remaining timer?\nOtherwise offset countdown by +1 second\nRequires TCP',
 			default: false
 		},
 		{
@@ -1616,6 +1641,8 @@ instance.prototype.destroy = function () {
 	if (self.pulse !== undefined) {
 		clearInterval(self.pulse);
 	}
+	self.resetVars(true);
+	self.status(self.STATUS_UNKNOWN,"Disabled");
 	debug("destroy", self.id);
 };
 
