@@ -12,6 +12,13 @@ This may cause a noticible increase in network traffic.
 
 This module was tested against QLab4. Nothing specific to QLab4 is used, so QLab3 should work, too.
 
+## Configuration
+* **Target IP** Enter the address of the QLab computer. You can enter 127.0.0.1 if Companion is running on the same computer.
+* **Use TCP?** Check to enable TCP mode. This is required for variables and feedback.
+* **Use Tenths** If checked, the variable *r_left* will display 0.1 seconds when less than 5 seconds. If unchecked, the time left will be adjusted by 1 second for a more accurate count-down.
+* **OSC Passcode** Enter a passcode if needed for the QLab workspace.
+* **Workspace** Enter the workspace title or ID to control a specific QLab workspace.
+
 ## Actions
 
 The following actions are available:
@@ -61,8 +68,6 @@ To use the following, replace INSTANCENAME with the name of your module instance
 * **$(INSTANCENAME:r_ss)**: Seconds left for Running Cue
 * **$(INSTANCENAME:r_left)**: Shortest display time left for Running Cue
 
-Explaination of 'Running Cue'. [^1]
-
 
 ## Feedback available (TCP mode only)
 
@@ -76,8 +81,9 @@ This module connects to QLab on port 53000.
 From Qlab preferences OSC controls tab make sure you have the "Use OSC controls" checkbox ticked.
 ![Qlab](images/qlab.jpg?raw=true "Qlab")
 
+### Running cue examples
+ QLab can run many cues at the same time while Stream Deck has a limited number of buttons visible at once. So which *one* cue is the most useful to show on a button? This module looks for the most recently run (GO) cue and favors *run all at once* Group cues over other types of cues.
 
-[^1]: QLab can run many cues at the same time so which *one* cue is the most useful to show on a button?
-This module looks for the most recent running (GO) cue and favors **Group** cues over other types of cues.
-An example: In a video show, 5 slides overlap in order (Slide 1, Slide 2, etc) from separate cues,
-after 5 'GO's all 5 cues are 'Running' resulting in a 5 picture overlay. This module uses the last 'GO' in the sequence for the 'Running' cue. More complex: add 2 more screens and wrap each slide in a **Group** cue (with left, right, and center screens for each slide). Now there are 20 cues running, 5 sllides for each screen plus 5 groups cues. The last 'GO' **Group** cue will be source for the variables and feedback.
+- Using a video show... 5 slide cues overlap to build a final image. After 5 'GO's all 5 cues are 'Running' resulting in a 5 picture overlay. The last 'GO' cue in the sequence will be the 'Running' cue.
+- Now add 2 more screens with more images. Each transition (1 image for each screen) is now placed in a *run all* Group cue for list management. After the 5 group cues are run, QLab will show 20 cues active, 5 slides for each screen plus the 5 group cues. The last 'GO' **Group** cue will be the 'Running' cue.
+- If the last 'GO' Group cue is *enter then run each*, the most recent 'GO' cue in the group will be the 'Running' cue.
