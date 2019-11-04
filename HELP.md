@@ -30,7 +30,8 @@ The following actions are available:
 * **Reset:** Reset the workspace. Resetting stops all cues, returns the playhead to the top of the current cue list, and restores any temporary changes made to cues (such as retargeting via a Target cue or adjustments using a "live" OSC method.)
 * **Next:** Move the selection down one cue.
 * **Previous:** Move the selection up one cue.
-* **Start (cue):** Start the specified cue. If the specified cue is playing, this command has no effect.
+* **GoTo (cue):** Move the playhead to (cue). Doesn't start the cue.
+* **Start (cue):** Start (cue). Doesn't move the playhead. If the specified cue is playing, this command has no effect.
 * **Preview:** Preview the selected cue without moving the Playhead.
 * **Show Mode** Enable for Show Mode, Disable for Edit Mode.
 * **Audition Window** Show or Hide the Audition Window.
