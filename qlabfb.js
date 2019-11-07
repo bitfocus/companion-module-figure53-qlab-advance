@@ -1675,6 +1675,15 @@ instance.prototype.actions = function (system) {
 				default: "1"
 			}]
 		},
+		'goto': {
+			label: 'Go To (cue)',
+			options: [{
+				type: 'textinput',
+				label: 'Cue',
+				id: 'cue',
+				default: "1"
+			}]
+		},
 		'prewait_dec': {
 			label: 'Decrease Prewait',
 			options: [{
@@ -1847,6 +1856,11 @@ instance.prototype.action = function (action) {
 		case 'start':
 			arg = null;
 			cmd = '/cue/' + opt.cue + '/start';
+			break;
+
+		case 'goto':
+			arg = null;
+			cmd = '/playhead/' + opt.cue;
 			break;
 
 		case 'go':
