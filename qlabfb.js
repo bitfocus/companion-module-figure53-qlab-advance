@@ -104,11 +104,13 @@ instance.prototype.resetVars = function (doUpdate) {
 		self.updatePlaying();
 
 		Object.keys(cues).forEach(function (cue) {
-			qNum = cues[cue].qNumber;
+			qNum = cues[cue].qNumber.replace(/[^\w\.]/gi,'_');
 			qName = cues[cue].qName;
 			if (qNum != '' && qName != '') {
+				delete self.cueColors[qNum]
 				self.setVariable('q_' + qNum + '_name');
 			}
+			self.checkFeedbacks('q_bg');
 		});
 	}
 
