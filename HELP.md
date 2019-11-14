@@ -68,6 +68,7 @@ To use the following, replace INSTANCENAME with the name of your module instance
 * **$(INSTANCENAME:r_mm)**: Minutes left for Running Cue
 * **$(INSTANCENAME:r_ss)**: Seconds left for Running Cue
 * **$(INSTANCENAME:r_left)**: Shortest display time left for Running Cue. Shows .1 increments if tenths option set.
+* **$(INSTANCENAME:q_{num}_name)**: Name of the QLab cue number {num}. See below for certain restrictions.
 
 
 ## Feedback available (TCP mode only)
@@ -75,6 +76,7 @@ To use the following, replace INSTANCENAME with the name of your module instance
 * **Playhead Cue Color as Background**: Sets the button backgound to QLab color of the current playhead cue
 * **Running Cue Color as Background**: Sets the button background to QLab color of the currently running cue
 * **Colors for Workspace Mode**: Set the button color for QLab workspace modes: Audition (window on), Show Mode, Edit Mode
+
 
 ## OSC
 This module connects to QLab on port 53000.
@@ -88,3 +90,6 @@ From Qlab preferences OSC controls tab make sure you have the "Use OSC controls"
 - Using a video show... 5 slide cues overlap to build a final image. After 5 'GO's all 5 cues are 'Running' resulting in a 5 picture overlay. The last 'GO' cue in the sequence will be the 'Running' cue.
 - Now add 2 more screens with more images. Each transition (1 image for each screen) is now placed in a *run all* Group cue for list management. After the 5 group cues are run, QLab will show 20 cues active, 5 slides for each screen plus the 5 group cues. The last 'GO' **Group** cue will be the 'Running' cue.
 - If the last 'GO' Group cue is *enter then run each*, the most recent 'GO' cue in the group will be the 'Running' cue.
+
+### Cue Numbers
+QLab allows almost any characters in a Cue Number. Some characters don't play well with OSC or Companion. Using '$', '(', or ')' in your Cue Number won't work if you want to use the q_{cue}_name variable or the 'q_bg' feedback.
