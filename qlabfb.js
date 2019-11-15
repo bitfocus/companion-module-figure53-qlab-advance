@@ -801,6 +801,10 @@ instance.prototype.readUpdate = function (message) {
 		self.needWorkspace = true;
 		self.needPasscode = false;
 		self.lastRunID = 'x';
+		if (self.pulse != undefined) {
+			clearInterval(self.pulse);
+			self.pulse = undefined;
+		}
 		self.resetVars(true);
 		self.prime_vars(ws);
 	} else if ((mf.length == 4) && (mf[2] == 'workspace')) {
@@ -844,6 +848,10 @@ instance.prototype.readReply = function (message) {
 	if (ma.match(/updates$/)) {
 		self.needWorkspace = false;
 		self.status(self.STATUS_OK, "Connected to QLab");
+		if (self.pulse !== undefined) {
+			self.debug('cleared stray interval');
+			clearInterval(self.pulse);
+		}
 		self.pulse = setInterval(function() { self.rePulse(ws); }, 100);
 	} else if (ma.match(/version$/)) {
 		if (j.data != undefined) {
