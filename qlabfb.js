@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 var instance_skel = require('../../instance_skel');
 var debug;
 // eslint-disable-next-line no-unused-vars
@@ -107,7 +108,7 @@ instance.prototype.resetVars = function (doUpdate) {
 			qNum = cues[cue].qNumber.replace(/[^\w\.]/gi,'_');
 			qName = cues[cue].qName;
 			if (qNum != '' && qName != '') {
-				delete self.cueColors[qNum]
+				delete self.cueColors[qNum];
 				self.setVariable('q_' + qNum + '_name');
 			}
 			self.checkFeedbacks('q_bg');
@@ -599,6 +600,7 @@ instance.prototype.init_osc = function () {
 			}
 			if (self.timer !== undefined) {
 				clearTimeout(self.timer);
+				self.timer = undefined;
 			}
 			if (self.pulse !== undefined) {
 				clearInterval(self.pulse);
@@ -799,6 +801,10 @@ instance.prototype.readUpdate = function (message) {
 		self.needWorkspace = true;
 		self.needPasscode = false;
 		self.lastRunID = 'x';
+		if (self.pulse != undefined) {
+			clearInterval(self.pulse);
+			self.pulse = undefined;
+		}
 		self.resetVars(true);
 		self.prime_vars(ws);
 	} else if ((mf.length == 4) && (mf[2] == 'workspace')) {
@@ -842,6 +848,10 @@ instance.prototype.readReply = function (message) {
 	if (ma.match(/updates$/)) {
 		self.needWorkspace = false;
 		self.status(self.STATUS_OK, "Connected to QLab");
+		if (self.pulse !== undefined) {
+			self.debug('cleared stray interval');
+			clearInterval(self.pulse);
+		}
 		self.pulse = setInterval(function() { self.rePulse(ws); }, 100);
 	} else if (ma.match(/version$/)) {
 		if (j.data != undefined) {
@@ -1698,13 +1708,13 @@ instance.prototype.init_presets = function () {
 // When module gets deleted
 instance.prototype.destroy = function () {
 	var self = this;
+	self.resetVars(true);
 	if (self.timer !== undefined) {
 		clearTimeout(self.timer);
 	}
 	if (self.pulse !== undefined) {
 		clearInterval(self.pulse);
 	}
-	self.resetVars(true);
 	self.status(self.STATUS_UNKNOWN,"Disabled");
 	debug("destroy", self.id);
 };
