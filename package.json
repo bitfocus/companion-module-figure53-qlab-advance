@@ -15,7 +15,9 @@
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"author": "John A Knight Jr <jjr@ayesti.com>",
-	"contributors": [ "Per Røine <per.roine@gmail.com>" ],
+	"contributors": [
+		"Per Røine <per.roine@gmail.com>"
+	],
 	"license": "MIT",
 	"dependencies": {
 		"osc": "^2.3.0"
