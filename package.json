@@ -19,7 +19,4 @@
 		"Per Røine <per.roine@gmail.com>"
 	],
 	"license": "MIT",
-	"dependencies": {
-		"osc": "^2.3.0"
-	}
 }
