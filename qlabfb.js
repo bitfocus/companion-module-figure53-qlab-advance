@@ -1051,6 +1051,22 @@ instance.prototype.init_presets = function () {
 		},
 		{
 			category: 'CueList',
+			label: 'Stop selected',
+			bank: {
+				style: 'text',
+				text: 'Stop selected',
+				size: '30',
+				color: '16777215',
+				bgcolor: self.rgb(255, 0, 0)
+			},
+			actions: [
+				{
+					action: 'stopSelected',
+				}
+			]
+		},
+		{
+			category: 'CueList',
 			label: 'Panic',
 			bank: {
 				style: 'text',
@@ -1945,16 +1961,17 @@ instance.prototype.actions = function (system) {
 				}]
 			}]
 		},
-		'go': 	    { label: 'GO' },
-		'pause':    { label: 'Pause' },
-		'stop':     { label: 'Stop' },
-		'panic':    { label: 'Panic' },
-		'reset':    { label: 'Reset' },
-		'previous': { label: 'Previous Cue' },
-		'next':     { label: 'Next Cue' },
-		'resume':   { label: 'Resume' },
-		'load':     { label: 'Load Cue' },
-		'preview':  { label: 'Preview'}
+		'go':               { label: 'GO' },
+		'pause':            { label: 'Pause' },
+		'stop':             { label: 'Stop' },
+		'stopSelected':     { label: 'Stop selected' },
+		'panic':            { label: 'Panic' },
+		'reset':            { label: 'Reset' },
+		'previous':         { label: 'Previous Cue' },
+		'next':             { label: 'Next Cue' },
+		'resume':           { label: 'Resume' },
+		'load':             { label: 'Load Cue' },
+		'preview':          { label: 'Preview'}
 		});
 };
 
@@ -1995,6 +2012,11 @@ instance.prototype.action = function (action) {
 		case 'stop':
 			arg = null;
 			cmd = '/stop';
+			break;
+
+		case 'stopSelected':
+			arg = null;
+			cmd = '/cue/selected/stop';
 			break;
 
 		case 'panic':
