@@ -524,6 +524,10 @@ instance.prototype.prime_vars = function (ws) {
 		self.sendOSC(ws + "/cueLists", []);
 		self.sendOSC(ws + "/auditionWindow",[]);
 		self.sendOSC(ws + "/showMode",[]);
+		if (self.timer !== undefined) {
+			clearTimeout(self.timer);
+			self.timer = undefined;
+		}
 		self.timer = setTimeout(function () { self.prime_vars(ws); }, 5000);
 	}
 };
