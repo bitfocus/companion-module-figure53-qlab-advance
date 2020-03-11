@@ -13,6 +13,7 @@ function instance(system, id, config) {
 	self.needPasscode = false;
 	self.useTCP = config.useTCP;
 	self.qLab3 = false;
+	self.hasError = false;
 
 	self.ws = '';
 
@@ -584,9 +585,12 @@ instance.prototype.init_osc = function () {
 
 		self.qSocket.on("error", function (err) {
 			debug("Error", err);
-			self.log('error', "Error: " + err.message);
 			self.connecting = false;
-			self.status(self.STATUS_ERROR, "Can't connect to QLab");
+			if (!self.hasError) {
+				self.log('error', "Error: " + err.message);
+				self.status(self.STATUS_ERROR, "Can't connect to QLab");
+				self.hasError = true;
+			}
 			if (err.code == "ECONNREFUSED") {
 				self.qSocket.removeAllListeners();
 				if (self.timer !== undefined) {
@@ -626,6 +630,7 @@ instance.prototype.init_osc = function () {
 		self.qSocket.on("ready", function () {
 			self.ready = true;
 			self.connecting = false;
+			self.hasError = false;
 			self.log('info',"Connected to QLab:" + self.config.host);
 			self.status(self.STATUS_WARNING, "No Workspaces");
 			self.needWorkspace = true;
