@@ -475,7 +475,7 @@ instance.prototype.init_variables = function () {
 instance.prototype.connect = function () {
 	var self = this;
 	self.status(self.STATUS_UNKNOWN, "Connecting");
-	// self.init_osc();
+	self.init_osc();
 };
 
 // get current status of QLab cues and playhead
