@@ -1782,9 +1782,15 @@ instance.prototype.destroy = function () {
 	self.resetVars(true);
 	if (self.timer !== undefined) {
 		clearTimeout(self.timer);
+		delete self.timer;
 	}
 	if (self.pulse !== undefined) {
 		clearInterval(self.pulse);
+		delete self.pulse;
+	}
+	if (self.qSocket) {
+		self.qSocket.close();
+		delete self.qSocket;
 	}
 	self.status(self.STATUS_UNKNOWN,"Disabled");
 	debug("destroy", self.id);
