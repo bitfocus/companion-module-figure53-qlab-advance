@@ -614,6 +614,7 @@ instance.prototype.init_osc = function () {
 				self.qSocket.removeAllListeners();
 				debug("Connection closed");
 				self.ready = false;
+				self.hasError = true;
 				self.status(self.STATUS_WARNING, "CLOSED");
 			}
 			if (self.timer !== undefined) {
@@ -927,11 +928,15 @@ instance.prototype.readReply = function (message) {
 	} else if (ma.match(/valuesForKeys$/)) {
 		self.updateCues(j.data, 'v');
 	} else if (ma.match(/showMode$/)) {
-		self.showMode = j.data;
-		self.checkFeedbacks('ws_mode');
+		if (self.showMode != j.data) {
+			self.showMode = j.data;
+			self.checkFeedbacks('ws_mode');
+		}
 	} else if (ma.match(/auditionWindow$/)) {
-		self.auditMode = j.data;
-		self.checkFeedbacks('ws_mode');
+		if (self.auditMode != j.data){
+			self.auditMode = j.data;
+			self.checkFeedbacks('ws_mode');
+		}
 	}
 };
 
