@@ -14,6 +14,7 @@ function instance(system, id, config) {
 	self.useTCP = config.useTCP;
 	self.qLab3 = false;
 	self.hasError = false;
+	self.diabled = true;
 
 	self.ws = '';
 
@@ -285,6 +286,7 @@ instance.prototype.updateConfig = function (config) {
 
 instance.prototype.init = function () {
 	var self = this;
+	self.disabled = false;
 
 	self.status(self.STATUS_UNKNOWN, 'Connecting');
 
@@ -611,11 +613,19 @@ instance.prototype.init_osc = function () {
 				self.needWorkspace = true;
 				self.needPasscode = false;
 				self.resetVars(true);
-				self.qSocket.removeAllListeners();
+				// the underlying socket issues a final close after
+				// the OSC socket is closed, which gets deleted on 'destroy'
+				if (self.qSocket != undefined) {
+					self.qSocket.removeAllListeners();
+				}
 				debug("Connection closed");
 				self.ready = false;
 				self.hasError = true;
-				self.status(self.STATUS_WARNING, "CLOSED");
+				if (self.disabled) {
+					self.status(self.STATUS_UNKNOWN, "Disabled");
+				} else {
+					self.status(self.STATUS_WARNING, "CLOSED");
+				}
 			}
 			if (self.timer !== undefined) {
 				clearTimeout(self.timer);
@@ -625,7 +635,9 @@ instance.prototype.init_osc = function () {
 				clearInterval(self.pulse);
 				self.pulse = undefined;
 			}
-			self.timer = setTimeout(function () { self.connect(); }, 5000);
+			if (!self.disabled) { // don't restart if instance was disabled
+				self.timer = setTimeout(function () { self.connect(); }, 5000);
+			}
 		});
 
 		self.qSocket.on("ready", function () {
@@ -1789,6 +1801,7 @@ instance.prototype.destroy = function () {
 		delete self.pulse;
 	}
 	if (self.qSocket) {
+		self.disabled = true;
 		self.qSocket.close();
 		delete self.qSocket;
 	}
