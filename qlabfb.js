@@ -14,7 +14,7 @@ function instance(system, id, config) {
 	self.useTCP = config.useTCP;
 	self.qLab3 = false;
 	self.hasError = false;
-	self.diabled = true;
+	self.disabled = true;
 
 	self.ws = '';
 
