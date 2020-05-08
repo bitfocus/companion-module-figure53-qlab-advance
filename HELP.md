@@ -75,6 +75,7 @@ To use the following, replace INSTANCENAME with the name of your module instance
 
 * **Playhead Cue Color as Background**: Sets the button backgound to QLab color of the current playhead cue
 * **Running Cue Color as Background**: Sets the button background to QLab color of the currently running cue
+* **Cue Number Color as Background**: Sets the button background to QLab color of a specified cue
 * **Colors for Workspace Mode**: Set the button color for QLab workspace modes: Audition (window on), Show Mode, Edit Mode
 
 

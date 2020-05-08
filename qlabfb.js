@@ -1,59 +1,72 @@
 /* eslint-disable no-useless-escape */
 var instance_skel = require('../../instance_skel');
-var debug;
-// eslint-disable-next-line no-unused-vars
-var log;
+var rgb = require('../../image').rgb;
+var presets = require('./presets');
+var actions = require('./actions');
+var variables = require('./variables');
+var feedbacks = require('./feedbacks');
+var Cue = require('./cues');
 var OSC = require('osc');
+//var util = require('util');
+var debug;
 
-// eslint-disable-next-line no-unused-vars
+var log;
+
 function instance(system, id, config) {
 	var self = this;
 	var po = 0;
+
 	self.connecting = false;
 	self.needPasscode = false;
 	self.useTCP = config.useTCP;
 	self.qLab3 = false;
 	self.hasError = false;
 	self.disabled = true;
-
 	self.ws = '';
+	self.pollCount = 0;
 
 	self.resetVars();
-
-	self.colorRGB = {
-		none: 	self.rgb(32, 32, 32),
-		red: 	self.rgb(160, 0, 0),
-		orange: self.rgb(160, 100, 0),
-		green: 	self.rgb(0, 160, 0),
-		blue: 	self.rgb(0, 0, 160),
-		purple: self.rgb(160, 0, 160)
-	};
 
 	// each instance needs a separate local port
 	id.split('').forEach(function (c) {
 		po += c.charCodeAt(0);
 	});
-
 	self.port_offset = po;
 
 	// super-constructor
 	instance_skel.apply(this, arguments);
 
 	self.actions(); // export actions
+	
+	if (process.env.DEVELOPER) {
+		self.config._configIdx = -1;
+	}
+
 	self.addUpgradeScript(function (config, actions) {
 		var changed = false;
 
-		for (var k in actions) {
-			var action = actions[k];
+		function upgradePass(actions, changed) {
+			for (var k in actions) {
+				var action = actions[k];
 
-			if (action.action == "autoLoad") {
-				if (action.options.autoId == 1) {
-					action.action = "autoload";
-					action.label = action.id + ":" + action.action;
-					changed = true;
+				if (action.action == "autoLoad") {
+					if (action.options.autoId == 1) {
+						action.action = "autoload";
+						action.label = action.id + ":" + action.action;
+						changed = true;
+					}
+				}
+				if ('flagged' == action.action && action.options.flaggId) {
+					action.options.flagId = action.options.flaggId;
+					delete action.options.flaggId;
 				}
 			}
+			return changed;
 		}
+
+		changed = upgradePass(actions, changed);
+		changed = upgradePass(releaseActions, changed);
+
 		if (config.useTenths == undefined) {
 			config.useTenths = false;
 			changed = true;
@@ -64,13 +77,21 @@ function instance(system, id, config) {
 	return self;
 }
 
-var qCueRequest = [
+instance.prototype.qCueRequest = [
 	{
 		type: "s",
-		value: '["number","uniqueID","listName","type","isPaused","duration","actionElapsed",' +
+		value: '["number","uniqueID","listName","type","isPaused","duration","actionElapsed","parent","flagged",' +
 			'"colorName","isRunning","isLoaded","armed","isBroken","percentActionElapsed","cartPosition"]'
 	}
 ];
+
+instance.prototype.QSTATUS_CHAR = {
+	broken: "\u2715",
+	running: "\u23F5",
+	paused: "\u23F8",
+	loaded: "\u23FD",
+	idle: "\u00b7"
+};
 
 instance.prototype.resetVars = function (doUpdate) {
 	var self = this;
@@ -79,29 +100,10 @@ instance.prototype.resetVars = function (doUpdate) {
 	var cues = self.cueList;
 
 	// play head info
-	self.nextCue = {
-		ID: '',
-		Name: '[none]',
-		Num: '',
-		Loaded: false,
-		Broken: false,
-		Running: false,
-		Paused: false,
-		Color: self.rgb(0, 0, 0)
-	};
+	self.nextCue = new Cue();
 	// most recent running cue
-	self.runningCue = {
-		ID: '',
-		Name: '[none]',
-		Num: '',
-		Loaded: false,
-		Broken: false,
-		Running: false,
-		Paused: false,
-		Duration: 0,
-		PctElapsed: 0,
-		Color: self.rgb(0, 0, 0)
-	};
+	self.runningCue = new Cue();
+
 	// clear 'variables'
 	if (doUpdate && self.useTCP) {
 		self.updateNextCue();
@@ -122,7 +124,7 @@ instance.prototype.resetVars = function (doUpdate) {
 	self.needWorkspace = true;
 	self.needPasscode = false;
 
-	// list of cues and info for by this QLab workspace
+	// list of cues and info for this QLab workspace
 	self.cueList = {};
 	self.cueColors = {};
 	self.cueOrder = [];
@@ -134,14 +136,14 @@ instance.prototype.resetVars = function (doUpdate) {
 instance.prototype.updateNextCue = function () {
 	var self = this;
 
-	self.setVariable('n_id', self.nextCue.ID);
-	self.setVariable('n_name', self.nextCue.Name);
-	self.setVariable('n_num', self.nextCue.Num);
-	self.setVariable('n_stat', self.nextCue.Broken ? "\u2715" :
-							self.nextCue.Running ? "\u23F5" :
-							self.nextCue.Paused ? "\u23F8" :
-							self.nextCue.Loaded ? "\u23FD" :
-							"\u00b7");
+	self.setVariable('n_id', self.nextCue.uniqueID);
+	self.setVariable('n_name', self.nextCue.qName);
+	self.setVariable('n_num', self.nextCue.qNumber);
+	self.setVariable('n_stat', self.nextCue.isBroken ? self.QSTATUS_CHAR.broken :
+							self.nextCue.isRunning ? self.QSTATUS_CHAR.running :
+							self.nextCue.isPaused ? self.QSTATUS_CHAR.paused :
+							self.nextCue.isLoaded ? self.QSTATUS_CHAR.loaded :
+							self.QSTATUS_CHAR.idle);
 	self.checkFeedbacks('playhead_bg');
 };
 
@@ -153,12 +155,14 @@ instance.prototype.updateQVars = function (q) {
 	var oqNum = '';
 	var oqName = '';
 	var oqColor = 0;
+	var oqOrder = -1;
 
 	// unset old variable?
 	if (qID in self.cueList) {
 		oqNum = self.cueList[qID].qNumber.replace(/[^\w\.]/gi,'_');
 		oqName = self.cueList[qID].qName;
 		oqColor = self.cueList[qID].qColor;
+		oqOrder = self.cueList[qID].qOrder;
 		if (oqNum != '' && oqNum != q.qNumber) {
 			self.setVariable('q_' + oqNum + '_name');
 			self.cueColors[oqNum] = 0;
@@ -169,7 +173,6 @@ instance.prototype.updateQVars = function (q) {
 	if (qNum != '' && q.qName != '' && (q.qName != oqName || qColor != oqColor)) {
 		self.setVariable('q_' + qNum + '_name', q.qName);
 		self.cueColors[qNum] = q.qColor;
-		self.checkFeedbacks('q_bg');
 	}
 
 };
@@ -178,7 +181,7 @@ instance.prototype.updateRunning = function () {
 	var self = this;
 	var tenths = (self.config.useTenths ? 0 : 1);
 
-	var tLeft = self.runningCue.Duration * (1 - self.runningCue.PctElapsed);
+	var tLeft = self.runningCue.duration * (1 - self.runningCue.pctElapsed);
 	if (tLeft > 0) {
 		tLeft += tenths;
 	}
@@ -206,51 +209,20 @@ instance.prototype.updateRunning = function () {
 		}
 	}
 
-	self.setVariable('r_id', self.runningCue.ID);
-	self.setVariable('r_name', self.runningCue.Name);
-	self.setVariable('r_num', self.runningCue.Num);
-	self.setVariable('r_stat', self.runningCue.Broken ? "\u2715" :
-							self.runningCue.Running ? "\u23F5" :
-							self.runningCue.Paused ? "\u23F8" :
-							self.runningCue.Loaded ? "\u23FD" :
-							"\u00b7");
+	self.setVariable('r_id', self.runningCue.uniqueID);
+	self.setVariable('r_name', self.runningCue.qName);
+	self.setVariable('r_num', self.runningCue.qNumber);
+	self.setVariable('r_stat', self.runningCue.isBroken ? self.QSTATUS_CHAR.broken :
+							self.runningCue.isRunning ? self.QSTATUS_CHAR.running :
+							self.runningCue.isPaused ? self.QSTATUS_CHAR.paused :
+							self.runningCue.isLoaded ? self.QSTATUS_CHAR.loaded :
+							self.QSTATUS_CHAR.idle);
 	self.setVariable('r_hhmmss',hh + ":" + mm + ":" + ss);
 	self.setVariable('r_hh', hh);
 	self.setVariable('r_mm', mm);
 	self.setVariable('r_ss', ss);
 	self.setVariable('r_left',ft);
 	self.checkFeedbacks('run_bg');
-};
-
-instance.prototype.JSONtoCue = function (j, i) {
-	var self = this;
-
-	self.uniqueID = j.uniqueID;
-	self.qName = j.listName;
-	self.qNumber = j.number;
-	self.qColorName = j.colorName;
-	self.qType = j.type.toLowerCase();
-	self.isRunning = j.isRunning;
-	self.isLoaded = j.isLoaded;
-	self.isBroken = j.isBroken;
-	self.isPaused = j.isPaused;
-	self.duration = j.duration;
-	self.pctElapsed = j.percentActionElapsed;
-	self.qOrder = j.qOrder;
-
-	if (self.isRunning || self.isPaused) {
-		if (self.uniqueID in i.cueList) {
-			if (0 == (self.startedAt = i.cueList[self.uniqueID].startedAt)) {
-				self.startedAt = Date.now();
-			}
-		} else {
-			self.startedAt = Date.now();
-			debug("Cue " + self.qNumber + "@" + self.startedAt);
-		}
-	} else {
-		self.startedAt = 0;
-	}
-	self.qColor = i.colorRGB[self.qColorName];
 };
 
 instance.prototype.updateConfig = function (config) {
@@ -304,88 +276,37 @@ instance.prototype.init = function () {
 };
 
 instance.prototype.init_feedbacks = function () {
-	var self = this;
-
-	var feedbacks = {
-		playhead_bg: {
-			label: 'Playhead Color for Background',
-			description: 'Use the QLab color for the Playhead (next) cue as background'
-		},
-		run_bg: {
-			label: 'Running Que color for Background',
-			description: 'Use the QLab color of the running cue as background'
-		},
-		q_bg: {
-			label: 'Cue Number color for background',
-			description: 'Use the QLab color of the specified cue number as background',
-			options: [{
-				type: 'textinput',
-				label: 'Cue Number',
-				id: 'cue',
-				default: ""
-			}]
-
-		},
-		ws_mode: {
-			label: 'Color for Workspace Mode',
-			description: 'Set Button colors for Show/Edit/Audition Mode',
-			options: [{
-				type: 'colorpicker',
-				label: 'Foreground color',
-				id: 'fg',
-				default: '16777215'
-			},
-			{
-				type: 'colorpicker',
-				label: 'Background color',
-				id: 'bg',
-				default: this.rgb(0, 128, 0)
-			},
-			{
-				type: 'dropdown',
-				label: 'Which Mode?',
-				id: 'showMode',
-				default: '1',
-				choices: [
-					{ id: '0', label: 'Edit' },
-					{ id: '1', label: 'Show' },
-					{ id: '2', label: 'Audition'}
-				]
-			}],
-		},
-
-	};
-	self.setFeedbackDefinitions(feedbacks);
+	this.setFeedbackDefinitions(feedbacks.setFeedbacks(this));
 };
 
 // eslint-disable-next-line no-unused-vars
-instance.prototype.feedback = function (feedback, bank) {
-	var self = this;
-	var options = feedback.options;
-	var ret = {};
+// instance.prototype.feedback = function (feedback, bank) {
+// 	var self = this;
+// 	var options = feedback.options;
+// 	var ret = {};
 
-	switch (feedback.type) {
-	case 'playhead_bg':
-		ret = { bgcolor: self.nextCue.Color };
-		break;
-	case 'run_bg':
-		ret = { bgcolor: self.runningCue.Color };
-		break;
-	case 'q_bg':
-		ret = { bgcolor: self.cueColors[ (options.cue).replace(/[^\w\.]/gi,'_') ] };
-		break;
-	case 'ws_mode':
-		if (self.auditMode && (options.showMode == '2')) {
-			ret = { color: options.fg, bgcolor: options.bg };
-		} else if (self.showMode && (options.showMode == '1')) {
-			ret = { color: options.fg, bgcolor: options.bg };
-		} else if (!self.showMode && (options.showMode == '0')) {
-			ret = { color: options.fg, bgcolor: options.bg };
-		}
-		break;
-	}
-	return ret;
-};
+// 	switch (feedback.type) {
+// 	// case 'playhead_bg':
+// 	// 	ret = { bgcolor: self.nextCue.qColor };
+// 	// 	break;
+// 	case 'run_bg':
+// 		ret = { bgcolor: self.runningCue.qColor };
+// 		break;
+// 	case 'q_bg':
+// 		ret = { bgcolor: self.cueColors[ (options.cue).replace(/[^\w\.]/gi,'_') ] };
+// 		break;
+// 	case 'ws_mode':
+// 		if (self.auditMode && (options.showMode == '2')) {
+// 			ret = { color: options.fg, bgcolor: options.bg };
+// 		} else if (self.showMode && (options.showMode == '1')) {
+// 			ret = { color: options.fg, bgcolor: options.bg };
+// 		} else if (!self.showMode && (options.showMode == '0')) {
+// 			ret = { color: options.fg, bgcolor: options.bg };
+// 		}
+// 		break;
+// 	}
+// 	return ret;
+// };
 
 instance.prototype.sendOSC = function (node, arg) {
 	var self = this;
@@ -399,7 +320,7 @@ instance.prototype.sendOSC = function (node, arg) {
 			self.system.emit('osc_send', host, 53000, "/connect", [self.config.passcode]);
 		}
 		self.system.emit('osc_send',host, 53000, node, arg);
-	} else 	if (self.ready) {
+	} else if (self.ready) {
 		self.qSocket.send({
 			address: node,
 			args: arg
@@ -408,76 +329,14 @@ instance.prototype.sendOSC = function (node, arg) {
 };
 
 instance.prototype.init_variables = function () {
-	var self = this;
-
-	var variables = [
-		{
-			label: 'Version of QLab attached to this instance',
-			name:  'q_ver'
-		},
-		{
-			label: 'Playhead Cue UniqueID',
-			name:  'n_id'
-		},
-		{
-			label: 'Playhead Cue Name',
-			name:  'n_name'
-		},
-		{
-			label: 'Playhead Cue Number',
-			name:  'n_num'
-		},
-		{
-			label: 'Playhead Cue Status',
-			name:  'n_stat'
-		},
-		{
-			label: 'Running Cue UniqueID',
-			name:  'r_id'
-		},
-		{
-			label: 'Running Cue Name',
-			name:  'r_name'
-		},
-		{
-			label: 'Running Cue Number',
-			name:  'r_num'
-		},
-		{
-			label: 'Running Cue Status',
-			name:  'r_stat'
-		},
-		{
-			label: 'Running Cue Time left, variable size',
-			name:  'r_left'
-		},
-		{
-			label: 'Running Cue Time left, HH:MM:SS',
-			name:  'r_hhmmss'
-		},
-		{
-			label: 'Running Cue Time left, Hour',
-			name:  'r_hh'
-		},
-		{
-			label: 'Running Cue Time left, Minute',
-			name:  'r_mm'
-		},
-		{
-			label: 'Running Cue Time left, Second',
-			name:  'r_ss'
-		}
-	];
-
-	self.setVariableDefinitions(variables);
-	self.updateRunning();
-	self.updateNextCue();
+	this.setVariableDefinitions(variables.setVariables());
+	this.updateRunning();
+	this.updateNextCue();
 };
 
 instance.prototype.connect = function () {
-	var self = this;
-	self.status(self.STATUS_UNKNOWN, "Connecting");
-	self.init_osc();
+	this.status(this.STATUS_UNKNOWN, "Connecting");
+	this.init_osc();
 };
 
 // get current status of QLab cues and playhead
@@ -540,18 +399,20 @@ instance.prototype.prime_vars = function (ws) {
  */
 instance.prototype.rePulse = function (ws) {
 	var self = this;
-	var rc = self.runningCue.ID;
+	var rc = self.runningCue.uniqueID;
 
-	self.sendOSC(ws + "/auditionWindow", []);
-	if (self.qLab3) {
-		self.sendOSC(ws + "/showMode", []);
+	if (0==(self.pollCount % 10)) {
+		self.sendOSC(ws + "/auditionWindow", []);
+		if (self.qLab3) {
+			self.sendOSC(ws + "/showMode", []);
+		}
 	}
+	self.pollCount++;
 	if (rc !== undefined && rc !== '') {
-//		self.sendOSC(ws + "/cue/" + rc + "/valuesForKeys", qCueRequest);
 		if (self.qLab3) {
 			self.sendOSC(ws + "/runningOrPausedCues",[]);
 		} else {
-			self.sendOSC(ws + "/cue/active/valuesForKeys", qCueRequest);
+			self.sendOSC(ws + "/cue/active/valuesForKeys", self.qCueRequest);
 		}
 	}
 };
@@ -590,7 +451,7 @@ instance.prototype.init_osc = function () {
 			self.connecting = false;
 			if (!self.hasError) {
 				self.log('error', "Error: " + err.message);
-				self.status(self.STATUS_ERROR, "Can't connect to QLab");
+				self.status(self.STATUS_ERROR, "Can't connect to QLab " + err.message);
 				self.hasError = true;
 			}
 			if (err.code == "ECONNREFUSED") {
@@ -673,9 +534,9 @@ instance.prototype.init_osc = function () {
 /**
  * update list cues
  */
-instance.prototype.updateCues = function (cue, stat) {
+instance.prototype.updateCues = function (jCue, stat) {
 	var self = this;
-	// list of useful cue types don't really need status for a 'cue list'
+	// list of useful cue types we're interested in
 	var qTypes = ['audio', 'mic', 'video', 'camera',
 		'text', 'light', 'fade', 'network', 'midi', 'midi file',
 		'timecode', 'group', 'start', 'stop', 'pause', 'load',
@@ -684,12 +545,12 @@ instance.prototype.updateCues = function (cue, stat) {
 	];
 	var q = {};
 
-	if (Array.isArray(cue)) {
+	if (Array.isArray(jCue)) {
 		var i = 0;
 		var idCount = {};
 		var dupIds = false;
-		while (i < cue.length) {
-			q = new self.JSONtoCue(cue[i], self);
+		while (i < jCue.length) {
+			q = new Cue(jCue[i], self);
 			q.qOrder = i;
 			if (q.uniqueID in idCount) {
 				idCount[q.uniqueID] += 1;
@@ -707,23 +568,18 @@ instance.prototype.updateCues = function (cue, stat) {
 			}
 			i += 1;
 		}
+		self.checkFeedbacks('q_bg');
 		if (dupIds) {
 			self.status(self.STATUS_WARNING, "Multiple cues\nwith the same cue_id");
 		}
 	} else {
-		q = new self.JSONtoCue(cue, self);
+		q = new Cue(jCue, self);
 		if (qTypes.includes(q.qType)) {
 			self.updateQVars(q);
 			self.cueList[q.uniqueID] = q;
 			self.updatePlaying();
-			if (q.uniqueID == self.nextCue.ID) {
-				self.nextCue.Name = q.qName;
-				self.nextCue.Num = q.qNumber;
-				self.nextCue.Color = q.qColor;
-				self.nextCue.Loaded = q.isLoaded;
-				self.nextCue.Broken = q.isBroken;
-				self.nextCue.Running = q.isRunning;
-				self.nextCue.Paused = q.isPaused;
+			if (q.uniqueID == self.nextCue.uniqueID) {
+				self.nextCue = q;
 				self.updateNextCue();
 			}
 		}
@@ -736,14 +592,14 @@ instance.prototype.updateCues = function (cue, stat) {
 instance.prototype.updatePlaying = function () {
 
 	function qState (q) {
-		var ret = q.ID + ':';
+		var ret = q.uniqueID + ':';
 		ret +=
-			q.Broken ? '0' :
-			q.Running ? '1' :
-			q.Paused ? '2' :
-			q.Loaded ? '3' :
+			q.isBroken ? '0' :
+			q.isRunning ? '1' :
+			q.isPaused ? '2' :
+			q.isLoaded ? '3' :
 			'4';
-		ret += ":" + q.Duration + ":" + q.PctElapsed;
+		ret += ":" + q.duration + ":" + q.pctElapsed;
 		return ret;
 	}
 
@@ -767,18 +623,8 @@ instance.prototype.updatePlaying = function () {
 		return b[1] - a[1];
 	});
 
-	if (runningCues.length == 0) {
-		self.runningCue = {
-			ID: 		'-',
-			Name: 		'[none]',
-			Num: 		'',
-			Loaded: 	false,
-			Running: 	false,
-			Paused: 	false,
-			Duration:	0,
-			PctElapsed: 0,
-			Color: 		self.rgb(0, 0, 0)
-		};
+	if (runningCues.length == 0 && self.runningCue.uniqueID != '-') {
+		self.runningCue = new Cue();
 	} else {
 		if (hasGroup) {
 			while (cues[runningCues[i][0]].qType != "group" && i < runningCues.length) {
@@ -787,17 +633,7 @@ instance.prototype.updatePlaying = function () {
 		}
 		if (i < runningCues.length) {
 			var q = cues[runningCues[i][0]];
-			self.runningCue = {
-				ID: 		q.uniqueID,
-				Name: 		q.qName,
-				Num: 		q.qNumber,
-				Color: 		q.qColor,
-				Loaded: 	q.isLoaded,
-				Paused: 	q.isPaused,
-				Running: 	q.isRunning,
-				Duration: 	q.duration,
-				PctElapsed: q.pctElapsed
-			};
+			self.runningCue = q;
 		}
 	}
 	// update if changed
@@ -825,21 +661,22 @@ instance.prototype.readUpdate = function (message) {
 			var oa = message.args[0].value;
 			if (oa !== self.nextCue) {
 				// playhead changed
-				self.nextCue.ID = oa;
-				self.sendOSC(ws + "/cue/playhead/valuesForKeys", qCueRequest);
+				self.nextCue.uniqueID = oa;
+				self.sendOSC(ws + "/cue/playhead/valuesForKeys", self.qCueRequest);
 			}
 		} else {
-			self.nextCue.ID = '';
-			self.nextCue.Name = '[none]';
-			self.nextCue.Num = '';
-			self.nextCue.qColor = 0;
-			self.nextCue.Loaded = false;
+			self.nextCue = new Cue();
+			// self.nextCue.ID = '';
+			// self.nextCue.Name = '[none]';
+			// self.nextCue.Num = '';
+			// self.nextCue.qColor = 0;
+			// self.nextCue.Loaded = false;
 			self.updateNextCue();
 		}
 	} else if (ma.match(/\/cue_id\//) && !(ma.match(/cue lists\]$/))) {
 		// get cue information for 'updated' cue
 		var node = ma.substring(7) + "/valuesForKeys";
-		self.sendOSC(node, qCueRequest);
+		self.sendOSC(node, self.qCueRequest);
 	} else if (ma.match(/\/disconnect$/)) {
 		self.status(self.STATUS_WARNING, "No Workspaces");
 		self.needWorkspace = true;
@@ -868,6 +705,7 @@ instance.prototype.readReply = function (message) {
 	var j = {};
 	var i = 0;
 	var q;
+	var qr = self.qCueRequest;
 
 	try {
 		j = JSON.parse(message.args[0].value);
@@ -887,7 +725,7 @@ instance.prototype.readReply = function (message) {
 		} else if (j.data == "ok") {
 			self.needPasscode = false;
 			self.needWorkspace = (!self.qLab3);
-			self.status(self.STATUS_OK, "Connected");
+			self.status(self.STATUS_OK, "Connected to " + self.host);
 		}
 	}
 	if (ma.match(/updates$/)) {		// only works on QLab4
@@ -914,8 +752,8 @@ instance.prototype.readReply = function (message) {
 		}
 	} else if (ma.match(/uniqueID$/)) {
 		if (j.data != undefined) {
-			self.nextCue.ID = j.data;
-			self.sendOSC(ws + "/cue/playhead/valuesForKeys", qCueRequest);
+			self.nextCue.uniqueID = j.data;
+			self.sendOSC(ws + "/cue/playhead/valuesForKeys", qr);
 		}
 	} else if (ma.match(/\/cueLists$/)) {
 		if (j.data != undefined) {
@@ -926,14 +764,14 @@ instance.prototype.readReply = function (message) {
 				self.updateCues(q.cues,'l');
 				i++;
 			}
-			self.sendOSC(ws + "/cue/active/valuesForKeys",qCueRequest);
+			self.sendOSC(ws + "/cue/active/valuesForKeys", qr);
 		}
 	} else if (ma.match(/runningOrPausedCues$/)) {
 		if (j.data != undefined) {
 			i = 0;
 			while (i < j.data.length) {
 				q = j.data[i];
-				self.sendOSC(ws + "/cue_id/" + q.uniqueID + "/valuesForKeys",qCueRequest);
+				self.sendOSC(ws + "/cue_id/" + q.uniqueID + "/valuesForKeys", qr);
 				i++;
 			}
 		}
@@ -1007,784 +845,7 @@ instance.prototype.config_fields = function () {
 };
 
 instance.prototype.init_presets = function () {
-	var self = this;
-	var presets = [
-
-		{
-			category: 'CueList',
-			label: 'Pause / Resume',
-			bank: {
-				style: 'text',
-				text: 'Pause',
-				size: '18',
-				color: self.rgb(0, 0, 0),
-				bgcolor: self.rgb(255, 255, 0),
-
-			},
-			actions: [
-				{
-					action: 'pause',
-				}
-			]
-		},
-		{
-			category: 'CueList',
-			label: 'GO',
-			bank: {
-				style: 'text',
-				text: 'GO',
-				size: '30',
-				color: self.rgb(0, 0, 0),
-				bgcolor: self.rgb(0, 255, 0)
-			},
-			actions: [
-				{
-					action: 'go',
-				}
-			]
-		},
-		{
-			category: 'CueList',
-			label: 'Resume',
-			bank: {
-				style: 'text',
-				text: 'Resume',
-				size: '18',
-				color: self.rgb(0, 0, 0),
-				bgcolor: self.rgb(0, 255, 0)
-			},
-			actions: [
-				{
-					action: 'resume',
-				}
-			]
-		},
-		{
-			category: 'CueList',
-			label: 'Stop',
-			bank: {
-				style: 'text',
-				text: 'Stop',
-				size: '30',
-				color: '16777215',
-				bgcolor: self.rgb(255, 0, 0)
-			},
-			actions: [
-				{
-					action: 'stop',
-				}
-			]
-		},
-		{
-			category: 'CueList',
-			label: 'Stop selected',
-			bank: {
-				style: 'text',
-				text: 'Stop selected',
-				size: '30',
-				color: '16777215',
-				bgcolor: self.rgb(255, 0, 0)
-			},
-			actions: [
-				{
-					action: 'stopSelected',
-				}
-			]
-		},
-		{
-			category: 'CueList',
-			label: 'Panic',
-			bank: {
-				style: 'text',
-				text: 'Panic',
-				size: '24',
-				color: '16777215',
-				bgcolor: self.rgb(255, 0, 0)
-			},
-			actions: [
-				{
-					action: 'panic',
-				}
-			]
-		},
-		{
-			category: 'CueList',
-			label: 'Reset',
-			bank: {
-				style: 'text',
-				text: 'Reset',
-				size: '24',
-				color: '16777215',
-				bgcolor: self.rgb(0, 0, 100)
-			},
-			actions: [
-				{
-					action: 'reset',
-				}
-			]
-		},
-		{
-			category: 'CueList',
-			label: 'Preview',
-			bank: {
-				style: 'text',
-				text: 'Preview',
-				size: '18',
-				color: '16777215',
-				bgcolor: self.rgb(0, 128, 0)
-			},
-			actions: [
-				{
-					action: 'preview',
-				}
-			]
-		},
-		{
-			category: 'CueList',
-			label: 'Previous Cue',
-			bank: {
-				style: 'text',
-				text: 'Prev\\nCue',
-				size: '24',
-				color: '16777215',
-				bgcolor: self.rgb(0, 0, 128)
-			},
-			actions: [
-				{
-					action: 'previous',
-				}
-			]
-		},
-		{
-			category: 'CueList',
-			label: 'Next Cue',
-			bank: {
-				style: 'text',
-				text: 'Next\\nCue',
-				size: '24',
-				color: '16777215',
-				bgcolor: self.rgb(0, 0, 100)
-			},
-			actions: [
-				{
-					action: 'next',
-				}
-			]
-		},
-		{
-			category: 'CueList',
-			label: 'Load Cue',
-			bank: {
-				style: 'text',
-				text: 'Load\\nCue',
-				size: '24',
-				color: '16777215',
-				bgcolor: self.rgb(0, 0, 100)
-			},
-			actions: [
-				{
-					action: 'load',
-				}
-			]
-		},
-		{
-			category: 'CueList',
-			label: 'Show Mode',
-			bank: {
-				style: 'text',
-				text: 'Show\\nMode',
-				size: '24',
-				color: '16777215',
-				bgcolor: self.rgb(0, 128, 0)
-			},
-			actions: [
-				{
-					action: 'showMode',
-					options: {
-						onOff: '1'
-					}
-				}
-			]
-		},
-		{
-			category: 'CueList',
-			label: 'Edit Mode',
-			bank: {
-				style: 'text',
-				text: 'Edit\\nMode',
-				size: '24',
-				color: '16777215',
-				bgcolor: self.rgb(72, 96, 96)
-			},
-			actions: [
-				{
-					action: 'showMode',
-					options: {
-						onOff: '0'
-					}
-				}
-			]
-		},
-		{
-			category: 'CueList',
-			label: 'Audition ON',
-			bank: {
-				style: 'text',
-				text: 'Audition\\nON',
-				size: '18',
-				color: '16777215',
-				tooltip: 'Opens the Audition Window',
-				bgcolor: self.rgb(0, 64, 128)
-			},
-			actions: [
-				{
-					action: 'auditMode',
-					options: {
-						onOff: '1'
-					}
-				}
-			]
-		},
-		{
-			category: 'CueList',
-			label: 'Audition OFF',
-			bank: {
-				style: 'text',
-				text: 'Audition\\nOFF',
-				size: '18',
-				color: '16777215',
-				tooltip: 'Closes the Audition Window',
-				bgcolor: self.rgb(64, 96, 96)
-			},
-			actions: [
-				{
-					action: 'auditMode',
-					options: {
-						onOff: '0'
-					}
-				}
-			]
-		},
-		{
-			category: 'Edit',
-			label: 'PreWait Dec 1 sec',
-			bank: {
-				style: 'text',
-				text: 'PreWait\\nDecrease\\n1 sec',
-				size: '14',
-				color: self.rgb(255, 255, 255),
-				bgcolor: self.rgb(0, 0, 100)
-			},
-			actions: [
-				{
-					action: 'prewait_dec',
-					options: {
-						time: '1',
-					}
-				}
-			]
-		},
-		{
-			category: 'Edit',
-			label: 'PreWait Dec 10 sec',
-			bank: {
-				style: 'text',
-				text: 'PreWait\\nDecrease\\n10 sec',
-				size: '14',
-				color: self.rgb(255, 255, 255),
-				bgcolor: self.rgb(0, 0, 100)
-			},
-			actions: [
-				{
-					action: 'prewait_dec',
-					options: {
-						time: '10',
-					}
-				}
-			]
-		},
-		{
-			category: 'Edit',
-			label: 'PreWait inc 10 sec',
-			bank: {
-				style: 'text',
-				text: 'PreWait\\nIncrease\\n10 sec',
-				size: '14',
-				color: self.rgb(255, 255, 255),
-				bgcolor: self.rgb(0, 0, 100)
-			},
-			actions: [
-				{
-					action: 'prewait_inc',
-					options: {
-						time: '10',
-					}
-				}
-			]
-		},
-		{
-			category: 'Edit',
-			label: 'PreWait inc 1sec',
-			bank: {
-				style: 'text',
-				text: 'PreWait\\nIncrease\\n1 sec',
-				size: '14',
-				color: self.rgb(255, 255, 255),
-				bgcolor: self.rgb(0, 0, 100)
-			},
-			actions: [
-				{
-					action: 'prewait_inc',
-					options: {
-						time: '1',
-					}
-				}
-			]
-		},
-
-		{
-			category: 'Edit',
-			label: 'PostWait Dec 1 sec ',
-			bank: {
-				style: 'text',
-				text: 'PostWait\\nDecrease\\n1 sec',
-				size: '14',
-				color: self.rgb(255, 255, 255),
-				bgcolor: self.rgb(0, 0, 100)
-			},
-			actions: [
-				{
-					action: 'postwait_dec',
-					options: {
-						time: '1',
-					}
-				}
-			]
-		},
-		{
-			category: 'Edit',
-			label: 'PostWait Dec 10 Sec',
-			bank: {
-				style: 'text',
-				text: 'PostWait\\nDecrease\\n10 sec',
-				size: '14',
-				color: '16777215',
-				bgcolor: self.rgb(0, 0, 100)
-			},
-			actions: [
-				{
-					action: 'postwait_dec',
-					options: {
-						time: '10',
-					}
-				}
-			]
-		},
-		{
-			category: 'Edit',
-			label: 'PostWait Inc 10 Sec',
-			bank: {
-				style: 'text',
-				text: 'PostWait\\nIncrease\\n10sec',
-				size: '14',
-				color: '16777215',
-				bgcolor: self.rgb(0, 0, 100)
-			},
-			actions: [
-				{
-					action: 'postwait_inc',
-					options: {
-						time: '10',
-					}
-				}
-			]
-		},
-		{
-			category: 'Edit',
-			label: 'PostWait Inc 1 Sec',
-			bank: {
-				style: 'text',
-				text: 'PostWait\\nIncrease\\n1 sec',
-				size: '14',
-				color: '16777215',
-				bgcolor: self.rgb(0, 0, 100)
-			},
-			actions: [
-				{
-					action: 'postwait_inc',
-					options: {
-						time: '1',
-					}
-				}
-			]
-		},
-
-		{
-			category: 'Edit',
-			label: 'Duration Dec 1 sec',
-			bank: {
-				style: 'text',
-				text: 'Duration\\nDecrease\\n1 sec',
-				size: '14',
-				color: '16777215',
-				bgcolor: self.rgb(0, 0, 100)
-			},
-			actions: [
-				{
-					action: 'duration_dec',
-					options: {
-						time: '1',
-					}
-				}
-			]
-		},
-		{
-			category: 'Edit',
-			label: 'Duration Dec 10sec',
-			bank: {
-				style: 'text',
-				text: 'Duration\\nDecrease\\n10sec',
-				size: '14',
-				color: '16777215',
-				bgcolor: self.rgb(0, 0, 100)
-			},
-			actions: [
-				{
-					action: 'duration_dec',
-					options: {
-						time: '10',
-					}
-				}
-			]
-		},
-		{
-			category: 'Edit',
-			label: 'Duration inc 10sec',
-			bank: {
-				style: 'text',
-				text: 'Duration\\nIncrease\\n10 sec',
-				size: '14',
-				color: '16777215',
-				bgcolor: self.rgb(0, 0, 100)
-			},
-			actions: [
-				{
-					action: 'duration_inc',
-					options: {
-						time: '10',
-					}
-				}
-			]
-		},
-		{
-			category: 'Edit',
-			label: 'Duration Inc 1sec',
-			bank: {
-				style: 'text',
-				text: 'Duration\\nIncrease\\n1 sec',
-				size: '14',
-				color: '16777215',
-				bgcolor: self.rgb(0, 0, 100)
-			},
-			actions: [
-				{
-					action: 'duration_inc',
-					options: {
-						time: '1',
-					}
-				}
-			]
-		},
-
-		{
-			category: 'Edit',
-			label: 'Continue Mode DNC',
-			bank: {
-				style: 'text',
-				text: 'Do Not Continue',
-				size: '14',
-				color: '16777215',
-				bgcolor: self.rgb(0, 0, 100)
-			},
-			actions: [
-				{
-					action: 'continue',
-					options: {
-						contId: '0',
-					}
-				}
-			]
-		},
-		{
-			category: 'Edit',
-			label: 'Continue mode Auto continue',
-			bank: {
-				style: 'text',
-				text: 'Auto Continue',
-				size: '14',
-				color: '16777215',
-				bgcolor: self.rgb(0, 0, 100)
-			},
-			actions: [
-				{
-					action: 'continue',
-					options: {
-						contId: '1',
-					}
-				}
-			]
-		},
-		{
-			category: 'Edit',
-			label: 'Continue mode Auto Follow',
-			bank: {
-				style: 'text',
-				text: 'Auto Follow',
-				size: '14',
-				color: '16777215',
-				bgcolor: self.rgb(0, 0, 100)
-			},
-			actions: [
-				{
-					action: 'continue',
-					options: {
-						contId: '2',
-					}
-				}
-			]
-		},
-		{
-			category: 'Edit',
-			label: 'Disarm',
-			bank: {
-				style: 'text',
-				text: 'Disarm',
-				size: '14',
-				color: '16777215',
-				bgcolor: self.rgb(0, 0, 100)
-			},
-			actions: [
-				{
-					action: 'arm',
-					options: {
-						armId: '0',
-					}
-				}
-			]
-		},
-		{
-			category: 'Edit',
-			label: 'Arm',
-			bank: {
-				style: 'text',
-				text: 'Arm',
-				size: '14',
-				color: '16777215',
-				bgcolor: self.rgb(0, 0, 100)
-			},
-			actions: [
-				{
-					action: 'arm',
-					options: {
-						armId: '1',
-					}
-				}
-			]
-		},
-		{
-			category: 'Edit',
-			label: 'Autoload Enable',
-			bank: {
-				style: 'text',
-				text: 'Autoload Enable',
-				size: '14',
-				color: '16777215',
-				bgcolor: self.rgb(0, 0, 100)
-			},
-			actions: [
-				{
-					action: 'autoload',
-					options: {
-						autoId: '1',
-					}
-				}
-			]
-		},
-		{
-			category: 'Edit',
-			label: 'Autoload Disable',
-			bank: {
-				style: 'text',
-				text: 'Autoload Disable',
-				size: '14',
-				color: '16777215',
-				bgcolor: self.rgb(0, 0, 100)
-			},
-			actions: [
-				{
-					action: 'autoload',
-					options: {
-						autoId: '0',
-					}
-				}
-			]
-		},
-		{
-			category: 'Edit',
-			label: 'Flagged',
-			bank: {
-				style: 'text',
-				text: 'Flagged',
-				size: '14',
-				color: '16777215',
-				bgcolor: self.rgb(0, 0, 100)
-			},
-			actions: [
-				{
-					action: 'flagged',
-					options: {
-						flaggId: '1',
-					}
-				}
-			]
-		},
-		{
-			category: 'Edit',
-			label: 'Unflagged',
-			bank: {
-				style: 'text',
-				text: 'Unflagged',
-				size: '14',
-				color: '16777215',
-				bgcolor: self.rgb(0, 0, 100)
-			},
-			actions: [
-				{
-					action: 'flagged',
-					options: {
-						flaggId: '0',
-					}
-				}
-			]
-		},
-		{
-			category: 'Edit',
-			label: 'Cue Colour',
-			bank: {
-				style: 'text',
-				text: 'Cue Colour',
-				size: '14',
-				color: '16777215',
-				bgcolor: self.rgb(0, 0, 0)
-			},
-			actions: [
-				{
-					action: 'cueColor',
-					options: {
-						colorId: 'none',
-					}
-				}
-			]
-		},
-		{
-			category: 'Edit',
-			label: 'Cue Colour',
-			bank: {
-				style: 'text',
-				text: 'Cue Colour',
-				size: '14',
-				color: '16777215',
-				bgcolor: self.rgb(255, 0, 0)
-			},
-			actions: [
-				{
-					action: 'cueColor',
-					options: {
-						colorId: 'red',
-					}
-				}
-			]
-		},
-		{
-			category: 'Edit',
-			label: 'Cue Colour',
-			bank: {
-				style: 'text',
-				text: 'Cue Colour',
-				size: '14',
-				color: '16777215',
-				bgcolor: self.rgb(200, 200, 0)
-			},
-			actions: [
-				{
-					action: 'cueColor',
-					options: {
-						colorId: 'yellow',
-					}
-				}
-			]
-		},
-		{
-			category: 'Edit',
-			label: 'Cue Colour',
-			bank: {
-				style: 'text',
-				text: 'Cue Colour',
-				size: '14',
-				color: '16777215',
-				bgcolor: self.rgb(0, 200, 0)
-			},
-			actions: [
-				{
-					action: 'cueColor',
-					options: {
-						colorId: 'green',
-					}
-				}
-			]
-		},
-		{
-			category: 'Edit',
-			label: 'Cue Colour',
-			bank: {
-				style: 'text',
-				text: 'Cue Colour',
-				size: '14',
-				color: '16777215',
-				bgcolor: self.rgb(0, 0, 255)
-			},
-			actions: [
-				{
-					action: 'cueColor',
-					options: {
-						colorId: 'blue',
-
-					}
-				}
-			]
-		},
-		{
-			category: 'Edit',
-			label: 'Cue Colour',
-			bank: {
-				style: 'text',
-				text: 'Cue Colour',
-				size: '14',
-				color: '16777215',
-				bgcolor: self.rgb(255, 0, 255)
-			},
-			actions: [
-				{
-					action: 'cueColor',
-					options: {
-						colorId: 'purple',
-					}
-				}
-			]
-		},
-	];
-
-	self.setPresetDefinitions(presets);
+	this.setPresetDefinitions(presets.setPresets());
 };
 
 
@@ -1809,216 +870,16 @@ instance.prototype.destroy = function () {
 	debug("destroy", self.id);
 };
 
-instance.prototype.continueMode = [
-	{ label: 'Do Not Continue', id: '0' },
-	{ label: 'Auto Continue',   id: '1' },
-	{ label: 'Auto Follow',     id: '2' }
-];
-
-instance.prototype.colorName = [
-	{ label: 'None',   id: 'none' },
-	{ label: 'Red',    id: 'red' },
-	{ label: 'Orange', id: 'orange' },
-	{ label: 'Green',  id: 'green' },
-	{ label: 'Blue',   id: 'blue' },
-	{ label: 'Purple', id: 'purple' }
-];
-
-
 // eslint-disable-next-line no-unused-vars
 instance.prototype.actions = function (system) {
-	var self = this;
-	self.system.emit('instance_actions', self.id, {
-		'start': {
-			label: 'Start (cue)',
-			options: [{
-				type: 'textinput',
-				label: 'Cue',
-				id: 'cue',
-				default: "1"
-			}]
-		},
-		'goto': {
-			label: 'Go To (cue)',
-			options: [{
-				type: 'textinput',
-				label: 'Cue',
-				id: 'cue',
-				default: "1"
-			}]
-		},
-		'prewait_dec': {
-			label: 'Decrease Prewait',
-			options: [{
-				type: 'textinput',
-				label: 'Time in seconds',
-				id: 'time',
-				regex: self.REGEX_FLOAT,
-				default: "1"
-			}]
-		},
-		'prewait_inc': {
-			label: 'Increase Prewait',
-			options: [{
-				type: 'textinput',
-				label: 'Time in seconds',
-				id: 'time',
-				regex: self.REGEX_FLOAT,
-				default: "1"
-			}]
-		},
-		'postwait_dec': {
-			label: 'Decrease Postwait',
-			options: [{
-				type: 'textinput',
-				label: 'Time in seconds',
-				id: 'time',
-				regex: self.REGEX_FLOAT,
-				default: "1"
-			}]
-		},
-		'postwait_inc': {
-			label: 'Increase Postwait',
-			options: [{
-				type: 'textinput',
-				label: 'Time in seconds',
-				id: 'time',
-				regex: self.REGEX_FLOAT,
-				default: "1"
-			}]
-		},
-		'duration_dec': {
-			label: 'Decrease Duration',
-			options: [{
-				type: 'textinput',
-				label: 'Time in seconds',
-				id: 'time',
-				regex: self.REGEX_FLOAT,
-				default: "1"
-			}]
-		},
-		'duration_inc': {
-			label: 'Increase Duration',
-			options: [{
-				type: 'textinput',
-				label: 'Time in seconds',
-				id: 'time',
-				regex: self.REGEX_FLOAT,
-				default: "1"
-			}]
-		},
-		'continue': {
-			label: 'Set Continue Mode',
-			options: [{
-				type: 'dropdown',
-				label: 'Continue Mode',
-				id: 'contId',
-				choices: self.continueMode
-			}]
-		},
-		'arm': {
-			label: 'Arm/Disarm Cue',
-			options: [{
-				type: 'dropdown',
-				label: 'Arm/Disarm',
-				id: 'armId',
-				choices: [{
-					id: '0',
-					label: 'Disarm'
-				}, {
-					id: '1',
-					label: 'Arm'
-				}]
-			}]
-		},
-		'autoload': {
-			label: 'Enable/Disable Cue Autoload ',
-			options: [{
-				type: 'dropdown',
-				label: 'Autoload',
-				id: 'autoId',
-				choices: [{
-					id: '0',
-					label: 'Disable'
-				}, {
-					id: '1',
-					label: 'Enable'
-				}]
-			}]
-		},
-		'flagged': {
-			label: 'Flagged/Unflagged Cue',
-			options: [{
-				type: 'dropdown',
-				label: 'Flagged',
-				id: 'flaggId',
-				choices: [{
-					id: '0',
-					label: 'Disable'
-				}, {
-					id: '1',
-					label: 'Enable'
-				}]
-			}]
-		},
-		'cueColor': {
-			label: 'Set Selected Cue Color',
-			options: [{
-				type: 'dropdown',
-				label: 'Color',
-				id: 'colorId',
-				choices: self.colorName
-			}]
-		},
-		'showMode': {
-			label: 'Show mode',
-			options: [{
-				type: 	'dropdown',
-				label: 	'Mode',
-				id:		'onOff',
-				choices: [{
-					id: '1',
-					label: 'On'
-				}, {
-					id: '0',
-					label: 'Off'
-				}]
-			}]
-		},
-		'auditMode': {
-			label: 'Audition Window',
-			options: [{
-				type: 	'dropdown',
-				label: 	'Mode',
-				id:		'onOff',
-				choices: [{
-					id: '1',
-					label: 'On'
-				}, {
-					id: '0',
-					label: 'Off'
-				}]
-			}]
-		},
-		'go':               { label: 'GO' },
-		'pause':            { label: 'Pause' },
-		'stop':             { label: 'Stop' },
-		'stopSelected':     { label: 'Stop selected' },
-		'panic':            { label: 'Panic' },
-		'reset':            { label: 'Reset' },
-		'previous':         { label: 'Previous Cue' },
-		'next':             { label: 'Next Cue' },
-		'resume':           { label: 'Resume' },
-		'load':             { label: 'Load Cue' },
-		'preview':          { label: 'Preview'}
-		});
+	this.setActions(actions.setActions());
 };
 
 instance.prototype.action = function (action) {
 	var self = this;
 	var opt = action.options;
 	var cmd;
-	var arg;
+	var arg = [];
 	var ws = self.ws;
 	var optTime;
 	var typeTime;
@@ -2036,67 +897,54 @@ instance.prototype.action = function (action) {
 	switch (action.action) {
 
 		case 'start':
-			arg = null;
 			cmd = '/cue/' + opt.cue + '/start';
 			break;
 
 		case 'goto':
-			arg = null;
 			cmd = '/playhead/' + opt.cue;
 			break;
 
 		case 'go':
-			arg = null;
 			cmd = '/go';
 			break;
 
 		case 'preview':
-			arg = null;
 			cmd = '/cue/selected/preview';
 			break;
 
 		case 'pause':
-			arg = null;
 			cmd = '/pause';
 			break;
 
 		case 'stop':
-			arg = null;
 			cmd = '/stop';
 			break;
 
 		case 'stopSelected':
-			arg = null;
 			cmd = '/cue/selected/stop';
 			break;
 
 		case 'panic':
-			arg = null;
 			cmd = '/panic';
 			break;
 
 		case 'reset':
-			arg = null;
 			cmd = '/reset';
 			break;
 
 		case 'previous':
-			arg = null;
 			cmd = '/playhead/previous';
 			break;
 
 		case 'next':
-			arg = null;
 			cmd = '/playhead/next';
 			break;
 
 		case 'resume':
-			arg = null;
 			cmd = '/resume';
 			break;
 
 		case 'load':
-			arg = null;
 			cmd = '/cue/selected/load';
 			break;
 
@@ -2159,7 +1007,7 @@ instance.prototype.action = function (action) {
 		case 'arm':
 			arg = {
 				type: "i",
-				value: parseInt(opt.armId)
+				value: 2==parseInt(opt.armId) ? 1-self.nextCue.isArmed : parseInt(opt.armId)
 			};
 			cmd = '/cue/selected/armed';
 			break;
@@ -2167,7 +1015,7 @@ instance.prototype.action = function (action) {
 		case 'autoload':
 			arg = {
 				type: "i",
-				value: parseInt(opt.autoId)
+				value: 2==parseInt(opt.autoId) ? 1-self.nextCue.isAutoLoad : parseInt(opt.autoId)
 			};
 			cmd = '/cue/selected/autoLoad';
 			break;
@@ -2175,7 +1023,7 @@ instance.prototype.action = function (action) {
 		case 'flagged':
 			arg = {
 				type: "i",
-				value: parseInt(opt.flaggId)
+				value: 2==parseInt(opt.flagId) ? 1-self.nextCue.isFlagged : parseInt(opt.flagId)
 			};
 			cmd = '/cue/selected/flagged';
 			break;
@@ -2190,14 +1038,14 @@ instance.prototype.action = function (action) {
 		case 'showMode':
 			arg = {
 				type: "i",
-				value: parseInt(opt.onOff)
+				value: 2==parseInt(opt.onOff) ? 1-self.showMode : parseInt(opt.onOff)
 			};
 			cmd = '/showMode';
 			break;
 		case 'auditMode':
 			arg = {
 				type: "i",
-				value: parseInt(opt.onOff)
+				value: 2==parseInt(opt.onOff) ? 1-self.auditMode : parseInt(opt.onOff)
 			};
 			cmd = '/auditionWindow';
 			break;
@@ -2216,7 +1064,7 @@ instance.prototype.action = function (action) {
 	}
 	if (self.useTCP && cmd == '/auditionWindow') {
 		self.sendOSC(ws + cmd, []);
-		self.sendOSC(ws + "/cue/playhead/valuesForKeys",qCueRequest);
+		self.sendOSC(ws + "/cue/playhead/valuesForKeys",self.qCueRequest);
 	}
 
 };
