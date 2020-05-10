@@ -37,7 +37,7 @@ function instance(system, id, config) {
 	instance_skel.apply(this, arguments);
 
 	self.actions(); // export actions
-	
+
 	if (process.env.DEVELOPER) {
 		self.config._configIdx = -1;
 	}
@@ -81,7 +81,7 @@ instance.prototype.qCueRequest = [
 	{
 		type: "s",
 		value: '["number","uniqueID","listName","type","isPaused","duration","actionElapsed","parent","flagged",' +
-			'"colorName","isRunning","isLoaded","armed","isBroken","percentActionElapsed","cartPosition"]'
+			'"autoLoad","colorName","isRunning","isLoaded","armed","isBroken","percentActionElapsed","cartPosition"]'
 	}
 ];
 
@@ -97,7 +97,7 @@ instance.prototype.resetVars = function (doUpdate) {
 	var self = this;
 	var qName = '';
 	var qNum = '';
-	var cues = self.cueList;
+	var cues = self.wsCues;
 
 	// play head info
 	self.nextCue = new Cue();
@@ -125,9 +125,10 @@ instance.prototype.resetVars = function (doUpdate) {
 	self.needPasscode = false;
 
 	// list of cues and info for this QLab workspace
-	self.cueList = {};
+	self.wsCues = {};
 	self.cueColors = {};
 	self.cueOrder = [];
+	self.requestedCues = {};
 	self.lastRunID = '-' + self.lastRunID;
 	self.showMode = false;
 	self.audition = false;
@@ -158,11 +159,11 @@ instance.prototype.updateQVars = function (q) {
 	var oqOrder = -1;
 
 	// unset old variable?
-	if (qID in self.cueList) {
-		oqNum = self.cueList[qID].qNumber.replace(/[^\w\.]/gi,'_');
-		oqName = self.cueList[qID].qName;
-		oqColor = self.cueList[qID].qColor;
-		oqOrder = self.cueList[qID].qOrder;
+	if (qID in self.wsCues) {
+		oqNum = self.wsCues[qID].qNumber.replace(/[^\w\.]/gi,'_');
+		oqName = self.wsCues[qID].qName;
+		oqColor = self.wsCues[qID].qColor;
+		oqOrder = self.wsCues[qID].qOrder;
 		if (oqNum != '' && oqNum != q.qNumber) {
 			self.setVariable('q_' + oqNum + '_name');
 			self.cueColors[oqNum] = 0;
@@ -173,9 +174,10 @@ instance.prototype.updateQVars = function (q) {
 	if (qNum != '' && q.qName != '' && (q.qName != oqName || qColor != oqColor)) {
 		self.setVariable('q_' + qNum + '_name', q.qName);
 		self.cueColors[qNum] = q.qColor;
+		self.checkFeedbacks('q_bg');
 	}
-
 };
+
 
 instance.prototype.updateRunning = function () {
 	var self = this;
@@ -279,34 +281,11 @@ instance.prototype.init_feedbacks = function () {
 	this.setFeedbackDefinitions(feedbacks.setFeedbacks(this));
 };
 
-// eslint-disable-next-line no-unused-vars
-// instance.prototype.feedback = function (feedback, bank) {
-// 	var self = this;
-// 	var options = feedback.options;
-// 	var ret = {};
-
-// 	switch (feedback.type) {
-// 	// case 'playhead_bg':
-// 	// 	ret = { bgcolor: self.nextCue.qColor };
-// 	// 	break;
-// 	case 'run_bg':
-// 		ret = { bgcolor: self.runningCue.qColor };
-// 		break;
-// 	case 'q_bg':
-// 		ret = { bgcolor: self.cueColors[ (options.cue).replace(/[^\w\.]/gi,'_') ] };
-// 		break;
-// 	case 'ws_mode':
-// 		if (self.auditMode && (options.showMode == '2')) {
-// 			ret = { color: options.fg, bgcolor: options.bg };
-// 		} else if (self.showMode && (options.showMode == '1')) {
-// 			ret = { color: options.fg, bgcolor: options.bg };
-// 		} else if (!self.showMode && (options.showMode == '0')) {
-// 			ret = { color: options.fg, bgcolor: options.bg };
-// 		}
-// 		break;
-// 	}
-// 	return ret;
-// };
+instance.prototype.init_variables = function () {
+	this.setVariableDefinitions(variables.setVariables());
+	this.updateRunning();
+	this.updateNextCue();
+};
 
 instance.prototype.sendOSC = function (node, arg) {
 	var self = this;
@@ -326,12 +305,6 @@ instance.prototype.sendOSC = function (node, arg) {
 			args: arg
 		});
 	}
-};
-
-instance.prototype.init_variables = function () {
-	this.setVariableDefinitions(variables.setVariables());
-	this.updateRunning();
-	this.updateNextCue();
 };
 
 instance.prototype.connect = function () {
@@ -408,6 +381,26 @@ instance.prototype.rePulse = function (ws) {
 		}
 	}
 	self.pollCount++;
+	if (Object.keys(self.requestedCues).length > 0) {
+		var timeOut = Date.now() - 100;
+		var cue;
+		var cues = self.wsCues;
+		var qNum;
+		for (var k in self.requestedCues) {
+			if (self.requestedCues[k] < timeOut) {
+				// no response from QLab for at least 100ms
+				// so delete the cue from our list
+				qNum = cues[k].qNumber.replace(/[^\w\.]/gi,'_');
+				qName = cues[k].qName;
+				if (qNum != '' && qName != '') {
+					delete self.cueColors[qNum];
+					self.setVariable('q_' + qNum + '_name');
+				}
+				self.checkFeedbacks('q_bg');
+				delete self.requestedCues[k];
+			}
+		}
+	}
 	if (rc !== undefined && rc !== '') {
 		if (self.qLab3) {
 			self.sendOSC(ws + "/runningOrPausedCues",[]);
@@ -561,7 +554,7 @@ instance.prototype.updateCues = function (jCue, stat) {
 
 			if (qTypes.includes(q.qType)) {
 				self.updateQVars(q);
-				self.cueList[q.uniqueID] = q;
+				self.wsCues[q.uniqueID] = q;
 			}
 			if (stat == 'l') {
 				self.cueOrder[i] = q.uniqueID;
@@ -576,7 +569,7 @@ instance.prototype.updateCues = function (jCue, stat) {
 		q = new Cue(jCue, self);
 		if (qTypes.includes(q.qType)) {
 			self.updateQVars(q);
-			self.cueList[q.uniqueID] = q;
+			self.wsCues[q.uniqueID] = q;
 			self.updatePlaying();
 			if (q.uniqueID == self.nextCue.uniqueID) {
 				self.nextCue = q;
@@ -606,7 +599,7 @@ instance.prototype.updatePlaying = function () {
 	var self = this;
 	var hasGroup = false;
 	var i = 0;
-	var cues = self.cueList;
+	var cues = self.wsCues;
 	var lastRun = qState(self.runningCue);
 	var runningCues = [];
 
@@ -665,18 +658,23 @@ instance.prototype.readUpdate = function (message) {
 				self.sendOSC(ws + "/cue/playhead/valuesForKeys", self.qCueRequest);
 			}
 		} else {
+			// no playhead
 			self.nextCue = new Cue();
-			// self.nextCue.ID = '';
-			// self.nextCue.Name = '[none]';
-			// self.nextCue.Num = '';
-			// self.nextCue.qColor = 0;
-			// self.nextCue.Loaded = false;
 			self.updateNextCue();
 		}
 	} else if (ma.match(/\/cue_id\//) && !(ma.match(/cue lists\]$/))) {
 		// get cue information for 'updated' cue
 		var node = ma.substring(7) + "/valuesForKeys";
 		self.sendOSC(node, self.qCueRequest);
+		if (ma.match(/\/cue_id\//)) {
+			// save info request time to verify a response.
+			// QLab sends an update when a cue is deleted
+			// but fails to respond to a request for info.
+			// If there is no response within 2 pulses
+			// we delete our copy of the cue
+			var uniqueID = ma.slice(-36);
+			self.requestedCues[uniqueID] = Date.now();
+		}
 	} else if (ma.match(/\/disconnect$/)) {
 		self.status(self.STATUS_WARNING, "No Workspaces");
 		self.needWorkspace = true;
@@ -758,7 +756,7 @@ instance.prototype.readReply = function (message) {
 	} else if (ma.match(/\/cueLists$/)) {
 		if (j.data != undefined) {
 			i = 0;
-				while (i < j.data.length) {
+			while (i < j.data.length) {
 				q = j.data[i];
 				self.updateCues(q, 'l');
 				self.updateCues(q.cues,'l');
@@ -777,6 +775,8 @@ instance.prototype.readReply = function (message) {
 		}
 	} else if (ma.match(/valuesForKeys$/)) {
 		self.updateCues(j.data, 'v');
+		var uniqueID = ma.substr(14,36);
+		delete self.requestedCues[uniqueID];
 	} else if (ma.match(/showMode$/)) {
 		if (self.showMode != j.data) {
 			self.showMode = j.data;
@@ -1015,7 +1015,7 @@ instance.prototype.action = function (action) {
 		case 'autoload':
 			arg = {
 				type: "i",
-				value: 2==parseInt(opt.autoId) ? 1-self.nextCue.isAutoLoad : parseInt(opt.autoId)
+				value: 2==parseInt(opt.autoId) ? 1-self.nextCue.autoLoad : parseInt(opt.autoId)
 			};
 			cmd = '/cue/selected/autoLoad';
 			break;

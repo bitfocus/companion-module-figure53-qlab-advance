@@ -20,6 +20,7 @@ function Cue (j, i) {
 	this.isPaused = false;
 	this.isArmed = false;
 	this.isFlagged = false;
+	this.autoLoad = false;
 	this.duration = 0;
 	this.pctElapsed = 0;
 	this.startedAt = 0;
@@ -47,19 +48,20 @@ function JSONtoCue(newCue, j, i) {
 	newCue.isPaused = j.isPaused;
 	newCue.isFlagged = j.flagged;
 	newCue.isArmed = j.armed;
+	newCue.autoLoad = j.autoLoad;
 	newCue.duration = j.duration;
 	newCue.qParent = j.parent;
 	newCue.pctElapsed = j.percentActionElapsed;
 	newCue.qColor = colorRGB[j.colorName];
-	isExistingQ  = newCue.uniqueID in i.cueList;
+	isExistingQ  = newCue.uniqueID in i.wsCues;
 
 	if (isExistingQ) {
-		newCue.qOrder = i.cueList[newCue.uniqueID].qOrder;
+		newCue.qOrder = i.wsCues[newCue.uniqueID].qOrder;
 	}
 
 	if (newCue.Running || newCue.Paused) {
 		if (isExistingQ) {
-			if (0 == (newCue.startedAt = i.cueList[newCue.uniqueID].startedAt)) {
+			if (0 == (newCue.startedAt = i.wsCues[newCue.uniqueID].startedAt)) {
 				newCue.StartedAt = Date.now();
 			}
 		} else {
