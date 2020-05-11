@@ -42,7 +42,7 @@ function instance(system, id, config) {
 		self.config._configIdx = -1;
 	}
 
-	self.addUpgradeScript(function (config, actions) {
+	self.addUpgradeScript(function (config, actions, releaseActions, feedbacks) {
 		var changed = false;
 
 		function upgradePass(actions, changed) {
