@@ -1,17 +1,11 @@
 // actions for QLab module
+
+var colors = require('./colors.js');
+
 var continueMode = [
 	{ label: 'Do Not Continue', id: '0' },
 	{ label: 'Auto Continue',   id: '1' },
 	{ label: 'Auto Follow',     id: '2' }
-];
-
-var colorName = [
-	{ label: 'None',   id: 'none' },
-	{ label: 'Red',    id: 'red' },
-	{ label: 'Orange', id: 'orange' },
-	{ label: 'Green',  id: 'green' },
-	{ label: 'Blue',   id: 'blue' },
-	{ label: 'Purple', id: 'purple' }
 ];
 
 module.exports = {
@@ -103,7 +97,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Continue Mode',
 					id: 'contId',
-					choices: this.continueMode
+					choices: continueMode
 				}]
 			},
 			'arm': {
@@ -166,7 +160,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Color',
 					id: 'colorId',
-					choices: this.colorName
+					choices: colors.colorName
 				}]
 			},
 			'showMode': {

@@ -1,13 +1,5 @@
-var rgb = require('../../image').rgb;
+var colors = require('./colors.js');
 
-var colorRGB = {
-	none: 	rgb(32, 32, 32),
-	red: 	rgb(160, 0, 0),
-	orange: rgb(160, 100, 0),
-	green: 	rgb(0, 160, 0),
-	blue: 	rgb(0, 0, 160),
-	purple: rgb(160, 0, 160)
-};
 
 function Cue (j, i) {
 
@@ -52,7 +44,7 @@ function JSONtoCue(newCue, j, i) {
 	newCue.duration = j.duration;
 	newCue.qParent = j.parent;
 	newCue.pctElapsed = j.percentActionElapsed;
-	newCue.qColor = colorRGB[j.colorName];
+	newCue.qColor = colors.colorRGB[j.colorName];
 	isExistingQ  = newCue.uniqueID in i.wsCues;
 
 	if (isExistingQ) {

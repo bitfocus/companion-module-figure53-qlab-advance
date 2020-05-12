@@ -1,4 +1,5 @@
 var rgb = require('../../image').rgb;
+var colors = require('./colors.js');
 
 module.exports = {
 
@@ -699,126 +700,31 @@ module.exports = {
 			]
 		});
 
-		presets.push({
-			category: 'Edit',
-			label: 'Cue Colour',
-			bank: {
-				style: 'text',
-				text: 'Cue Colour',
-				size: '14',
-				color: '16777215',
-				bgcolor: rgb(0, 0, 0)
-			},
-			actions: [
-				{
-					action: 'cueColor',
-					options: {
-						colorId: 'none',
-					}
-				}
-			]
-		});
+		var i;
+		var c;
 
-		presets.push({
-			category: 'Edit',
-			label: 'Cue Colour',
-			bank: {
-				style: 'text',
-				text: 'Cue Colour',
-				size: '14',
-				color: '16777215',
-				bgcolor: rgb(255, 0, 0)
-			},
-			actions: [
-				{
-					action: 'cueColor',
-					options: {
-						colorId: 'red',
+		for(i in colors.colorName) {
+			c = colors.colorName[i];
+			presets.push({
+				category: 'Edit',
+				label: 'Cue Colour',
+				bank: {
+					style: 'text',
+					text: 'Cue Colour ' + c.label,
+					//size: '14',
+					color: i > 5 ? 0 : '16777215',
+					bgcolor: colors.colorRGB[c.id]
+				},
+				actions: [
+					{
+						action: 'cueColor',
+						options: {
+							colorId: c.id
+						}
 					}
-				}
-			]
-		});
-
-		presets.push({
-			category: 'Edit',
-			label: 'Cue Colour',
-			bank: {
-				style: 'text',
-				text: 'Cue Colour',
-				size: '14',
-				color: '16777215',
-				bgcolor: rgb(200, 200, 0)
-			},
-			actions: [
-				{
-					action: 'cueColor',
-					options: {
-						colorId: 'yellow',
-					}
-				}
-			]
-		});
-
-		presets.push({
-			category: 'Edit',
-			label: 'Cue Colour',
-			bank: {
-				style: 'text',
-				text: 'Cue Colour',
-				size: '14',
-				color: '16777215',
-				bgcolor: rgb(0, 200, 0)
-			},
-			actions: [
-				{
-					action: 'cueColor',
-					options: {
-						colorId: 'green',
-					}
-				}
-			]
-		});
-
-		presets.push({
-			category: 'Edit',
-			label: 'Cue Colour',
-			bank: {
-				style: 'text',
-				text: 'Cue Colour',
-				size: '14',
-				color: '16777215',
-				bgcolor: rgb(0, 0, 255)
-			},
-			actions: [
-				{
-					action: 'cueColor',
-					options: {
-						colorId: 'blue',
-
-					}
-				}
-			]
-		});
-
-		presets.push({
-			category: 'Edit',
-			label: 'Cue Colour',
-			bank: {
-				style: 'text',
-				text: 'Cue Colour',
-				size: '14',
-				color: '16777215',
-				bgcolor: rgb(255, 0, 255)
-			},
-			actions: [
-				{
-					action: 'cueColor',
-					options: {
-						colorId: 'purple',
-					}
-				}
-			]
-		});
+				]
+			});
+		}
 
 		return(presets);
 	}
