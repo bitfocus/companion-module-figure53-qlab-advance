@@ -23,6 +23,7 @@ function instance(system, id, config) {
 	self.hasError = false;
 	self.disabled = true;
 	self.ws = '';
+	self.cl = '';
 	self.pollCount = 0;
 
 	self.resetVars();
@@ -128,6 +129,7 @@ instance.prototype.resetVars = function (doUpdate) {
 	self.wsCues = {};
 	self.cueColors = {};
 	self.cueOrder = [];
+	self.cueList = {};
 	self.requestedCues = {};
 	self.lastRunID = '-' + self.lastRunID;
 	self.showMode = false;
@@ -390,13 +392,17 @@ instance.prototype.rePulse = function (ws) {
 			if (self.requestedCues[k] < timeOut) {
 				// no response from QLab for at least 100ms
 				// so delete the cue from our list
-				qNum = cues[k].qNumber.replace(/[^\w\.]/gi,'_');
-				qName = cues[k].qName;
-				if (qNum != '' && qName != '') {
-					delete self.cueColors[qNum];
-					self.setVariable('q_' + qNum + '_name');
-				}
-				self.checkFeedbacks('q_bg');
+				if (cues[k]) {
+					// QLab sometimes sends 'reload the whole cue list'
+					// so a cue we were waiting for may have been moved/deleted between checks
+					qNum = cues[k].qNumber.replace(/[^\w\.]/gi,'_');
+					qName = cues[k].qName;
+					if (qNum != '' && qName != '') {
+						delete self.cueColors[qNum];
+						self.setVariable('q_' + qNum + '_name');
+					}
+					self.checkFeedbacks('q_bg');
+			}
 				delete self.requestedCues[k];
 			}
 		}
@@ -527,7 +533,7 @@ instance.prototype.init_osc = function () {
 /**
  * update list cues
  */
-instance.prototype.updateCues = function (jCue, stat) {
+instance.prototype.updateCues = function (jCue, stat, qp) {
 	var self = this;
 	// list of useful cue types we're interested in
 	var qTypes = ['audio', 'mic', 'video', 'camera',
@@ -545,6 +551,9 @@ instance.prototype.updateCues = function (jCue, stat) {
 		while (i < jCue.length) {
 			q = new Cue(jCue[i], self);
 			q.qOrder = i;
+			if (qp) {
+				q.qParent = qp;
+			}
 			if (q.uniqueID in idCount) {
 				idCount[q.uniqueID] += 1;
 				dupIds = true;
@@ -558,6 +567,9 @@ instance.prototype.updateCues = function (jCue, stat) {
 			}
 			if (stat == 'l') {
 				self.cueOrder[i] = q.uniqueID;
+				if (qp) {
+					self.cueList[qp].push(q.uniqueID);
+				}
 			}
 			i += 1;
 		}
@@ -570,6 +582,9 @@ instance.prototype.updateCues = function (jCue, stat) {
 		if (qTypes.includes(q.qType)) {
 			self.updateQVars(q);
 			self.wsCues[q.uniqueID] = q;
+			if ('cue list' == q.qType) {
+				self.cueList[q.uniqueID] = [];
+			}
 			self.updatePlaying();
 			if (q.uniqueID == self.nextCue.uniqueID) {
 				self.nextCue = q;
@@ -759,7 +774,7 @@ instance.prototype.readReply = function (message) {
 			while (i < j.data.length) {
 				q = j.data[i];
 				self.updateCues(q, 'l');
-				self.updateCues(q.cues,'l');
+				self.updateCues(q.cues,'l',q.uniqueID);
 				i++;
 			}
 			self.sendOSC(ws + "/cue/active/valuesForKeys", qr);
