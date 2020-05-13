@@ -1,3 +1,4 @@
+'use strict';
 /* eslint-disable no-useless-escape */
 var instance_skel = require('../../instance_skel');
 var rgb = require('../../image').rgb;
@@ -388,6 +389,7 @@ instance.prototype.rePulse = function (ws) {
 		var cue;
 		var cues = self.wsCues;
 		var qNum;
+		var qName;
 		for (var k in self.requestedCues) {
 			if (self.requestedCues[k] < timeOut) {
 				// no response from QLab for at least 100ms
@@ -615,7 +617,7 @@ instance.prototype.updatePlaying = function () {
 	var hasGroup = false;
 	var i = 0;
 	var cues = self.wsCues;
-	var lastRun = qState(self.runningCue);
+	var lastRun = new qState(self.runningCue);
 	var runningCues = [];
 
 	Object.keys(cues).forEach(function (cue) {
@@ -631,7 +633,7 @@ instance.prototype.updatePlaying = function () {
 		return b[1] - a[1];
 	});
 
-	if (runningCues.length == 0 && self.runningCue.uniqueID != '-') {
+	if (runningCues.length == 0) {
 		self.runningCue = new Cue();
 	} else {
 		if (hasGroup) {
@@ -640,8 +642,7 @@ instance.prototype.updatePlaying = function () {
 			}
 		}
 		if (i < runningCues.length) {
-			var q = cues[runningCues[i][0]];
-			self.runningCue = q;
+			self.runningCue = cues[runningCues[i][0]];
 		}
 	}
 	// update if changed

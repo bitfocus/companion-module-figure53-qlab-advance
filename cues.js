@@ -15,7 +15,7 @@ function Cue (j, i) {
 	this.autoLoad = false;
 	this.duration = 0;
 	this.pctElapsed = 0;
-	this.startedAt = 0;
+	this.startedAt = -1;
 	this.qColor = 0;
 	this.qColorName = '';
 	this.qOrder = -1;
@@ -51,14 +51,14 @@ function JSONtoCue(newCue, j, i) {
 		newCue.qOrder = i.wsCues[newCue.uniqueID].qOrder;
 	}
 
-	if (newCue.Running || newCue.Paused) {
+	if (newCue.isRunning || newCue.isPaused) {
 		if (isExistingQ) {
 			if (0 == (newCue.startedAt = i.wsCues[newCue.uniqueID].startedAt)) {
-				newCue.StartedAt = Date.now();
+				newCue.startedAt = Date.now();
 			}
 		} else {
-			newCue.StartedAt = Date.now();
-			debug("Cue " + newCue.qNumber + "@" + newCue.startedAt);
+			newCue.startedAt = Date.now();
+			//i.debug("--------Cue " + newCue.qNumber + "@" + newCue.startedAt);
 		}
 	} else {
 		newCue.startedAt = 0;
