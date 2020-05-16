@@ -2,21 +2,21 @@ rgb = require('../../image').rgb;
 
 module.exports = {
 
-	setFeedbacks: function(self) {
+	setFeedbacks: function(i) {
 
 		var feedbacks = {
 			playhead_bg: {
 				label: 'Playhead Color for Background',
 				description: 'Use the QLab color for the Playhead (next) cue as background',
 				callback: function(feedback, bank) {
-					return { bgcolor: self.nextCue.qColor };
+					return { bgcolor: i.nextCue.qColor };
 				}
 			},
 			run_bg: {
 				label: 'Running Que color for Background',
 				description: 'Use the QLab color of the running cue as background',
 				callback: function(feedback, bank) {
-					return { bgcolor: self.runningCue.qColor };
+					return { bgcolor: i.runningCue.qColor };
 				}
 			},
 			q_bg: {
@@ -29,7 +29,7 @@ module.exports = {
 					default: ""
 				}],
 				callback: function(feedback, bank) {
-					return { bgcolor: self.cueColors[ (feedback.options.cue).replace(/[^\w\.]/gi,'_') ] };
+					return { bgcolor: i.cueColors[ (feedback.options.cue).replace(/[^\w\.]/gi,'_') ] };
 				}
 			},
 			ws_mode: {
@@ -62,11 +62,11 @@ module.exports = {
 					var ret = {};
 					var options = feedback.options;
 
-					if (self.auditMode && (options.showMode == '2')) {
+					if (i.auditMode && (options.showMode == '2')) {
 						ret = { color: options.fg, bgcolor: options.bg };
-					} else if (self.showMode && (options.showMode == '1')) {
+					} else if (i.showMode && (options.showMode == '1')) {
 						ret = { color: options.fg, bgcolor: options.bg };
-					} else if (!self.showMode && (options.showMode == '0')) {
+					} else if (!i.showMode && (options.showMode == '0')) {
 						ret = { color: options.fg, bgcolor: options.bg };
 					}
 					return ret;
