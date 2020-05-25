@@ -1,6 +1,26 @@
 var rgb = require('../../image').rgb;
 var colors = require('./colors.js');
 
+// determine text color for a background color
+textColor = function(pbin){
+
+    var r = pbin >> 16;
+    var g = pbin >> 8 & 0xFF;
+	var b = pbin & 0xFF;
+	var lum = Math.sqrt(
+		0.299 * (r * r) +
+		0.587 * (g * g) +
+		0.114 * (b * b)
+		);
+
+	// determine whether the color is light or dark
+	if (lum>127.5) {
+		return '0';
+	} else {
+		return '16777215';
+	}
+};
+
 module.exports = {
 
 	setPresets: function() {
@@ -712,7 +732,7 @@ module.exports = {
 					style: 'text',
 					text: 'Cue Colour ' + c.label,
 					//size: '14',
-					color: i > 5 ? 0 : '16777215',
+					color: textColor(colors.colorRGB[c.id]),
 					bgcolor: colors.colorRGB[c.id]
 				},
 				actions: [

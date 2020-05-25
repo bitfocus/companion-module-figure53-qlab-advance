@@ -9,7 +9,8 @@ module.exports = {
 				label: 'Playhead Color for Background',
 				description: 'Use the QLab color for the Playhead (next) cue as background',
 				callback: function(feedback, bank) {
-					return { bgcolor: i.nextCue.qColor };
+					var nc = i.wsCues[i.nextCue] ? i.wsCues[i.nextCue].qColor : 0;
+					return { bgcolor: nc };
 				}
 			},
 			run_bg: {
