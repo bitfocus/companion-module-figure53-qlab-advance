@@ -200,14 +200,15 @@ module.exports = {
 				}]
 			},
 			'go':               { label: 'GO' },
-			'pause':            { label: 'Pause' },
 			'stop':             { label: 'Stop' },
+			'previous':         { label: 'Previous Cue' },
+			'next':             { label: 'Next Cue' },
+			'pause':            { label: 'Pause' },
+			'resume':           { label: 'Resume' },
+			'togglePause':		{ label: 'Toggle Pause'},
 			'stopSelected':     { label: 'Stop selected' },
 			'panic':            { label: 'Panic' },
 			'reset':            { label: 'Reset' },
-			'previous':         { label: 'Previous Cue' },
-			'next':             { label: 'Next Cue' },
-			'resume':           { label: 'Resume' },
 			'load':             { label: 'Load Cue' },
 			'preview':          { label: 'Preview'}
 		};

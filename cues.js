@@ -20,6 +20,8 @@ function Cue (j, i) {
 	this.qColorName = '';
 	this.qOrder = -1;
 	this.qParent = '';
+	this.qList = '';
+	this.Notes = '';
 	if (j != undefined) {
 		JSONtoCue(this, j, i);
 	}
@@ -44,6 +46,9 @@ function JSONtoCue(newCue, j, i) {
 	newCue.duration = j.duration;
 	newCue.qParent = j.parent;
 	newCue.pctElapsed = j.percentActionElapsed;
+	if (j.notes) {
+		newCue.Notes = j.notes.slice(0,20);
+	}
 	newCue.qColor = colors.colorRGB[j.colorName];
 	isExistingQ  = newCue.uniqueID in i.wsCues;
 

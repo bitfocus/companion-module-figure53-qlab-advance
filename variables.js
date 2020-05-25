@@ -22,6 +22,10 @@ module.exports = {
 				name:  'n_num'
 			},
 			{
+				label: 'Playhead Notes',
+				name:  'n_notes'
+			},
+			{
 				label: 'Playhead Cue Status',
 				name:  'n_stat'
 			},

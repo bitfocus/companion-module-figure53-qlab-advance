@@ -25,18 +25,19 @@ Setting | Description
 Action | Description
 -----------------|---------------
 **Go** | Tell the current cue list of the given workspace to GO.
-**Pause** | Pause all currently running cues in the workspace.
-**Resume** | Un-pause all paused cues in the workspace.
 **Stop** | Stop playback but allow effects to continue rendering. e.g., playback stops, but reverbs decay naturally.
 **Panic** | Tell the workspace to panic. A panic is a brief gradual fade out leading into a hard stop. A double panic will trigger an immediate hard stop.
 **Reset** | Reset the workspace. Resetting stops all cues, returns the playhead to the top of the current cue list, and restores any temporary changes made to cues (such as retargeting via a Target cue or adjustments using a "live" OSC method.)
 **Next** | Move the selection down one cue.
 **Previous** | Move the selection up one cue.
-**GoTo (cue)** | Move the playhead to (cue). Doesn't start the cue.
-**Start (cue)** | Start (cue). Doesn't move the playhead. If the specified cue is playing, this command has no effect.
-**Preview** | Preview the selected cue without moving the Playhead.
 **Show Mode** | Enable for Show Mode, Disable for Edit Mode.
 **Audition Window** | Show or Hide the Audition Window.
+**Pause** | Pause all currently running cues in the workspace.
+**Resume** | Un-pause all paused cues in the workspace.
+**Preview** | Preview the selected cue without moving the Playhead.
+**Toggle Pause** | Pause/Unpause selected cue
+**GoTo (cue)** | Move the playhead to (cue). Doesn't start the cue.
+**Start (cue)** | Start (cue). Doesn't move the playhead. If the specified cue is playing, this command has no effect.
 **Increase Prewait** | Increases the prewait time by given time for the selected cue.
 **Decrease Prewait** | Decreases the prewait time by given time for the selected cue.
 **Increase postwait** | Increases the postwait time by given time for the selected cue.
@@ -59,6 +60,7 @@ Variable | Description
 **$(INSTANCENAME:n_id)** | UniqueID of the current Playhead Cue
 **$(INSTANCENAME:n_name)** | Name of the current Playhead Cue or [none]
 **$(INSTANCENAME:n_num)** | Number of the current Playhead Cue
+**$(INSTANCENAME:n_notes)** | First 20 characters of the Note on the Playhead Cue
 **$(INSTANCENAME:n_stat)** | Playhead Cue Status: "✕" if broken, "⏽" if loaded, "⏵" if running, "⏸" if paused, otherwise "·"
 **$(INSTANCENAME:r_id)** | UniqueID of the current Running Cue
 **$(INSTANCENAME:r_name)** | Name of the current Running Cue or [none]

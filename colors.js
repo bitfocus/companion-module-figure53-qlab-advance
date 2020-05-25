@@ -9,6 +9,7 @@ module.exports = {
 		green:			rgb(0, 160, 0),
 		blue:			rgb(0, 0, 160),
 		purple:			rgb(80, 0, 80),
+		yellow:			rgb(200, 200, 0),
 		avocado:		rgb(86, 130, 4),
 		bastardamber:	rgb(255, 200, 180),
 		bisque:			rgb(255, 229, 196),
@@ -17,6 +18,7 @@ module.exports = {
 		chartreuse:		rgb(127, 255, 0),
 		coral:			rgb(255, 126, 79),
 		ecru:			rgb(206, 178, 128),
+		edgecombgray:	rgb(218, 212, 197),
 		fuchsia:		rgb(223, 0, 223),
 		fulvous:		rgb(228, 134, 0),
 		glaucous:		rgb(136, 206, 234),
@@ -37,6 +39,8 @@ module.exports = {
 		verdigris:		rgb(65, 129, 108),
 		vermilion:		rgb(228, 66, 52),
 		viridian:		rgb(195, 226, 190),
+		wenge:			rgb(100, 84, 82),
+		zaffre:			rgb(0, 20, 168)
 	},
 
 	colorName: [
@@ -46,14 +50,16 @@ module.exports = {
 		{ label: 'Green',		    id: 'green' },
 		{ label: 'Blue',			id: 'blue' },
 		{ label: 'Purple',		    id: 'purple' },
+		{ label: 'Yellow',		    id: 'yellow' },
 		{ label: 'Avocado',		    id: 'avocado' },
-		{ label: 'Bastard Amber',    id: 'bastardamber' },
+		{ label: 'Bastard Amber',   id: 'bastardamber' },
 		{ label: 'Bisque',		    id: 'bisque' },
 		{ label: 'Celadon',		    id: 'celadon' },
 		{ label: 'Cerulean',		id: 'cerulean' },
 		{ label: 'Chartreuse',	    id: 'chartreuse' },
 		{ label: 'Coral',		    id: 'coral' },
 		{ label: 'Ecru',			id: 'ecru' },
+		{ label: 'Edgecomb Gray',	id: 'edgecombgray'},
 		{ label: 'Fuchsia',		    id: 'fuchsia' },
 		{ label: 'Fulvous',		    id: 'fulvous' },
 		{ label: 'Glaucous',		id: 'glaucous' },
@@ -73,6 +79,8 @@ module.exports = {
 		{ label: 'Taupe',		    id: 'taupe' },
 		{ label: 'Verdigris',	    id: 'verdigris' },
 		{ label: 'Vermilion',	    id: 'vermilion' },
-		{ label: 'Viridian',		id: 'viridian' }
+		{ label: 'Viridian',		id: 'viridian' },
+		{ label: 'Wenge',			id: 'wenge'},
+		{ label: 'Zaffre',			id: 'zaffre'}
 	]
 };
