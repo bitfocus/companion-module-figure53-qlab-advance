@@ -91,6 +91,46 @@ module.exports = {
 					default: "1"
 				}]
 			},
+			'startTime_dec': {
+				label: 'Decrease Start Time',
+				options: [{
+					type: 'textinput',
+					label: 'Time in seconds',
+					id: 'time',
+					regex: this.REGEX_FLOAT,
+					default: "1"
+				}]
+			},
+			'startTime_inc': {
+				label: 'Increase Start Time',
+				options: [{
+					type: 'textinput',
+					label: 'Time in seconds',
+					id: 'time',
+					regex: this.REGEX_FLOAT,
+					default: "1"
+				}]
+			},
+			'endTime_dec': {
+				label: 'Decrease End Time',
+				options: [{
+					type: 'textinput',
+					label: 'Time in seconds',
+					id: 'time',
+					regex: this.REGEX_FLOAT,
+					default: "1"
+				}]
+			},
+			'endTime_inc': {
+				label: 'Increase End Time',
+				options: [{
+					type: 'textinput',
+					label: 'Time in seconds',
+					id: 'time',
+					regex: this.REGEX_FLOAT,
+					default: "1"
+				}]
+			},
 			'continue': {
 				label: 'Set Continue Mode',
 				options: [{

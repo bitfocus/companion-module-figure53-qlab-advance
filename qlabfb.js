@@ -1123,6 +1123,38 @@ instance.prototype.action = function (action) {
 			cmd = '/cue/selected/duration/+';
 			break;
 
+		case 'startTime_inc':
+			arg = {
+				type: typeTime,
+				value: optTime
+			};
+			cmd = '/cue/selected/startTime/+';
+			break;
+	
+		case 'startTime_dec':
+			arg = {
+				type: typeTime,
+				value: optTime
+			};
+			cmd = '/cue/selected/startTime/-';
+			break;
+	
+		case 'endTime_inc':
+			arg = {
+				type: typeTime,
+				value: optTime
+			};
+			cmd = '/cue/selected/endTime/+';
+			break;
+	
+		case 'endTime_dec':
+			arg = {
+				type: typeTime,
+				value: optTime
+			};
+			cmd = '/cue/selected/endTime/-';
+			break;
+
 		case 'continue':
 			arg = {
 				type: "i",
