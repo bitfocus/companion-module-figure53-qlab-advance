@@ -44,6 +44,10 @@ Action | Description
 **Decrease postwait** | Decreases the postwait time by given time for the selected cue.
 **Increase duration** | Increases the duration time by given time for the selected cue.
 **Decrease duration** | Decreases the duration time by given time for the selected cue.
+**Increase Start Time** | Increases the Start Time by given time for the selected cue.
+**Decrease Start Time** | Decreases the Start Time by given time for the selected cue.
+**Increase End Time** | Increases the End Time by given time for the selected cue.
+**Decrease End Time** | Decreases the End Time by given time for the selected cue.
 **Set/Unset Arm** | Set / Unset the Arm property of the selected cue.
 **Set/Unset Autoload** | Set / Unset the Autoload property of the selected cue.
 **Set Continue Mode** | Sets the continue mode of the selected cue.

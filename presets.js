@@ -539,6 +539,165 @@ module.exports = {
 			]
 		});
 
+		presets.push({
+			category: 'Edit',
+			label: 'Start Time Inc 1sec',
+			bank: {
+				style: 'text',
+				text: 'Start Time\\nIncrease\\n1 sec',
+				size: '14',
+				color: '16777215',
+				bgcolor: rgb(0, 0, 100)
+			},
+			actions: [
+				{
+					action: 'startTime_inc',
+					options: {
+						time: '1',
+					}
+				}
+			]
+		});
+
+		presets.push({
+			category: 'Edit',
+			label: 'Start Time Inc 10sec',
+			bank: {
+				style: 'text',
+				text: 'Start Time\\nIncrease\\n10 sec',
+				size: '14',
+				color: '16777215',
+				bgcolor: rgb(0, 0, 100)
+			},
+			actions: [
+				{
+					action: 'startTime_inc',
+					options: {
+						time: '10',
+					}
+				}
+			]
+		});
+
+		presets.push({
+			category: 'Edit',
+			label: 'Start Time Dec 1sec',
+			bank: {
+				style: 'text',
+				text: 'Start Time\\nDecrease\\n1 sec',
+				size: '14',
+				color: '16777215',
+				bgcolor: rgb(0, 0, 100)
+			},
+			actions: [
+				{
+					action: 'startTime_dec',
+					options: {
+						time: '1',
+					}
+				}
+			]
+		});
+
+		presets.push({
+			category: 'Edit',
+			label: 'Start Time Dec 10sec',
+			bank: {
+				style: 'text',
+				text: 'Start Time\\nDecrease\\n10 sec',
+				size: '14',
+				color: '16777215',
+				bgcolor: rgb(0, 0, 100)
+			},
+			actions: [
+				{
+					action: 'startTime_dec',
+					options: {
+						time: '10',
+					}
+				}
+			]
+		});
+
+		presets.push({
+			category: 'Edit',
+			label: 'End Time Inc 1sec',
+			bank: {
+				style: 'text',
+				text: 'End Time\\nIncrease\\n1 sec',
+				size: '14',
+				color: '16777215',
+				bgcolor: rgb(0, 0, 100)
+			},
+			actions: [
+				{
+					action: 'endTime_inc',
+					options: {
+						time: '1',
+					}
+				}
+			]
+		});
+
+		presets.push({
+			category: 'Edit',
+			label: 'End Time Inc 10sec',
+			bank: {
+				style: 'text',
+				text: 'End Time\\nIncrease\\n10 sec',
+				size: '14',
+				color: '16777215',
+				bgcolor: rgb(0, 0, 100)
+			},
+			actions: [
+				{
+					action: 'endTime_inc',
+					options: {
+						time: '10',
+					}
+				}
+			]
+		});
+
+		presets.push({
+			category: 'Edit',
+			label: 'End Time Dec 1sec',
+			bank: {
+				style: 'text',
+				text: 'End Time\\nDecrease\\n1 sec',
+				size: '14',
+				color: '16777215',
+				bgcolor: rgb(0, 0, 100)
+			},
+			actions: [
+				{
+					action: 'endTime_dec',
+					options: {
+						time: '1',
+					}
+				}
+			]
+		});
+
+		presets.push({
+			category: 'Edit',
+			label: 'End Time Dec 10sec',
+			bank: {
+				style: 'text',
+				text: 'End Time\\nDecrease\\n10 sec',
+				size: '14',
+				color: '16777215',
+				bgcolor: rgb(0, 0, 100)
+			},
+			actions: [
+				{
+					action: 'endTime_dec',
+					options: {
+						time: '10',
+					}
+				}
+			]
+		});
 
 		presets.push({
 			category: 'Edit',
