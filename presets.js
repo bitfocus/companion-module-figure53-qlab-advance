@@ -1,5 +1,6 @@
 var rgb = require('../../image').rgb;
 var colors = require('./colors.js');
+var icons = require('../../resources/icons.js');
 
 // determine text color for a background color
 textColor = function(pbin){
@@ -29,14 +30,15 @@ module.exports = {
 
 		presets.push({
 			category: 'CueList',
-			label: 'Pause / Resume',
+			label: 'Pause',
 			bank: {
-				style: 'text',
-				text: 'Pause',
+				style: 'png',
+				text: '',
+				png64: icons.ICON_PAUSE_INACTIVE,
+				pngalignment: 'center:center',
 				size: '18',
-				color: rgb(0, 0, 0),
-				bgcolor: rgb(255, 255, 0),
-
+				color: rgb(255, 255, 255),
+				bgcolor: 0
 			},
 			actions: [
 				{
@@ -49,11 +51,13 @@ module.exports = {
 			category: 'CueList',
 			label: 'GO',
 			bank: {
-				style: 'text',
-				text: 'GO',
-				size: '30',
-				color: rgb(0, 0, 0),
-				bgcolor: rgb(0, 255, 0)
+				style: 'png',
+				text: '',
+				png64: icons.ICON_PLAY_INACTIVE,
+				pngalignment: 'center:center',
+				size: '18',
+				color: rgb(255,255,255),
+				bgcolor: 0
 			},
 			actions: [
 				{
@@ -102,7 +106,7 @@ module.exports = {
 			bank: {
 				style: 'text',
 				text: 'Stop selected',
-				size: '30',
+				size: '18',
 				color: '16777215',
 				bgcolor: rgb(255, 0, 0)
 			},
@@ -117,11 +121,13 @@ module.exports = {
 			category: 'CueList',
 			label: 'Panic',
 			bank: {
-				style: 'text',
-				text: 'Panic',
-				size: '24',
-				color: '16777215',
-				bgcolor: rgb(255, 0, 0)
+				style: 'png',
+				text: '',
+				png64: icons.ICON_STOP_INACTIVE,
+				pngalignment: 'center:center',
+				size: '18',
+				color: rgb(255,255,255),
+				bgcolor: 0
 			},
 			actions: [
 				{
@@ -168,11 +174,13 @@ module.exports = {
 			category: 'CueList',
 			label: 'Previous Cue',
 			bank: {
-				style: 'text',
-				text: 'Prev\\nCue',
-				size: '24',
-				color: '16777215',
-				bgcolor: rgb(0, 0, 128)
+				style: 'png',
+				text: '',
+				png64: icons.ICON_REW_INACTIVE,
+				pngalignment: 'center:center',
+				size: '18',
+				color: rgb(255,255,255),
+				bgcolor: 0
 			},
 			actions: [
 				{
@@ -185,11 +193,13 @@ module.exports = {
 			category: 'CueList',
 			label: 'Next Cue',
 			bank: {
-				style: 'text',
-				text: 'Next\\nCue',
-				size: '24',
-				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				style: 'png',
+				text: '',
+				png64: icons.ICON_FWD_INACTIVE,
+				pngalignment: 'center:center',
+				size: '18',
+				color: rgb(255,255,255),
+				bgcolor: 0
 			},
 			actions: [
 				{
