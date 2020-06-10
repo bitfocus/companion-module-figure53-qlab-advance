@@ -10,7 +10,7 @@ This module adds a TCP mode option to the *QLab* module.
 Due to the nature and volume of information feedback and variables are only available in TCP mode.
 This may cause a noticible increase in network traffic.
 
-This module was tested against QLab4. Nothing specific to QLab4 is used, so QLab3 should work, too.
+This module is intended for QLab4. While QLab3 is detected, some features may not work.
 
 ## Configuration
 Setting | Description

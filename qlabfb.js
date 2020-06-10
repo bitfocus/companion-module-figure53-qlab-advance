@@ -399,6 +399,8 @@ instance.prototype.rePulse = function (ws) {
 
 	if (0==(self.pollCount % 10)) {
 		self.sendOSC(ws + "/auditionWindow", []);
+//		self.sendOSC(ws + "/cue/playhead/valuesForKeys",self.qCueRequest);
+		self.sendOSC(ws + "/cue/playhead/parent",[]);
 		if (self.qLab3) {
 			self.sendOSC(ws + "/showMode", []);
 		}
@@ -429,7 +431,7 @@ instance.prototype.rePulse = function (ws) {
 			}
 		}
 	}
-	if (rc !== undefined && rc !== '') {
+	if (rc && rc.pctElapsed > 0) {
 		if (self.qLab3) {
 			self.sendOSC(ws + "/runningOrPausedCues",[]);
 		} else {
@@ -837,12 +839,24 @@ instance.prototype.readReply = function (message) {
 			self.needWorkspace = (!self.qLab3);
 		}
 	} else if (ma.match(/uniqueID$/)) {
-		if (j.data != undefined) {
+		if (j.data) {
 			self.nextCue = j.data;
+			self.updateNextCue();
 			self.sendOSC(ws + "/cue/playhead/valuesForKeys", qr);
 		}
+	} else if (ma.match(/parent$/)) {
+		if (j.data) {
+			uniqueID = ma.substr(14,36);
+			if (self.nextCue != uniqueID) {
+				// playhead changed due to cue list change in QLab
+				self.nextCue = uniqueID;
+				self.updateNextCue();
+				self.sendOSC(ws + "/cue/playhead/valuesForKeys", qr);
+				//self.sendOSC("/cue/" + j.data + "/children");
+			}
+		}
 	} else if (ma.match(/\/cueLists$/)) {
-		if (j.data != undefined) {
+		if (j.data) {
 			i = 0;
 			while (i < j.data.length) {
 				q = j.data[i];
