@@ -399,15 +399,16 @@ instance.prototype.rePulse = function (ws) {
 
 	if (0==(self.pollCount % 10)) {
 		self.sendOSC(ws + "/auditionWindow", []);
-//		self.sendOSC(ws + "/cue/playhead/valuesForKeys",self.qCueRequest);
 		self.sendOSC(ws + "/cue/playhead/parent",[]);
+		self.requestedCues[self.nextCue] = Date.now();
+
 		if (self.qLab3) {
 			self.sendOSC(ws + "/showMode", []);
 		}
 	}
 	self.pollCount++;
 	if (Object.keys(self.requestedCues).length > 0) {
-		var timeOut = Date.now() - 100;
+		var timeOut = Date.now() - 250;
 		var cue;
 		var cues = self.wsCues;
 		var qNum;
@@ -416,7 +417,11 @@ instance.prototype.rePulse = function (ws) {
 			if (self.requestedCues[k] < timeOut) {
 				// no response from QLab for at least 100ms
 				// so delete the cue from our list
-				if (cues[k]) {
+				if (self.nextCue == k) {
+					// playhead reset
+					self.nextCue = '';
+					self.updateNextCue();
+				} else if (cues[k]) {
 					// QLab sometimes sends 'reload the whole cue list'
 					// so a cue we were waiting for may have been moved/deleted between checks
 					qNum = cues[k].qNumber.replace(/[^\w\.]/gi,'_');
@@ -427,7 +432,7 @@ instance.prototype.rePulse = function (ws) {
 					}
 					self.checkFeedbacks('q_bg');
 			}
-				delete self.requestedCues[k];
+			delete self.requestedCues[k];
 			}
 		}
 	}
@@ -601,6 +606,7 @@ instance.prototype.updateCues = function (jCue, stat, ql) {
 					}
 				}
 			}
+			delete self.requestedCues[q.uniqueID];
 			i += 1;
 		}
 		self.checkFeedbacks('q_bg');
@@ -634,6 +640,7 @@ instance.prototype.updateCues = function (jCue, stat, ql) {
 				}
 			}
 		}
+		delete self.requestedCues[q.uniqueID];
 	}
 };
 
@@ -752,15 +759,17 @@ instance.prototype.readUpdate = function (message) {
 	} else if (ma.match(/\/cue_id\//) && !(ma.match(/cue lists\]$/))) {
 		// get cue information for 'updated' cue
 		var node = ma.substring(7) + "/valuesForKeys";
+		var uniqueID = ma.slice(-36);
 		self.sendOSC(node, self.qCueRequest);
 		// save info request time to verify a response.
 		// QLab sends an update when a cue is deleted
 		// but fails to respond to a request for info.
-		// If there is no response within 2 pulses
+		// If there is no response after a few pulses
 		// we delete our copy of the cue
-		var uniqueID = ma.slice(-36);
+
 		self.requestedCues[uniqueID] = Date.now();
-	} else if (ma.match(/\/disconnect$/)) {
+
+		} else if (ma.match(/\/disconnect$/)) {
 		self.status(self.STATUS_WARNING, "No Workspaces");
 		self.needWorkspace = true;
 		self.needPasscode = false;
@@ -847,6 +856,7 @@ instance.prototype.readReply = function (message) {
 	} else if (ma.match(/parent$/)) {
 		if (j.data) {
 			uniqueID = ma.substr(14,36);
+			delete self.requestedCues[uniqueID];
 			if (self.nextCue != uniqueID) {
 				// playhead changed due to cue list change in QLab
 				self.nextCue = uniqueID;
@@ -883,7 +893,7 @@ instance.prototype.readReply = function (message) {
 	} else if (ma.match(/valuesForKeys$/)) {
 		self.updateCues(j.data, 'v');
 		uniqueID = ma.substr(14,36);
-		delete self.requestedCues[uniqueID];
+		// delete self.requestedCues[uniqueID];
 	} else if (ma.match(/showMode$/)) {
 		if (self.showMode != j.data) {
 			self.showMode = j.data;
