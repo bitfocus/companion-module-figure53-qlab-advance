@@ -408,14 +408,14 @@ instance.prototype.rePulse = function (ws) {
 	}
 	self.pollCount++;
 	if (Object.keys(self.requestedCues).length > 0) {
-		var timeOut = Date.now() - 250;
+		var timeOut = Date.now() - 500;
 		var cue;
 		var cues = self.wsCues;
 		var qNum;
 		var qName;
 		for (var k in self.requestedCues) {
 			if (self.requestedCues[k] < timeOut) {
-				// no response from QLab for at least 100ms
+				// no response from QLab for at least 500ms
 				// so delete the cue from our list
 				if (self.nextCue == k) {
 					// playhead reset
