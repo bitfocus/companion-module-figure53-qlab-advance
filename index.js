@@ -6,6 +6,7 @@ var presets = require('./presets');
 var actions = require('./actions');
 var variables = require('./variables');
 var feedbacks = require('./feedbacks');
+var upgrades = require('./upgrades.js');
 var Cue = require('./cues');
 var OSC = require('osc');
 //var util = require('util');
@@ -39,41 +40,11 @@ function instance(system, id, config) {
 
 	self.actions(); // export actions
 
-	if (process.env.DEVELOPER) {
-		self.config._configIdx = -1;
-	}
-
-	self.addUpgradeScript(function (config, actions, releaseActions, feedbacks) {
-		var changed = false;
-
-		function upgradePass(actions, changed) {
-			for (var k in actions) {
-				var action = actions[k];
-
-				if (action.action == "autoLoad") {
-					if (action.options.autoId == 1) {
-						action.action = "autoload";
-						action.label = action.id + ":" + action.action;
-						changed = true;
-					}
-				}
-				if ('flagged' == action.action && action.options.flaggId) {
-					action.options.flagId = action.options.flaggId;
-					delete action.options.flaggId;
-				}
-			}
-			return changed;
-		}
-
-		changed = upgradePass(actions, changed);
-		changed = upgradePass(releaseActions, changed);
-
-		if (config.useTenths == undefined) {
-			config.useTenths = false;
-			changed = true;
-		}
-		return changed;
+	Object.assign(this, {
+		...upgrades
 	});
+
+	self.addUpgradeScripts();
 
 	return self;
 }
