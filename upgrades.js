@@ -8,7 +8,7 @@ module.exports = {
 	addUpgradeScripts() {
 
 		if (process.env.DEVELOPER) {
-			self.config._configIdx = -1;
+			this.config._configIdx = -1;
 		}
 
 		this.addUpgradeScript((config, actions, releaseActions, feedbacks) => {
