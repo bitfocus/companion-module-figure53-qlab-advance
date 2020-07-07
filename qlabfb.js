@@ -332,7 +332,9 @@ instance.prototype.connect = function () {
 	if (!this.hasError) {
 		this.status(this.STATUS_UNKNOWN, "Connecting");
 	}
-	this.init_osc();
+	if (!this.disabled) {
+		this.init_osc();
+	}
 };
 
 // get current status of QLab cues and playhead
@@ -625,7 +627,8 @@ instance.prototype.updateCues = function (jCue, stat, ql) {
 					self.cueList[q.uniqueID] = [];
 				}
 			} else {
-				if ('cue list' == q.qType) {
+				// a 'cart' is a special 'cue list'
+				if (['cue list','cart'].includes(q.qType)) {
 					if (!self.cueList[q.uniqueID]) {
 						self.cueList[q.uniqueID] = [];
 					} else {
@@ -994,6 +997,7 @@ instance.prototype.init_presets = function () {
 instance.prototype.destroy = function () {
 	var self = this;
 	self.resetVars(true);
+	self.disabled = true;
 	if (self.timer !== undefined) {
 		clearTimeout(self.timer);
 		delete self.timer;
@@ -1003,7 +1007,6 @@ instance.prototype.destroy = function () {
 		delete self.pulse;
 	}
 	if (self.qSocket) {
-		self.disabled = true;
 		self.qSocket.close();
 		delete self.qSocket;
 	}
