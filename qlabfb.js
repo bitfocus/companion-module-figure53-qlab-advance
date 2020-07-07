@@ -19,11 +19,10 @@ function instance(system, id, config) {
 
 	self.connecting = false;
 	self.needPasscode = false;
-	self.useTCP = config.useTCP;
+	self.useTCP = false;
 	self.qLab3 = false;
 	self.hasError = false;
 	self.disabled = true;
-	self.applyConfig(config);
 	self.pollCount = 0;
 
 	self.resetVars();
@@ -285,6 +284,7 @@ instance.prototype.init = function () {
 
 	self.status(self.STATUS_UNKNOWN, 'Connecting');
 
+	self.applyConfig(config);
 	debug = self.debug;
 	log = self.log;
 	self.init_osc();
@@ -671,14 +671,14 @@ instance.prototype.updatePlaying = function () {
 	var cues = self.wsCues;
 	var lastRun = qState(self.runningCue);
 	var runningCues = [];
+	var q;
 
 	Object.keys(cues).forEach(function (cue) {
-		if ((cues[cue].isRunning || cues[cue].isPaused)) {
+		q = cues[cue];
+		if (q.duration > 0 && (q.isRunning || q.isPaused)) {
 			if (''==cl || self.cueList[cl].includes(cue)) {
-				runningCues.push([cue, cues[cue].startedAt]);
-				if (cues[cue].qType == "group") {
-					hasGroup = true;
-				}
+				runningCues.push([cue, q.startedAt]);
+				hasGroup = hasGroup || (q.qType == "group");
 			}
 		}
 	});
