@@ -498,7 +498,10 @@ instance.prototype.init_osc = function () {
 		});
 
 		self.qSocket.on("close", function () {
-			self.log('error', "TCP Connection to QLab Closed");
+			if (!self.hasError) {
+				self.log('error', "TCP Connection to QLab Closed");
+			}
+			self.hasError = true;
 			self.connecting = false;
 			if (self.ready) {
 				self.needWorkspace = true;
