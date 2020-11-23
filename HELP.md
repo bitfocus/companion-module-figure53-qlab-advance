@@ -19,7 +19,8 @@ Setting | Description
 **Use TCP?** | Check to enable TCP mode. This is required for variables and feedback.
 **Use Tenths** | If checked, the variable *r_left* will display 0.1 seconds when less than 5 seconds. If unchecked, the time left will be adjusted by 1 second for a more accurate count-down.
 **OSC Passcode** | Enter a passcode if needed for the QLab workspace.
-**Workspace** | Enter the workspace title or ID to control a specific QLab workspace.
+**Workspace** | Enter the workspace title or ID to control a specific QLab workspace, enter 'default' or leave blank to control active/default workspace.
+**Specific Cue List** | Dropdown selection to limit control to a specific cuelist.
 
 ## Actions
 Action | Description
