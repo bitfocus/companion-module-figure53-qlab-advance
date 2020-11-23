@@ -403,8 +403,7 @@ instance.prototype.rePulse = function (ws) {
 	if (0==(self.pollCount % 10)) {
 		self.sendOSC(ws + "/auditionWindow", []);
 		self.sendOSC(ws + "/cue_id" + (cl ? "/" + cl : "") + "/playheadId",[]);
-		self.requestedCues[self.nextCue] = Date.now();
-
+		
 		if (self.qLab3) {
 			self.sendOSC(ws + "/showMode", []);
 		}
@@ -420,12 +419,7 @@ instance.prototype.rePulse = function (ws) {
 			if (self.requestedCues[k] < timeOut) {
 				// no response from QLab for at least 500ms
 				// so delete the cue from our list
-				/* if (self.nextCue == k) {
-					// playhead reset
-					self.nextCue = '';
-					self.updateNextCue();
-				} else 
-				 */if (cues[k]) {
+				if (cues[k]) {
 					// QLab sometimes sends 'reload the whole cue list'
 					// so a cue we were waiting for may have been moved/deleted between checks
 					qNum = cues[k].qNumber.replace(/[^\w\.]/gi,'_');
@@ -683,7 +677,7 @@ instance.prototype.updatePlaying = function () {
 		q = cues[cue];
 		// some cuelists (for example all manual slides) may not have a pre-programmed duration
 		if (q.isRunning || q.isPaused) {
-			if (''==cl || (self.cueList[cl] && self.cueList[cl].includes(cue))) {
+			if ((''==cl && 'cue list' != q.qType) || (self.cueList[cl] && self.cueList[cl].includes(cue))) {
 				runningCues.push([cue, q.startedAt]);
 				hasGroup = hasGroup || (q.qType == "group");
 				hasDuration = hasDuration || q.duration > 0;
@@ -717,20 +711,22 @@ instance.prototype.updatePlaying = function () {
 	} else {
 		i = 0;
 		if (hasGroup) {
-			while (cues[runningCues[i][0]].qType != "group" && i < runningCues.length) {
+			while (i < runningCues.length && cues[runningCues[i][0]].qType != "group") {
 				i += 1;
 			}
-		}
-		if (hasDuration) {
-			while (cues[runningCues[i][0]].duration == 0 && i < runningCues.length) {
+		} else if (hasDuration) {
+			while (i < runningCues.length && cues[runningCues[i][0]].duration == 0) {
 				i += 1;
 			}
 		}
 		if (i < runningCues.length) {
 			self.runningCue = cues[runningCues[i][0]];
+			// to reduce network traffic, the query interval logic only asks for running 'updates' 
+			// if the playback elapsed is > 0%. Sometimes, the first status response of a new running cue 
+			// is exactly when the cue starts, with 0% elapsed and the countdown timer won't run.
+			// Set a new cue with 0% value to 1 here to cause at least one more query to see if the cue is
+			// actually playing.
 			if (0 == self.runningCue.pctElapsed) {
-				// set to 1 for new running cue to query for 1 more update
-				// otherwise countdown timer doesn't alway fire
 				self.runningCue.pctElapsed = 1;
 			}
 		}
@@ -922,7 +918,7 @@ instance.prototype.readReply = function (message) {
 	} else if (ma.match(/valuesForKeys$/)) {
 		self.updateCues(j.data, 'v');
 		uniqueID = ma.substr(14,36);
-		// delete self.requestedCues[uniqueID];
+		delete self.requestedCues[uniqueID];
 	} else if (ma.match(/showMode$/)) {
 		if (self.showMode != j.data) {
 			self.showMode = j.data;
