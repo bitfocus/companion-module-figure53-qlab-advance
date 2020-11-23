@@ -284,7 +284,7 @@ instance.prototype.init = function () {
 
 	self.status(self.STATUS_UNKNOWN, 'Connecting');
 
-	self.applyConfig(config);
+	self.applyConfig(self.config);
 	debug = self.debug;
 	log = self.log;
 	self.init_osc();
@@ -398,12 +398,12 @@ instance.prototype.prime_vars = function (ws) {
 instance.prototype.rePulse = function (ws) {
 	var self = this;
 	var rc = self.runningCue;
+	var cl = self.cl;
 
 	if (0==(self.pollCount % 10)) {
 		self.sendOSC(ws + "/auditionWindow", []);
-		self.sendOSC(ws + "/cue/playhead/parent",[]);
-		self.requestedCues[self.nextCue] = Date.now();
-
+		self.sendOSC(ws + "/cue_id" + (cl ? "/" + cl : "") + "/playheadId",[]);
+		
 		if (self.qLab3) {
 			self.sendOSC(ws + "/showMode", []);
 		}
@@ -419,11 +419,7 @@ instance.prototype.rePulse = function (ws) {
 			if (self.requestedCues[k] < timeOut) {
 				// no response from QLab for at least 500ms
 				// so delete the cue from our list
-				if (self.nextCue == k) {
-					// playhead reset
-					self.nextCue = '';
-					self.updateNextCue();
-				} else if (cues[k]) {
+				if (cues[k]) {
 					// QLab sometimes sends 'reload the whole cue list'
 					// so a cue we were waiting for may have been moved/deleted between checks
 					qNum = cues[k].qNumber.replace(/[^\w\.]/gi,'_');
@@ -669,6 +665,7 @@ instance.prototype.updatePlaying = function () {
 
 	var self = this;
 	var hasGroup = false;
+	var hasDuration = false;
 	var i;
 	var cl = self.cl;
 	var cues = self.wsCues;
@@ -678,10 +675,12 @@ instance.prototype.updatePlaying = function () {
 
 	Object.keys(cues).forEach(function (cue) {
 		q = cues[cue];
-		if (q.duration > 0 && (q.isRunning || q.isPaused)) {
-			if (''==cl || self.cueList[cl].includes(cue)) {
+		// some cuelists (for example all manual slides) may not have a pre-programmed duration
+		if (q.isRunning || q.isPaused) {
+			if ((''==cl && 'cue list' != q.qType) || (self.cueList[cl] && self.cueList[cl].includes(cue))) {
 				runningCues.push([cue, q.startedAt]);
 				hasGroup = hasGroup || (q.qType == "group");
+				hasDuration = hasDuration || q.duration > 0;
 			}
 		}
 	});
@@ -712,12 +711,24 @@ instance.prototype.updatePlaying = function () {
 	} else {
 		i = 0;
 		if (hasGroup) {
-			while (cues[runningCues[i][0]].qType != "group" && i < runningCues.length) {
+			while (i < runningCues.length && cues[runningCues[i][0]].qType != "group") {
+				i += 1;
+			}
+		} else if (hasDuration) {
+			while (i < runningCues.length && cues[runningCues[i][0]].duration == 0) {
 				i += 1;
 			}
 		}
 		if (i < runningCues.length) {
 			self.runningCue = cues[runningCues[i][0]];
+			// to reduce network traffic, the query interval logic only asks for running 'updates' 
+			// if the playback elapsed is > 0%. Sometimes, the first status response of a new running cue 
+			// is exactly when the cue starts, with 0% elapsed and the countdown timer won't run.
+			// Set a new cue with 0% value to 1 here to cause at least one more query to see if the cue is
+			// actually playing.
+			if (0 == self.runningCue.pctElapsed) {
+				self.runningCue.pctElapsed = 1;
+			}
 		}
 	}
 	// update if changed
@@ -741,10 +752,10 @@ instance.prototype.readUpdate = function (message) {
 	 */
 
 	if (ma.match(/playbackPosition$/)) {
+		var cl = ma.substr(63,36);
 		if (message.args.length > 0) {
 			var oa = message.args[0].value;
-			var cl = ma.substr(63,36);
-			if (self.cl != '') {
+			if (self.cl) {
 				// if a cue is inserted, QLab sends playback changed cue
 				// before sending the new cue's id update, insert this id into
 				// the cuelist just in case so the playhead check will find it until then
@@ -752,12 +763,14 @@ instance.prototype.readUpdate = function (message) {
 					self.cueList[cl].push(oa);
 				}
 			}
-			if (oa !== self.nextCue) {
+			if ((self.cl == '' || cl == self.cl) && oa !== self.nextCue) {
 				// playhead changed
 				self.nextCue = oa;
-				self.sendOSC(ws + "/cue/playhead/valuesForKeys", self.qCueRequest);
+				debug('playhead: ' + oa);
+				self.sendOSC(ws + "/cue_id/" + oa + "/valuesForKeys", self.qCueRequest);
+				self.requestedCues[oa] = Date.now();
 			}
-		} else {
+		} else if ((self.cl == '' || cl == self.cl)) {
 			// no playhead
 			self.nextCue = '';
 			self.updateNextCue();
@@ -775,7 +788,7 @@ instance.prototype.readUpdate = function (message) {
 
 		self.requestedCues[uniqueID] = Date.now();
 
-		} else if (ma.match(/\/disconnect$/)) {
+	} else if (ma.match(/\/disconnect$/)) {
 		self.status(self.STATUS_WARNING, "No Workspaces");
 		self.needWorkspace = true;
 		self.needPasscode = false;
@@ -792,8 +805,8 @@ instance.prototype.readUpdate = function (message) {
 	// } else if (ma.match(/cue lists\]$/)) {
 	// 	self.sendOSC("/cueLists",[]);
 	// } else {
-	// 	self.debug("=====> OSC message: ",ma);
 	}
+	//self.debug("=====> OSC message: ",ma, message.args);
 };
 
 
@@ -808,6 +821,8 @@ instance.prototype.readReply = function (message) {
 	var i = 0;
 	var q;
 	var uniqueID;
+	var playheadId;
+	var cl = self.cl;
 	var qr = self.qCueRequest;
 
 	try {
@@ -859,15 +874,19 @@ instance.prototype.readReply = function (message) {
 			self.updateNextCue();
 			self.sendOSC(ws + "/cue/playhead/valuesForKeys", qr);
 		}
-	} else if (ma.match(/parent$/)) {
+	} else if (ma.match(/playheadId$/)) {
 		if (j.data) {
+			playheadId = j.data;
 			uniqueID = ma.substr(14,36);
 			delete self.requestedCues[uniqueID];
-			if (self.nextCue != uniqueID) {
+			if ((cl=='' || uniqueID == cl) && self.nextCue != playheadId ) {
 				// playhead changed due to cue list change in QLab
-				self.nextCue = uniqueID;
+				if (playheadId == 'none') {
+					self.nextCue = '';
+				} else {
+					self.nextCue = playheadId;
+				}
 				self.updateNextCue();
-				self.sendOSC(ws + "/cue/playhead/valuesForKeys", qr);
 				//self.sendOSC("/cue/" + j.data + "/children");
 			}
 		}
@@ -899,7 +918,7 @@ instance.prototype.readReply = function (message) {
 	} else if (ma.match(/valuesForKeys$/)) {
 		self.updateCues(j.data, 'v');
 		uniqueID = ma.substr(14,36);
-		// delete self.requestedCues[uniqueID];
+		delete self.requestedCues[uniqueID];
 	} else if (ma.match(/showMode$/)) {
 		if (self.showMode != j.data) {
 			self.showMode = j.data;
