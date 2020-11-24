@@ -10,6 +10,10 @@ module.exports = {
 				name:  'q_ver'
 			},
 			{
+				label: 'Double Go Minimum Time',
+				name:  'min_go'
+			},
+			{
 				label: 'Playhead Cue UniqueID',
 				name:  'n_id'
 			},

@@ -49,7 +49,7 @@ module.exports = {
 
 		presets.push({
 			category: 'CueList',
-			label: 'GO',
+			label: 'GO Action. Includes double-GO feedback.',
 			bank: {
 				style: 'png',
 				text: '',
@@ -62,6 +62,32 @@ module.exports = {
 			actions: [
 				{
 					action: 'go',
+				}
+			],
+			feedbacks: [
+				{
+					type: 'min_go',
+					options: {
+						fg: 16777215,
+						bg: rgb(0,102,0),
+						goMode: 1
+					}
+				},
+				{
+					type: 'ws_mode',
+					options: {
+						fg: 16777215,
+						bg: rgb(0,102,153),
+						showMode: 2
+					}
+				},
+				{
+					type: 'min_go',
+					options: {
+						fg: 16777215,
+						bg: rgb(153,0,0),
+						goMode: 0
+					}
 				}
 			]
 		});

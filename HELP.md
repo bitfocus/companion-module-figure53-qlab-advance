@@ -31,14 +31,15 @@ Action | Description
 **Reset** | Reset the workspace. Resetting stops all cues, returns the playhead to the top of the current cue list, and restores any temporary changes made to cues (such as retargeting via a Target cue or adjustments using a "live" OSC method.)
 **Next** | Move the selection down one cue.
 **Previous** | Move the selection up one cue.
-**Show Mode** | Enable for Show Mode, Disable for Edit Mode.
-**Audition Window** | Show or Hide the Audition Window.
 **Pause** | Pause all currently running cues in the workspace.
 **Resume** | Un-pause all paused cues in the workspace.
 **Preview** | Preview the selected cue without moving the Playhead.
 **Toggle Pause** | Pause/Unpause selected cue
 **GoTo (cue)** | Move the playhead to (cue). Doesn't start the cue.
 **Start (cue)** | Start (cue). Doesn't move the playhead. If the specified cue is playing, this command has no effect.
+**Show Mode** | Enable for Show Mode, Disable for Edit Mode.
+**Audition Window** | Show or Hide the Audition Window.
+**Set Minimum Go** | Sets the time for double-GO protection
 **Increase Prewait** | Increases the prewait time by given time for the selected cue.
 **Decrease Prewait** | Decreases the prewait time by given time for the selected cue.
 **Increase postwait** | Increases the postwait time by given time for the selected cue.
@@ -77,6 +78,7 @@ Variable | Description
 **$(INSTANCENAME:r_ss)** | Seconds left for Running Cue
 **$(INSTANCENAME:r_left)** | Shortest display time left for Running Cue. Shows .1 increments if tenths option set.
 **$(INSTANCENAME:q_{num}_name)** | Name of the QLab cue number {num}. See below for certain restrictions.
+**$(INSTANCENAME:min_go)** | Current value of double-go protection (in seconds)
 
 To use these, replace INSTANCENAME with the name of your module instance.
 
@@ -87,7 +89,7 @@ Feedback | Description
 **Running Cue Color as Background** | Sets the button background to QLab color of the currently running cue
 **Cue Number Color as Background** | Sets the button background to QLab color of a specified cue
 **Colors for Workspace Mode** | Set the button color for QLab workspace modes: Audition (window on), Show Mode, Edit Mode
-
+**Colors for GO status** | Set the button color for the GO button state: active or disabled via the double-go timer
 
 ## OSC
 This module connects to QLab on port 53000.

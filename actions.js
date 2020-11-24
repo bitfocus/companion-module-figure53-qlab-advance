@@ -13,6 +13,18 @@ module.exports = {
 	setActions: function () {
 
 		var actions = {
+			'go':               { label: 'GO' },
+			'stop':             { label: 'Stop' },
+			'previous':         { label: 'Previous Cue' },
+			'next':             { label: 'Next Cue' },
+			'pause':            { label: 'Pause' },
+			'resume':           { label: 'Resume' },
+			'togglePause':		{ label: 'Toggle Pause'},
+			'stopSelected':     { label: 'Stop selected' },
+			'panic':            { label: 'Panic' },
+			'reset':            { label: 'Reset' },
+			'load':             { label: 'Load Cue' },
+			'preview':          { label: 'Preview'},
 			'start': {
 				label: 'Start (cue)',
 				options: [{
@@ -29,6 +41,53 @@ module.exports = {
 					label: 'Cue',
 					id: 'cue',
 					default: "1"
+				}]
+			},
+			'showMode': {
+				label: 'Show mode',
+				options: [{
+					type: 	'dropdown',
+					label: 	'Mode',
+					id:		'onOff',
+					choices: [{
+						id: '1',
+						label: 'On'
+					}, {
+						id: '0',
+						label: 'Off',
+					}, {
+						id: '2',
+						label: 'Toggle'
+					}]
+				}]
+			},
+			'auditMode': {
+				label: 'Audition Window',
+				options: [{
+					type: 	'dropdown',
+					label: 	'Mode',
+					id:		'onOff',
+					choices: [{
+						id: '1',
+						label: 'On'
+					}, {
+						id: '0',
+						label: 'Off',
+					}, {
+						id: '2',
+						label: 'Toggle'
+					}]
+				}]
+			},
+			'minGo': {
+				label: 'Minimum Go',
+				options: [{
+					type: 'textinput',
+					tooltip: 'Double Go Protection Time',
+					label: 'Time in Seconds',
+					id: 'time',
+					regex: this.REGEX_FLOAT,
+					default: "0"
 				}]
 			},
 			'prewait_dec': {
@@ -202,55 +261,7 @@ module.exports = {
 					id: 'colorId',
 					choices: colors.colorName
 				}]
-			},
-			'showMode': {
-				label: 'Show mode',
-				options: [{
-					type: 	'dropdown',
-					label: 	'Mode',
-					id:		'onOff',
-					choices: [{
-						id: '1',
-						label: 'On'
-					}, {
-						id: '0',
-						label: 'Off',
-					}, {
-						id: '2',
-						label: 'Toggle'
-					}]
-				}]
-			},
-			'auditMode': {
-				label: 'Audition Window',
-				options: [{
-					type: 	'dropdown',
-					label: 	'Mode',
-					id:		'onOff',
-					choices: [{
-						id: '1',
-						label: 'On'
-					}, {
-						id: '0',
-						label: 'Off',
-					}, {
-						id: '2',
-						label: 'Toggle'
-					}]
-				}]
-			},
-			'go':               { label: 'GO' },
-			'stop':             { label: 'Stop' },
-			'previous':         { label: 'Previous Cue' },
-			'next':             { label: 'Next Cue' },
-			'pause':            { label: 'Pause' },
-			'resume':           { label: 'Resume' },
-			'togglePause':		{ label: 'Toggle Pause'},
-			'stopSelected':     { label: 'Stop selected' },
-			'panic':            { label: 'Panic' },
-			'reset':            { label: 'Reset' },
-			'load':             { label: 'Load Cue' },
-			'preview':          { label: 'Preview'}
+			}
 		};
 		return(actions);
 	}
