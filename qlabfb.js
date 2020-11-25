@@ -362,7 +362,7 @@ instance.prototype.prime_vars = function (ws) {
 		}
 		self.timer = setTimeout(function () { self.prime_vars(ws); }, 5000);
 	} else if (self.needWorkspace && self.ready) {
-		self.sendOSC("/version");
+		self.sendOSC("/version", [], true);		// app global, not workspace
 		if (self.config.passcode !== undefined && self.config.passcode !== "") {
 			self.debug("sending passcode to", self.config.host);
 			self.sendOSC("/connect", [
@@ -387,7 +387,7 @@ instance.prototype.prime_vars = function (ws) {
 		);
 
 		self.sendOSC("/cueLists", []);
-		self.sendOSC("/auditionWindow",[]);
+		self.sendOSC("/auditionWindow",[], true);
 		self.sendOSC("/showMode",[]);
 		self.sendOSC("/settings/general/minGoTime");
 		if (self.timer !== undefined) {
@@ -408,7 +408,7 @@ instance.prototype.rePulse = function (ws) {
 	var now = Date.now();
 
 	if (0==(self.pollCount % 10)) {
-		self.sendOSC("/auditionWindow", []);
+		self.sendOSC("/auditionWindow", [], true);
 		self.sendOSC("/cue_id" + (cl ? "/" + cl : "") + "/playheadId",[]);
 		
 		if (self.qLab3) {
@@ -813,7 +813,7 @@ instance.prototype.readUpdate = function (message) {
 		self.prime_vars(ws);
 	} else if ((mf.length == 4) && (mf[2] == 'workspace')) {
 		self.sendOSC("/showMode",[]);
-		self.sendOSC("/auditionWindow",[]);
+		self.sendOSC("/auditionWindow",[], true);
 	} else if (ma.match(/\/settings\/general$/)) {
 		// ug. 8 more bytes and they could have sent the 'new' value :(
 		self.sendOSC("/settings/general/minGoTime");
@@ -1301,12 +1301,13 @@ instance.prototype.action = function (action) {
 	if (self.useTCP && !self.ready) {
 		debug("Not connected to", self.config.host);
 	} else if (cmd !== undefined) {
-		debug('sending', ws + cmd, arg, "to", self.config.host);
-		self.sendOSC(cmd, arg);
+		debug('sending', cmd, arg, "to", self.config.host);
+		// everything except 'auditionWindow' works on a specific workspace
+		self.sendOSC(cmd, arg, ('/auditionWindow' == cmd));
 	}
 	// QLab does not send audition window updates
 	if (self.useTCP && cmd == '/auditionWindow') {
-		self.sendOSC(cmd, []);
+		self.sendOSC(cmd, [], true);
 		self.sendOSC("/cue/playhead/valuesForKeys",self.qCueRequest);
 	}
 
