@@ -103,7 +103,7 @@ instance.prototype.applyConfig = function (config) {
 
 instance.prototype.qCueRequest = [
 	{
-		type: "s",
+		type: 's',
 		value: '["number","uniqueID","listName","type","isPaused","duration","actionElapsed","parent","flagged","notes",' +
 			'"autoLoad","colorName","isRunning","isLoaded","armed","isBroken","percentActionElapsed","cartPosition"]'
 	}
@@ -157,6 +157,10 @@ instance.prototype.resetVars = function (doUpdate) {
 	self.lastRunID = '-' + self.lastRunID;
 	self.showMode = false;
 	self.audition = false;
+	self.goDisabled = false;
+	self.goAfter = 0;
+	self.minGo = 0;
+	
 };
 
 instance.prototype.updateNextCue = function () {
@@ -308,8 +312,9 @@ instance.prototype.init_variables = function () {
 	this.updateNextCue();
 };
 
-instance.prototype.sendOSC = function (node, arg) {
+instance.prototype.sendOSC = function (node, arg, bare) {
 	var self = this;
+	var ws = (bare ? '' : self.ws);
 
 	if (!self.useTCP) {
 		var host = "";
@@ -317,12 +322,12 @@ instance.prototype.sendOSC = function (node, arg) {
 			host = self.config.host;
 		}
 		if (self.config.passcode !== undefined && self.config.passcode !== "") {
-			self.system.emit('osc_send', host, 53000, "/connect", [self.config.passcode]);
+			self.system.emit('osc_send', host, 53000, ws + "/connect", [self.config.passcode]);
 		}
-		self.system.emit('osc_send',host, 53000, node, arg);
+		self.system.emit('osc_send',host, 53000, ws + node, arg);
 	} else if (self.ready) {
 		self.qSocket.send({
-			address: node,
+			address: ws + node,
 			args: arg
 		});
 	}
@@ -346,7 +351,7 @@ instance.prototype.prime_vars = function (ws) {
 		self.status(self.STATUS_UNKNOWN, "Wrong Passcode");
 		self.status(self.STATUS_WARNING, "Wrong Passcode");
 		self.debug("waiting for passcode");
-		self.sendOSC(ws + "/connect", []);
+		self.sendOSC("/connect", []);
 		if (self.timer !== undefined) {
 			clearTimeout(self.timer);
 			self.timer = undefined;
@@ -357,33 +362,34 @@ instance.prototype.prime_vars = function (ws) {
 		}
 		self.timer = setTimeout(function () { self.prime_vars(ws); }, 5000);
 	} else if (self.needWorkspace && self.ready) {
-		self.sendOSC(ws + "/version");
+		self.sendOSC("/version", [], true);		// app global, not workspace
 		if (self.config.passcode !== undefined && self.config.passcode !== "") {
 			self.debug("sending passcode to", self.config.host);
-			self.sendOSC(ws + "/connect", [
+			self.sendOSC("/connect", [
 				{
-					type: "s",
+					type: 's',
 					value: self.config.passcode
 				}]
 			);
 		} else {
-			self.sendOSC(ws + "/connect", []);
+			self.sendOSC("/connect", []);
 		}
 
 		// request variable/feedback info
 		// get list of running cues
-		self.sendOSC(ws + "/cue/playhead/uniqueID", []);
-		self.sendOSC(ws + "/updates", []);
-		self.sendOSC(ws + "/updates", [
+		self.sendOSC("/cue/playhead/uniqueID", []);
+		self.sendOSC("/updates", []);
+		self.sendOSC("/updates", [
 			{
-				type: "i",
+				type: 'i',
 				value: 1
 			}]
 		);
 
-		self.sendOSC(ws + "/cueLists", []);
-		self.sendOSC(ws + "/auditionWindow",[]);
-		self.sendOSC(ws + "/showMode",[]);
+		self.sendOSC("/cueLists", []);
+		self.sendOSC("/auditionWindow",[], true);
+		self.sendOSC("/showMode",[]);
+		self.sendOSC("/settings/general/minGoTime");
 		if (self.timer !== undefined) {
 			clearTimeout(self.timer);
 			self.timer = undefined;
@@ -399,19 +405,19 @@ instance.prototype.rePulse = function (ws) {
 	var self = this;
 	var rc = self.runningCue;
 	var cl = self.cl;
+	var now = Date.now();
 
 	if (0==(self.pollCount % 10)) {
-		self.sendOSC(ws + "/auditionWindow", []);
-		self.sendOSC(ws + "/cue_id" + (cl ? "/" + cl : "") + "/playheadId",[]);
+		self.sendOSC("/auditionWindow", [], true);
+		self.sendOSC("/cue_id" + (cl ? "/" + cl : "") + "/playheadId",[]);
 		
 		if (self.qLab3) {
-			self.sendOSC(ws + "/showMode", []);
+			self.sendOSC("/showMode", []);
 		}
 	}
 	self.pollCount++;
 	if (Object.keys(self.requestedCues).length > 0) {
-		var timeOut = Date.now() - 500;
-		var cue;
+		var timeOut = now - 500;
 		var cues = self.wsCues;
 		var qNum;
 		var qName;
@@ -429,16 +435,20 @@ instance.prototype.rePulse = function (ws) {
 						self.setVariable('q_' + qNum + '_name');
 					}
 					self.checkFeedbacks('q_bg');
-			}
-			delete self.requestedCues[k];
+				}
+				delete self.requestedCues[k];
 			}
 		}
 	}
+	if (self.goDisabled && self.goAfter < now) {
+		self.goDisabled = false;
+		self.checkFeedbacks('min_go');
+	}
 	if (rc && rc.pctElapsed > 0) {
 		if (self.qLab3) {
-			self.sendOSC(ws + "/runningOrPausedCues",[]);
+			self.sendOSC("/runningOrPausedCues",[]);
 		} else {
-			self.sendOSC(ws + "/cue/active/valuesForKeys", self.qCueRequest);
+			self.sendOSC("/cue/active/valuesForKeys", self.qCueRequest);
 		}
 	}
 };
@@ -767,7 +777,7 @@ instance.prototype.readUpdate = function (message) {
 				// playhead changed
 				self.nextCue = oa;
 				debug('playhead: ' + oa);
-				self.sendOSC(ws + "/cue_id/" + oa + "/valuesForKeys", self.qCueRequest);
+				self.sendOSC("/cue_id/" + oa + "/valuesForKeys", self.qCueRequest);
 				self.requestedCues[oa] = Date.now();
 			}
 		} else if ((self.cl == '' || cl == self.cl)) {
@@ -775,7 +785,9 @@ instance.prototype.readUpdate = function (message) {
 			self.nextCue = '';
 			self.updateNextCue();
 		}
-	} else if (ma.match(/\/cue_id\//) && !(ma.match(/cue lists\]$/))) {
+	} else if (ma.match(/cue lists\]$/)) {
+		self.sendOSC('/doubleGoWindowRemaining');
+	} else if (ma.match(/\/cue_id\//)) {
 		// get cue information for 'updated' cue
 		var node = ma.substring(7) + "/valuesForKeys";
 		var uniqueID = ma.slice(-36);
@@ -787,7 +799,7 @@ instance.prototype.readUpdate = function (message) {
 		// we delete our copy of the cue
 
 		self.requestedCues[uniqueID] = Date.now();
-
+	
 	} else if (ma.match(/\/disconnect$/)) {
 		self.status(self.STATUS_WARNING, "No Workspaces");
 		self.needWorkspace = true;
@@ -801,12 +813,12 @@ instance.prototype.readUpdate = function (message) {
 		self.prime_vars(ws);
 	} else if ((mf.length == 4) && (mf[2] == 'workspace')) {
 		self.sendOSC("/showMode",[]);
-		self.sendOSC("/auditionWindow",[]);
-	// } else if (ma.match(/cue lists\]$/)) {
-	// 	self.sendOSC("/cueLists",[]);
-	// } else {
+		self.sendOSC("/auditionWindow",[], true);
+	} else if (ma.match(/\/settings\/general$/)) {
+		// ug. 8 more bytes and they could have sent the 'new' value :(
+		self.sendOSC("/settings/general/minGoTime");
 	}
-	//self.debug("=====> OSC message: ",ma, message.args);
+	// self.debug("=====> OSC message: ",ma, message.args);
 };
 
 
@@ -872,7 +884,7 @@ instance.prototype.readReply = function (message) {
 		if (j.data) {
 			self.nextCue = j.data;
 			self.updateNextCue();
-			self.sendOSC(ws + "/cue/playhead/valuesForKeys", qr);
+			self.sendOSC("/cue/playhead/valuesForKeys", qr);
 		}
 	} else if (ma.match(/playheadId$/)) {
 		if (j.data) {
@@ -899,7 +911,7 @@ instance.prototype.readReply = function (message) {
 				self.updateCues(q.cues,'l',q.uniqueID);
 				i++;
 			}
-			self.sendOSC(ws + "/cue/active/valuesForKeys", qr);
+			self.sendOSC("/cue/active/valuesForKeys", qr);
 		}
 	} else if (ma.match(/children$/)) {
 		if (j.data) {
@@ -911,7 +923,7 @@ instance.prototype.readReply = function (message) {
 			i = 0;
 			while (i < j.data.length) {
 				q = j.data[i];
-				self.sendOSC(ws + "/cue_id/" + q.uniqueID + "/valuesForKeys", qr);
+				self.sendOSC("/cue_id/" + q.uniqueID + "/valuesForKeys", qr);
 				i++;
 			}
 		}
@@ -929,7 +941,18 @@ instance.prototype.readReply = function (message) {
 			self.auditMode = j.data;
 			self.checkFeedbacks('ws_mode');
 		}
+	} else if (ma.match(/minGoTime$/)) {
+		self.minGo = j.data;
+		self.setVariable('min_go', (Math.round(j.data * 100) / 100).toFixed(2));
+	} else if (ma.match(/\/doubleGoWindowRemaining$/)) {
+		var goLeft = Math.round(j.data * 1000);
+		self.goDisabled = (goLeft > 0);
+		self.goAfter = Date.now() + goLeft;
+		self.checkFeedbacks('min_go');
 	}
+	// else
+	// 	self.debug("=====> OSC message: ",ma, message.args);
+	// }
 };
 
 // Return config fields for web config
@@ -1206,7 +1229,7 @@ instance.prototype.action = function (action) {
 
 		case 'continue':
 			arg = {
-				type: "i",
+				type: 'i',
 				value: parseInt(opt.contId)
 			};
 			cmd = '/cue/selected/continueMode';
@@ -1214,7 +1237,7 @@ instance.prototype.action = function (action) {
 
 		case 'arm':
 			arg = {
-				type: "i",
+				type: 'i',
 				value: 2==parseInt(opt.armId) ? 1-nc.isArmed : parseInt(opt.armId)
 			};
 			cmd = '/cue/selected/armed';
@@ -1222,7 +1245,7 @@ instance.prototype.action = function (action) {
 
 		case 'autoload':
 			arg = {
-				type: "i",
+				type: 'i',
 				value: 2==parseInt(opt.autoId) ? 1-nc.autoLoad : parseInt(opt.autoId)
 			};
 			cmd = '/cue/selected/autoLoad';
@@ -1230,7 +1253,7 @@ instance.prototype.action = function (action) {
 
 		case 'flagged':
 			arg = {
-				type: "i",
+				type: 'i',
 				value: 2==parseInt(opt.flagId) ? 1-nc.isFlagged : parseInt(opt.flagId)
 			};
 			cmd = '/cue/selected/flagged';
@@ -1238,24 +1261,31 @@ instance.prototype.action = function (action) {
 
 		case 'cueColor':
 			arg = {
-				type: "s",
-				value: "" + opt.colorId
+				type: 's',
+				value: '' + opt.colorId
 			};
 			cmd = '/cue/selected/colorName';
 			break;
 		case 'showMode':
 			arg = {
-				type: "i",
+				type: 'i',
 				value: 2==parseInt(opt.onOff) ? 1-self.showMode : parseInt(opt.onOff)
 			};
 			cmd = '/showMode';
 			break;
 		case 'auditMode':
 			arg = {
-				type: "i",
+				type: 'i',
 				value: 2==parseInt(opt.onOff) ? 1-self.auditMode : parseInt(opt.onOff)
 			};
 			cmd = '/auditionWindow';
+			break;
+		case 'minGo':
+			arg = {
+				type: typeTime,
+				value: optTime
+			};
+			cmd = '/settings/general/minGoTime';
 			break;
 		// switch
 	}
@@ -1265,19 +1295,20 @@ instance.prototype.action = function (action) {
 	}
 
 	if (cl && self.cueListActions.includes(action.action)) {
-		ws = ws + "/cue_id/" + cl;
+		cmd = "/cue_id/" + cl + cmd;
 	}
 
 	if (self.useTCP && !self.ready) {
 		debug("Not connected to", self.config.host);
 	} else if (cmd !== undefined) {
-		debug('sending', ws + cmd, arg, "to", self.config.host);
-		self.sendOSC(ws + cmd, arg);
+		debug('sending', cmd, arg, "to", self.config.host);
+		// everything except 'auditionWindow' works on a specific workspace
+		self.sendOSC(cmd, arg, ('/auditionWindow' == cmd));
 	}
 	// QLab does not send audition window updates
 	if (self.useTCP && cmd == '/auditionWindow') {
-		self.sendOSC(ws + cmd, []);
-		self.sendOSC(ws + "/cue/playhead/valuesForKeys",self.qCueRequest);
+		self.sendOSC(cmd, [], true);
+		self.sendOSC("/cue/playhead/valuesForKeys",self.qCueRequest);
 	}
 
 };

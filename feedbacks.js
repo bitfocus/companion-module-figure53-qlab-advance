@@ -33,6 +33,44 @@ module.exports = {
 					return { bgcolor: i.cueColors[ (feedback.options.cue).replace(/[^\w\.]/gi,'_') ] };
 				}
 			},
+			min_go: {
+				label: 'Color for Go button Status',
+				description: 'Set Button colors for Go button Status',
+				options: [{
+					type: 'colorpicker',
+					label: 'Foreground color',
+					id: 'fg',
+					default: '16777215'
+				},
+				{
+					type: 'colorpicker',
+					label: 'Background color',
+					id: 'bg',
+					default: rgb(0,102,0)
+				},
+				{
+					type: 'dropdown',
+					label: 'Status?',
+					id: 'goMode',
+					default: '1',
+					choices: [
+						{ id: '0', label: 'Disabled' },
+						{ id: '1', label: 'Enabled' }
+					]
+
+				}],
+				callback: function(feedback, bank) {
+					var ret = {};
+					var options = feedback.options;
+
+					if (i.goDisabled && (options.goMode == '0')) {
+						ret = { color: options.fg, bgcolor: options.bg };
+					} else if ((options.goMode == '1')) {
+						ret = { color: options.fg, bgcolor: options.bg };
+					}
+					return ret;
+				}
+			},
 			ws_mode: {
 				label: 'Color for Workspace Mode',
 				description: 'Set Button colors for Show/Edit/Audition Mode',
