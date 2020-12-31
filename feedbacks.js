@@ -1,24 +1,22 @@
-rgb = require('../../image').rgb;
-
 module.exports = {
 
-	setFeedbacks: function(i) {
+	setFeedbacks: function() {
 
 		var feedbacks = {
 			playhead_bg: {
 				label: 'Playhead Color for Background',
 				description: 'Use the QLab color for the Playhead (next) cue as background',
 				callback: function(feedback, bank) {
-					var nc = i.wsCues[i.nextCue] ? i.wsCues[i.nextCue].qColor : 0;
+					var nc = this.wsCues[this.nextCue] ? this.wsCues[this.nextCue].qColor : 0;
 					return { bgcolor: nc };
-				}
+				}.bind(this)
 			},
 			run_bg: {
 				label: 'Running Que color for Background',
 				description: 'Use the QLab color of the running cue as background',
 				callback: function(feedback, bank) {
-					return { bgcolor: i.runningCue.qColor };
-				}
+					return { bgcolor: this.runningCue.qColor };
+				}.bind(this)
 			},
 			q_bg: {
 				label: 'Cue Number color for background',
@@ -30,8 +28,8 @@ module.exports = {
 					default: ""
 				}],
 				callback: function(feedback, bank) {
-					return { bgcolor: i.cueColors[ (feedback.options.cue).replace(/[^\w\.]/gi,'_') ] };
-				}
+					return { bgcolor: this.cueColors[ (feedback.options.cue).replace(/[^\w\.]/gi,'_') ] };
+				}.bind(this)
 			},
 			min_go: {
 				label: 'Color for Go button Status',
@@ -46,7 +44,7 @@ module.exports = {
 					type: 'colorpicker',
 					label: 'Background color',
 					id: 'bg',
-					default: rgb(0,102,0)
+					default: this.rgb(0,102,0)
 				},
 				{
 					type: 'dropdown',
@@ -63,13 +61,13 @@ module.exports = {
 					var ret = {};
 					var options = feedback.options;
 
-					if (i.goDisabled && (options.goMode == '0')) {
+					if (this.goDisabled && (options.goMode == '0')) {
 						ret = { color: options.fg, bgcolor: options.bg };
 					} else if ((options.goMode == '1')) {
 						ret = { color: options.fg, bgcolor: options.bg };
 					}
 					return ret;
-				}
+				}.bind(this)
 			},
 			ws_mode: {
 				label: 'Color for Workspace Mode',
@@ -84,7 +82,7 @@ module.exports = {
 					type: 'colorpicker',
 					label: 'Background color',
 					id: 'bg',
-					default: rgb(0, 128, 0)
+					default: this.rgb(0, 128, 0)
 				},
 				{
 					type: 'dropdown',
@@ -101,15 +99,15 @@ module.exports = {
 					var ret = {};
 					var options = feedback.options;
 
-					if (i.auditMode && (options.showMode == '2')) {
+					if (this.auditMode && (options.showMode == '2')) {
 						ret = { color: options.fg, bgcolor: options.bg };
-					} else if (i.showMode && (options.showMode == '1')) {
+					} else if (this.showMode && (options.showMode == '1')) {
 						ret = { color: options.fg, bgcolor: options.bg };
-					} else if (!i.showMode && (options.showMode == '0')) {
+					} else if (!this.showMode && (options.showMode == '0')) {
 						ret = { color: options.fg, bgcolor: options.bg };
 					}
 					return ret;
-				}
+				}.bind(this)
 			},
 		};
 		return(feedbacks);

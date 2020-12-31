@@ -1,5 +1,3 @@
-var colors = require('./colors.js');
-
 
 function Cue (j, i) {
 
@@ -49,7 +47,7 @@ function JSONtoCue(newCue, j, i) {
 	if (j.notes) {
 		newCue.Notes = j.notes.slice(0,20);
 	}
-	newCue.qColor = colors.colorRGB[j.colorName];
+	newCue.qColor = i.colors.colorRGB[j.colorName];
 	isExistingQ  = newCue.uniqueID in i.wsCues;
 
 	if (isExistingQ) {
