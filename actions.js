@@ -1,6 +1,5 @@
 // actions for QLab module
 
-var colors = require('./colors.js');
 
 var continueMode = [
 	{ label: 'Do Not Continue', id: '0' },
@@ -259,7 +258,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Color',
 					id: 'colorId',
-					choices: colors.colorName
+					choices: this.colors.colorName
 				}]
 			}
 		};

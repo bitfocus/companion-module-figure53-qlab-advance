@@ -1,5 +1,3 @@
-var rgb = require('../../image').rgb;
-var colors = require('./colors.js');
 var icons = require('../../resources/icons.js');
 
 // determine text color for a background color
@@ -37,7 +35,7 @@ module.exports = {
 				png64: icons.ICON_PAUSE_INACTIVE,
 				pngalignment: 'center:center',
 				size: '18',
-				color: rgb(255, 255, 255),
+				color: this.rgb(255, 255, 255),
 				bgcolor: 0
 			},
 			actions: [
@@ -56,7 +54,7 @@ module.exports = {
 				png64: icons.ICON_PLAY_INACTIVE,
 				pngalignment: 'center:center',
 				size: '18',
-				color: rgb(255,255,255),
+				color: this.rgb(255,255,255),
 				bgcolor: 0
 			},
 			actions: [
@@ -69,7 +67,7 @@ module.exports = {
 					type: 'min_go',
 					options: {
 						fg: 16777215,
-						bg: rgb(0,102,0),
+						bg: this.rgb(0,102,0),
 						goMode: 1
 					}
 				},
@@ -77,7 +75,7 @@ module.exports = {
 					type: 'ws_mode',
 					options: {
 						fg: 16777215,
-						bg: rgb(0,102,153),
+						bg: this.rgb(0,102,153),
 						showMode: 2
 					}
 				},
@@ -85,7 +83,7 @@ module.exports = {
 					type: 'min_go',
 					options: {
 						fg: 16777215,
-						bg: rgb(153,0,0),
+						bg: this.rgb(153,0,0),
 						goMode: 0
 					}
 				}
@@ -99,8 +97,8 @@ module.exports = {
 				style: 'text',
 				text: 'Resume',
 				size: '18',
-				color: rgb(0, 0, 0),
-				bgcolor: rgb(0, 255, 0)
+				color: this.rgb(0, 0, 0),
+				bgcolor: this.rgb(0, 255, 0)
 			},
 			actions: [
 				{
@@ -117,7 +115,7 @@ module.exports = {
 				text: 'Stop',
 				size: '30',
 				color: '16777215',
-				bgcolor: rgb(255, 0, 0)
+				bgcolor: this.rgb(255, 0, 0)
 			},
 			actions: [
 				{
@@ -134,7 +132,7 @@ module.exports = {
 				text: 'Stop selected',
 				size: '18',
 				color: '16777215',
-				bgcolor: rgb(255, 0, 0)
+				bgcolor: this.rgb(255, 0, 0)
 			},
 			actions: [
 				{
@@ -152,7 +150,7 @@ module.exports = {
 				png64: icons.ICON_STOP_INACTIVE,
 				pngalignment: 'center:center',
 				size: '18',
-				color: rgb(255,255,255),
+				color: this.rgb(255,255,255),
 				bgcolor: 0
 			},
 			actions: [
@@ -170,7 +168,7 @@ module.exports = {
 				text: 'Reset',
 				size: '24',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -187,7 +185,7 @@ module.exports = {
 				text: 'Preview',
 				size: '18',
 				color: '16777215',
-				bgcolor: rgb(0, 128, 0)
+				bgcolor: this.rgb(0, 128, 0)
 			},
 			actions: [
 				{
@@ -205,7 +203,7 @@ module.exports = {
 				png64: icons.ICON_REW_INACTIVE,
 				pngalignment: 'center:center',
 				size: '18',
-				color: rgb(255,255,255),
+				color: this.rgb(255,255,255),
 				bgcolor: 0
 			},
 			actions: [
@@ -224,7 +222,7 @@ module.exports = {
 				png64: icons.ICON_FWD_INACTIVE,
 				pngalignment: 'center:center',
 				size: '18',
-				color: rgb(255,255,255),
+				color: this.rgb(255,255,255),
 				bgcolor: 0
 			},
 			actions: [
@@ -242,7 +240,7 @@ module.exports = {
 				text: 'Load\\nCue',
 				size: '24',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -259,7 +257,7 @@ module.exports = {
 				text: 'Show\\nMode',
 				size: '24',
 				color: '16777215',
-				bgcolor: rgb(0, 128, 0)
+				bgcolor: this.rgb(0, 128, 0)
 			},
 			actions: [
 				{
@@ -279,7 +277,7 @@ module.exports = {
 				text: 'Edit\\nMode',
 				size: '24',
 				color: '16777215',
-				bgcolor: rgb(72, 96, 96)
+				bgcolor: this.rgb(72, 96, 96)
 			},
 			actions: [
 				{
@@ -300,7 +298,7 @@ module.exports = {
 				size: '18',
 				color: '16777215',
 				tooltip: 'Opens the Audition Window',
-				bgcolor: rgb(0, 64, 128)
+				bgcolor: this.rgb(0, 64, 128)
 			},
 			actions: [
 				{
@@ -321,7 +319,7 @@ module.exports = {
 				size: '18',
 				color: '16777215',
 				tooltip: 'Closes the Audition Window',
-				bgcolor: rgb(64, 96, 96)
+				bgcolor: this.rgb(64, 96, 96)
 			},
 			actions: [
 				{
@@ -340,8 +338,8 @@ module.exports = {
 				style: 'text',
 				text: 'PreWait\\nDecrease\\n1 sec',
 				size: '14',
-				color: rgb(255, 255, 255),
-				bgcolor: rgb(0, 0, 100)
+				color: this.rgb(255, 255, 255),
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -360,8 +358,8 @@ module.exports = {
 				style: 'text',
 				text: 'PreWait\\nDecrease\\n10 sec',
 				size: '14',
-				color: rgb(255, 255, 255),
-				bgcolor: rgb(0, 0, 100)
+				color: this.rgb(255, 255, 255),
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -380,8 +378,8 @@ module.exports = {
 				style: 'text',
 				text: 'PreWait\\nIncrease\\n10 sec',
 				size: '14',
-				color: rgb(255, 255, 255),
-				bgcolor: rgb(0, 0, 100)
+				color: this.rgb(255, 255, 255),
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -400,8 +398,8 @@ module.exports = {
 				style: 'text',
 				text: 'PreWait\\nIncrease\\n1 sec',
 				size: '14',
-				color: rgb(255, 255, 255),
-				bgcolor: rgb(0, 0, 100)
+				color: this.rgb(255, 255, 255),
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -421,8 +419,8 @@ module.exports = {
 				style: 'text',
 				text: 'PostWait\\nDecrease\\n1 sec',
 				size: '14',
-				color: rgb(255, 255, 255),
-				bgcolor: rgb(0, 0, 100)
+				color: this.rgb(255, 255, 255),
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -442,7 +440,7 @@ module.exports = {
 				text: 'PostWait\\nDecrease\\n10 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -462,7 +460,7 @@ module.exports = {
 				text: 'PostWait\\nIncrease\\n10sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -482,7 +480,7 @@ module.exports = {
 				text: 'PostWait\\nIncrease\\n1 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -503,7 +501,7 @@ module.exports = {
 				text: 'Duration\\nDecrease\\n1 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -523,7 +521,7 @@ module.exports = {
 				text: 'Duration\\nDecrease\\n10sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -543,7 +541,7 @@ module.exports = {
 				text: 'Duration\\nIncrease\\n10 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -563,7 +561,7 @@ module.exports = {
 				text: 'Duration\\nIncrease\\n1 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -583,7 +581,7 @@ module.exports = {
 				text: 'Start Time\\nIncrease\\n1 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -603,7 +601,7 @@ module.exports = {
 				text: 'Start Time\\nIncrease\\n10 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -623,7 +621,7 @@ module.exports = {
 				text: 'Start Time\\nDecrease\\n1 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -643,7 +641,7 @@ module.exports = {
 				text: 'Start Time\\nDecrease\\n10 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -663,7 +661,7 @@ module.exports = {
 				text: 'End Time\\nIncrease\\n1 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -683,7 +681,7 @@ module.exports = {
 				text: 'End Time\\nIncrease\\n10 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -703,7 +701,7 @@ module.exports = {
 				text: 'End Time\\nDecrease\\n1 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -723,7 +721,7 @@ module.exports = {
 				text: 'End Time\\nDecrease\\n10 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -743,7 +741,7 @@ module.exports = {
 				text: 'Do Not Continue',
 				size: '14',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -763,7 +761,7 @@ module.exports = {
 				text: 'Auto Continue',
 				size: '14',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -783,7 +781,7 @@ module.exports = {
 				text: 'Auto Follow',
 				size: '14',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -803,7 +801,7 @@ module.exports = {
 				text: 'Disarm',
 				size: '14',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -823,7 +821,7 @@ module.exports = {
 				text: 'Arm',
 				size: '14',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -843,7 +841,7 @@ module.exports = {
 				text: 'Autoload Enable',
 				size: '14',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -863,7 +861,7 @@ module.exports = {
 				text: 'Autoload Disable',
 				size: '14',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -883,7 +881,7 @@ module.exports = {
 				text: 'Flagged',
 				size: '14',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -903,7 +901,7 @@ module.exports = {
 				text: 'Unflagged',
 				size: '14',
 				color: '16777215',
-				bgcolor: rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100)
 			},
 			actions: [
 				{
@@ -918,8 +916,8 @@ module.exports = {
 		var i;
 		var c;
 
-		for(i in colors.colorName) {
-			c = colors.colorName[i];
+		for(i in this.colors.colorName) {
+			c = this.colors.colorName[i];
 			presets.push({
 				category: 'Edit',
 				label: 'Cue Colour',
@@ -927,8 +925,8 @@ module.exports = {
 					style: 'text',
 					text: 'Cue Colour ' + c.label,
 					//size: '14',
-					color: textColor(colors.colorRGB[c.id]),
-					bgcolor: colors.colorRGB[c.id]
+					color: textColor(this.colors.colorRGB[c.id]),
+					bgcolor: this.colors.colorRGB[c.id]
 				},
 				actions: [
 					{
