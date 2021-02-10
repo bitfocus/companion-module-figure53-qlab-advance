@@ -260,6 +260,26 @@ module.exports = {
 					id: 'colorId',
 					choices: this.colors.colorName
 				}]
+			},
+			'infiniteLoop': {
+				label: 'Set selected to infinite loop',
+				options: [{
+					type: 'dropdown',
+					label: 'on/off',
+					id: 'choice',
+					choices: [{id: 1, label: "on"}, {id: 0, label: "off"}],
+					default: 1
+				}]
+			},
+			'holdLastFrame': {
+				label: 'Set selected to hold last frame',
+				options: [{
+					type: 'dropdown',
+					label: 'on/off',
+					id: 'choice',
+					choices: [{id: 1, label: "on"}, {id: 0, label: "off"}],
+					default: 1
+				}]
 			}
 		};
 		return(actions);

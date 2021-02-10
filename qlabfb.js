@@ -1288,6 +1288,21 @@ instance.prototype.action = function (action) {
 			};
 			cmd = '/settings/general/minGoTime';
 			break;
+			case 'infiniteLoop':
+				arg = {
+					type: 'i',
+					value: parseInt(opt.choice)
+				};
+				cmd = '/cue/selected/infiniteLoop';
+				break;
+
+			case 'holdLastFrame':
+				arg = {
+					type: 'i',
+					value: parseInt(opt.choice)
+				};
+				cmd = '/cue/selected/holdLastFrame';
+				break;
 		// switch
 	}
 
