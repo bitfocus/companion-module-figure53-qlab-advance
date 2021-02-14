@@ -510,10 +510,9 @@ instance.prototype.init_osc = function () {
 		});
 
 		self.qSocket.on("close", function () {
-			if (!self.hasError) {
+			if (!self.hasError && self.ready) {
 				self.log('error', "TCP Connection to QLab Closed");
 			}
-			self.hasError = true;
 			self.connecting = false;
 			if (self.ready) {
 				self.needWorkspace = true;
@@ -526,7 +525,6 @@ instance.prototype.init_osc = function () {
 				}
 				debug("Connection closed");
 				self.ready = false;
-				self.hasError = true;
 				if (self.disabled) {
 					self.status(self.STATUS_UNKNOWN, "Disabled");
 				} else {
@@ -544,6 +542,7 @@ instance.prototype.init_osc = function () {
 			if (!self.disabled) { // don't restart if instance was disabled
 				self.timer = setTimeout(function () { self.connect(); }, 5000);
 			}
+			self.hasError = true;
 		});
 
 		self.qSocket.on("ready", function () {
