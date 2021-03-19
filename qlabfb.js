@@ -3,7 +3,6 @@
 var instance_skel = require('../../instance_skel');
 
 var OSC = require('osc');
-const { options } = require('marked');
 
 var debug;
 
