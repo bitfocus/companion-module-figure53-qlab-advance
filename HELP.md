@@ -39,6 +39,7 @@ Action | Description
 **Start (cue)** | Start (cue). Doesn't move the playhead. If the specified cue is playing, this command has no effect.
 **Show Mode** | Enable for Show Mode, Disable for Edit Mode.
 **Audition Window** | Show or Hide the Audition Window.
+**Master Override** | Set Master override for Midi, MSC, SysEx, OSC, Timecode, Art-Net On or Off
 **Set Minimum Go** | Sets the time for double-GO protection
 **Increase Prewait** | Increases the prewait time by given time for the selected cue.
 **Decrease Prewait** | Decreases the prewait time by given time for the selected cue.
@@ -92,6 +93,7 @@ Feedback | Description
 **Cue Number Color as Background** | Sets the button background to QLab color of a specified cue
 **Colors for Workspace Mode** | Set the button color for QLab workspace modes: Audition (window on), Show Mode, Edit Mode
 **Colors for GO status** | Set the button color for the GO button state: active or disabled via the double-go timer
+**Colors for Master Override OFF** | Set the button colors if the selected Override is OFF
 
 ## OSC
 This module connects to QLab on port 53000.

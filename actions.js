@@ -1,12 +1,4 @@
 // actions for QLab module
-
-
-var continueMode = [
-	{ label: 'Do Not Continue', id: '0' },
-	{ label: 'Auto Continue',   id: '1' },
-	{ label: 'Auto Follow',     id: '2' }
-];
-
 module.exports = {
 
 	setActions: function () {
@@ -48,16 +40,7 @@ module.exports = {
 					type: 	'dropdown',
 					label: 	'Mode',
 					id:		'onOff',
-					choices: [{
-						id: '1',
-						label: 'On'
-					}, {
-						id: '0',
-						label: 'Off',
-					}, {
-						id: '2',
-						label: 'Toggle'
-					}]
+					choices: this.choices.TOGGLE
 				}]
 			},
 			'auditMode': {
@@ -66,16 +49,23 @@ module.exports = {
 					type: 	'dropdown',
 					label: 	'Mode',
 					id:		'onOff',
-					choices: [{
-						id: '1',
-						label: 'On'
-					}, {
-						id: '0',
-						label: 'Off',
-					}, {
-						id: '2',
-						label: 'Toggle'
-					}]
+					choices: this.choices.TOGGLE
+				}]
+			},
+			'overrides': {
+				label: 'Master Override',
+				options: [
+				{
+					type:	'dropdown',
+					label:	'Override',
+					id:		'which',
+					choices: this.choices.OVERRIDE
+				},
+				{
+					type:	'dropdown',
+					label:	'Mode',
+					id:		'onOff',
+					choices: this.choices.TOGGLE
 				}]
 			},
 			'minGo': {
@@ -195,7 +185,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Continue Mode',
 					id: 'contId',
-					choices: continueMode
+					choices: this.choices.CONTINUE_MODE
 				}]
 			},
 			'arm': {
@@ -204,16 +194,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Arm',
 					id: 'armId',
-					choices: [{
-						id: '0',
-						label: 'Disable'
-					}, {
-						id: '1',
-						label: 'Enable'
-					}, {
-						id: '2',
-						label: 'Toggle'
-					}]
+					choices: this.choices.TOGGLE
 				}]
 			},
 			'autoload': {
@@ -222,16 +203,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Autoload',
 					id: 'autoId',
-					choices: [{
-						id: '0',
-						label: 'Disable'
-					}, {
-						id: '1',
-						label: 'Enable'
-					}, {
-						id: '2',
-						label: 'Toggle'
-					}]
+					choices: this.choices.TOGGLE
 				}]
 			},
 			'flagged': {
@@ -240,16 +212,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Flagged',
 					id: 'flagId',
-					choices: [{
-						id: '0',
-						label: 'Disable'
-					}, {
-						id: '1',
-						label: 'Enable'
-					}, {
-						id: '2',
-						label: 'Toggle'
-					}]
+					choices: this.choices.TOGGLE
 				}]
 			},
 			'cueColor': {
@@ -267,8 +230,8 @@ module.exports = {
 					type: 'dropdown',
 					label: 'on/off',
 					id: 'choice',
-					choices: [{id: 1, label: "on"}, {id: 0, label: "off"}],
-					default: 1
+					default: 1,
+					choices: this.choices.TOGGLE
 				}]
 			},
 			'holdLastFrame': {
@@ -277,8 +240,8 @@ module.exports = {
 					type: 'dropdown',
 					label: 'on/off',
 					id: 'choice',
-					choices: [{id: 1, label: "on"}, {id: 0, label: "off"}],
-					default: 1
+					default: 1,
+					choices: this.choices.TOGGLE
 				}]
 			}
 		};
