@@ -109,6 +109,37 @@ module.exports = {
 					return ret;
 				}.bind(this)
 			},
+			override: {
+				label: 'Color for Master Override OFF',
+				description: 'Set Button colors when Override is OFF',
+				options: [{
+					type: 'dropdown',
+					label: 'Override',
+					id: 'which',
+					choices: this.choices.OVERRIDE
+				},
+				{
+					type: 'colorpicker',
+					label: 'Foreground color',
+					id: 'fg',
+					default: '16777215'
+				},
+				{
+					type: 'colorpicker',
+					label: 'Background color',
+					id: 'bg',
+					default: this.rgb(102, 0, 0)
+				}],
+				callback: function(feedback, bank) {
+					var ret = {};
+					var options = feedback.options;
+
+					if (!this.overrides[options.which]) {
+						ret = { color: options.fg, bgcolor: options.bg };
+					}
+					return ret;
+				}.bind(this)
+			},
 		};
 		return(feedbacks);
 	}

@@ -21,6 +21,7 @@ function instance(system, id, config) {
 	self.pollCount = 0;
 
 	self.colors = require('./colors');
+	self.choices = require('./choices');
 	self.Cue = require('./cues');
 	self.Presets = require('./presets');
 	self.Actions = require('./actions');
@@ -107,7 +108,8 @@ instance.prototype.qCueRequest = [
 	{
 		type: 's',
 		value: '["number","uniqueID","listName","type","isPaused","duration","actionElapsed","parent","flagged","notes",' +
-			'"autoLoad","colorName","isRunning","isLoaded","armed","isBroken","percentActionElapsed","cartPosition"]'
+			'"autoLoad","colorName","isRunning","isLoaded","armed","isBroken","percentActionElapsed","cartPosition",' +
+			'"infiniteLoop","holdLastFrame"]'
 	}
 ];
 
@@ -156,6 +158,7 @@ instance.prototype.resetVars = function (doUpdate) {
 	self.cueOrder = [];
 	self.cueList = {};
 	self.requestedCues = {};
+	self.overrides = {};
 	self.lastRunID = '-' + self.lastRunID;
 	self.showMode = false;
 	self.audition = false;
@@ -396,6 +399,9 @@ instance.prototype.prime_vars = function (ws) {
 		self.sendOSC("/auditionWindow",[], true);
 		self.sendOSC("/showMode",[]);
 		self.sendOSC("/settings/general/minGoTime");
+		for (var o in self.choices.OVERRIDE) {
+			self.sendOSC("/overrides/" + self.choices.OVERRIDE[o].id, [], true);
+		}
 		if (self.timer !== undefined) {
 			clearTimeout(self.timer);
 			self.timer = undefined;
@@ -694,7 +700,9 @@ instance.prototype.updatePlaying = function () {
 		if (q.isRunning || q.isPaused) {
 			if ((''==cl && 'cue list' != q.qType) || (self.cueList[cl] && self.cueList[cl].includes(cue))) {
 				runningCues.push([cue, q.startedAt]);
-				hasGroup = hasGroup || (q.qType == "group");
+				// if group does not have a duration, ignore
+				// it is probably a playlist, not simultaneous playback
+				hasGroup = hasGroup || (q.qType == "group" && q.duration > 0);
 				hasDuration = hasDuration || q.duration > 0;
 			}
 		}
@@ -822,6 +830,10 @@ instance.prototype.readUpdate = function (message) {
 	} else if (ma.match(/\/settings\/general$/)) {
 		// ug. 8 more bytes and they could have sent the 'new' value :(
 		self.sendOSC("/settings/general/minGoTime");
+	} else if (ma.match(/\/settings\/overrides$/)) {
+		for (var o in self.choices.OVERRIDE) {
+			self.sendOSC("/overrides/" + self.choices.OVERRIDE[o].id, [], true);
+		}
 	}
 	// self.debug("=====> OSC message: ",ma, message.args);
 };
@@ -954,10 +966,14 @@ instance.prototype.readReply = function (message) {
 		self.goDisabled = (goLeft > 0);
 		self.goAfter = Date.now() + goLeft;
 		self.checkFeedbacks('min_go');
+	} else if (ma.match(/^\/reply\/overrides\//)) {
+		var o = ma.split('/')[3];
+		self.overrides[o] = j.data;
+		self.checkFeedbacks('override');
 	}
-	// else
-	// 	self.debug("=====> OSC message: ",ma, message.args);
-	// }
+	else {
+		self.debug("=====> OSC message: ",ma, message.args);
+	}
 };
 
 // Return config fields for web config
@@ -1078,6 +1094,12 @@ instance.prototype.action = function (action) {
 	var nc = self.wsCues[self.nextCue];
 	var optTime;
 	var typeTime;
+
+	// internal function for action (not anonymous)
+	// self is properly scoped to next outer closure
+	function setToggle(oldVal, opt) {
+		return '2' == opt ? (1-(oldVal ? 1 : 0)) : parseInt(opt);
+	}
 
 	// if this is a +/- time action, preformat seconds arg
 	if (opt != undefined && opt.time != undefined) {
@@ -1238,7 +1260,7 @@ instance.prototype.action = function (action) {
 		case 'arm':
 			arg = {
 				type: 'i',
-				value: 2==parseInt(opt.armId) ? 1-nc.isArmed : parseInt(opt.armId)
+				value: setToggle(nc.isArmed, opt.armId)
 			};
 			cmd = '/cue/selected/armed';
 			break;
@@ -1246,7 +1268,7 @@ instance.prototype.action = function (action) {
 		case 'autoload':
 			arg = {
 				type: 'i',
-				value: 2==parseInt(opt.autoId) ? 1-nc.autoLoad : parseInt(opt.autoId)
+				value: setToggle(nc.autoLoad, opt.autoId)
 			};
 			cmd = '/cue/selected/autoLoad';
 			break;
@@ -1254,7 +1276,7 @@ instance.prototype.action = function (action) {
 		case 'flagged':
 			arg = {
 				type: 'i',
-				value: 2==parseInt(opt.flagId) ? 1-nc.isFlagged : parseInt(opt.flagId)
+				value: setToggle(nc.isFlagged, opt.flagId)
 			};
 			cmd = '/cue/selected/flagged';
 			break;
@@ -1269,14 +1291,14 @@ instance.prototype.action = function (action) {
 		case 'showMode':
 			arg = {
 				type: 'i',
-				value: 2==parseInt(opt.onOff) ? 1-self.showMode : parseInt(opt.onOff)
+				value: setToggle(self.showMode,opt.onOff)
 			};
 			cmd = '/showMode';
 			break;
 		case 'auditMode':
 			arg = {
 				type: 'i',
-				value: 2==parseInt(opt.onOff) ? 1-self.auditMode : parseInt(opt.onOff)
+				value: setToggle(self.auditMode,opt.onOff)
 			};
 			cmd = '/auditionWindow';
 			break;
@@ -1287,21 +1309,29 @@ instance.prototype.action = function (action) {
 			};
 			cmd = '/settings/general/minGoTime';
 			break;
-			case 'infiniteLoop':
-				arg = {
-					type: 'i',
-					value: parseInt(opt.choice)
-				};
-				cmd = '/cue/selected/infiniteLoop';
-				break;
+		case 'infiniteLoop':
+			arg = {
+				type: 'i',
+				value: setToggle(nc.infiniteLoop, opt.choice)
+			};
+			cmd = '/cue/selected/infiniteLoop';
+			break;
 
-			case 'holdLastFrame':
-				arg = {
-					type: 'i',
-					value: parseInt(opt.choice)
-				};
-				cmd = '/cue/selected/holdLastFrame';
-				break;
+		case 'holdLastFrame':
+			arg = {
+				type: 'i',
+				value: setToggle(nc.holdLastFrame,opt.choice)
+			};
+			cmd = '/cue/selected/holdLastFrame';
+			break;
+
+		case 'overrides':
+			arg = {
+				type: 'i',
+				value: setToggle(self.overrides[opt.which], opt.onOff)
+			}
+			cmd = '/overrides/' + opt.which;
+			break;
 		// switch
 	}
 

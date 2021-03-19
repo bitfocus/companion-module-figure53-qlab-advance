@@ -10,6 +10,8 @@ function Cue (j, i) {
 	this.isPaused = false;
 	this.isArmed = false;
 	this.isFlagged = false;
+	this.infiniteLoop = false;
+	this.holdLastFrame = false;
 	this.autoLoad = false;
 	this.duration = 0;
 	this.pctElapsed = 0;
@@ -41,6 +43,8 @@ function JSONtoCue(newCue, j, i) {
 	newCue.isFlagged = j.flagged;
 	newCue.isArmed = j.armed;
 	newCue.autoLoad = j.autoLoad;
+	newCue.infiniteLoop = j.infiniteLoop;
+	newCue.holdLastFrame = j.holdLastFrame;
 	newCue.duration = j.duration;
 	newCue.qParent = j.parent;
 	newCue.pctElapsed = j.percentActionElapsed;
