@@ -701,7 +701,9 @@ instance.prototype.updatePlaying = function () {
 		if (q.isRunning || q.isPaused) {
 			if ((''==cl && 'cue list' != q.qType) || (self.cueList[cl] && self.cueList[cl].includes(cue))) {
 				runningCues.push([cue, q.startedAt]);
-				hasGroup = hasGroup || (q.qType == "group");
+				// if group does not have a duration, ignore
+				// it is probably a playlist, not simultaneous playback
+				hasGroup = hasGroup || (q.qType == "group" && q.duration > 0);
 				hasDuration = hasDuration || q.duration > 0;
 			}
 		}
