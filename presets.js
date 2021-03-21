@@ -1,5 +1,3 @@
-var icons = require('../../resources/icons.js');
-
 // determine text color for a background color
 textColor = function(pbin){
 
@@ -32,7 +30,7 @@ module.exports = {
 			bank: {
 				style: 'png',
 				text: '',
-				png64: icons.ICON_PAUSE_INACTIVE,
+				png64: this.ICON_PAUSE_INACTIVE,
 				pngalignment: 'center:center',
 				size: '18',
 				color: this.rgb(255, 255, 255),
@@ -51,7 +49,7 @@ module.exports = {
 			bank: {
 				style: 'png',
 				text: '',
-				png64: icons.ICON_PLAY_INACTIVE,
+				png64: this.ICON_PLAY_INACTIVE,
 				pngalignment: 'center:center',
 				size: '18',
 				color: this.rgb(255,255,255),
@@ -147,7 +145,7 @@ module.exports = {
 			bank: {
 				style: 'png',
 				text: '',
-				png64: icons.ICON_STOP_INACTIVE,
+				png64: this.ICON_STOP_INACTIVE,
 				pngalignment: 'center:center',
 				size: '18',
 				color: this.rgb(255,255,255),
@@ -200,7 +198,7 @@ module.exports = {
 			bank: {
 				style: 'png',
 				text: '',
-				png64: icons.ICON_REW_INACTIVE,
+				png64: this.ICON_REW_INACTIVE,
 				pngalignment: 'center:center',
 				size: '18',
 				color: this.rgb(255,255,255),
@@ -219,7 +217,7 @@ module.exports = {
 			bank: {
 				style: 'png',
 				text: '',
-				png64: icons.ICON_FWD_INACTIVE,
+				png64: this.ICON_FWD_INACTIVE,
 				pngalignment: 'center:center',
 				size: '18',
 				color: this.rgb(255,255,255),
