@@ -156,6 +156,7 @@ instance.prototype.resetVars = function (doUpdate) {
 	self.wsCues = {};
 	self.cueColors = {};
 	self.cueOrder = [];
+	self.cueByNum = {};
 	self.cueList = {};
 	self.requestedCues = {};
 	self.overrides = {};
@@ -206,6 +207,7 @@ instance.prototype.updateQVars = function (q) {
 		if (oqNum != '' && oqNum != q.qNumber) {
 			self.setVariable('q_' + oqNum + '_name');
 			self.cueColors[oqNum] = 0;
+			delete self.cueByNum[oqNum];
 			oqName = '';
 		}
 	}
@@ -213,6 +215,7 @@ instance.prototype.updateQVars = function (q) {
 	if (qNum != '' && q.qName != '' && (q.qName != oqName || qColor != oqColor)) {
 		self.setVariable('q_' + qNum + '_name', q.qName);
 		self.cueColors[qNum] = q.qColor;
+		self.cueByNum[qNum] = q.uniqueID;
 		self.checkFeedbacks('q_bg');
 	}
 };
@@ -632,6 +635,7 @@ instance.prototype.updateCues = function (jCue, stat, ql) {
 			i += 1;
 		}
 		self.checkFeedbacks('q_bg');
+		self.checkFeedbacks('q_run');
 		if (dupIds) {
 			self.status(self.STATUS_WARNING, "Multiple cues\nwith the same cue_id");
 		}
@@ -656,6 +660,7 @@ instance.prototype.updateCues = function (jCue, stat, ql) {
 					}
 				}
 			}
+			self.checkFeedbacks('q_run');
 			self.updatePlaying();
 			if ('' == self.cl || self.cueList[self.cl] && self.cueList[self.cl].includes(q.uniqueID)) {
 				if (q.uniqueID == self.nextCue) {

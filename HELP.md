@@ -94,6 +94,7 @@ Feedback | Description
 **Colors for Workspace Mode** | Set the button color for QLab workspace modes: Audition (window on), Show Mode, Edit Mode
 **Colors for GO status** | Set the button color for the GO button state: active or disabled via the double-go timer
 **Colors for Master Override OFF** | Set the button colors if the selected Override is OFF
+**Colors when Cue # is Running** | Set the button colors when a specific cue is running
 
 ## OSC
 This module connects to QLab on port 53000.
