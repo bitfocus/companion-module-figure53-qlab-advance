@@ -140,8 +140,8 @@ module.exports = {
 				}.bind(this)
 			},
 			override: {
-				label: 'Color for Master Override OFF',
-				description: 'Set Button colors when Override is OFF',
+				label: 'Color for Master Override',
+				description: 'Set Button colors when Override is Active',
 				options: [{
 					type: 'dropdown',
 					label: 'Override',
