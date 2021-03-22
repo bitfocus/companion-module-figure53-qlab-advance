@@ -31,12 +31,42 @@ module.exports = {
 					return { bgcolor: this.cueColors[ (feedback.options.cue).replace(/[^\w\.]/gi,'_') ] };
 				}.bind(this)
 			},
+			q_run: {
+				label: 'Color when Cue is running',
+				description: 'Set button colors if the specified cue is running',
+				options: [{
+					type: 'textinput',
+					label: 'Cue Number',
+					id: 'cue',
+					default: ""
+				},
+				{
+					type: 'colorpicker',
+					label: 'Text color',
+					id: 'fg',
+					default: '16777215'
+				},
+				{
+					type: 'colorpicker',
+					label: 'Background color',
+					id: 'bg',
+					default: this.rgb(102,0,0)
+				}],
+				callback: function(feedback, bank) {
+					var opt = feedback.options;
+					var rqID = this.cueByNum[opt.cue.replace(/[^\w\.]/gi,'_')];
+					var rq = (rqID && this.wsCues[rqID]);
+					if (rq && rq.isRunning) {
+						return { color: opt.fg, bgcolor: opt.bg };
+					}
+				}.bind(this)
+			},
 			min_go: {
 				label: 'Color for Go button Status',
 				description: 'Set Button colors for Go button Status',
 				options: [{
 					type: 'colorpicker',
-					label: 'Foreground color',
+					label: 'Text color',
 					id: 'fg',
 					default: '16777215'
 				},
@@ -74,7 +104,7 @@ module.exports = {
 				description: 'Set Button colors for Show/Edit/Audition Mode',
 				options: [{
 					type: 'colorpicker',
-					label: 'Foreground color',
+					label: 'Text color',
 					id: 'fg',
 					default: '16777215'
 				},
@@ -110,8 +140,8 @@ module.exports = {
 				}.bind(this)
 			},
 			override: {
-				label: 'Color for Master Override OFF',
-				description: 'Set Button colors when Override is OFF',
+				label: 'Color for Master Override',
+				description: 'Set Button colors when Override is Active',
 				options: [{
 					type: 'dropdown',
 					label: 'Override',
