@@ -67,8 +67,8 @@ module.exports = {
 					]
 				}],
 				style: {
-					color: self.rgb(255,255,255),
-					bgcolor: self.rgb(0,102,0),
+					color: this.rgb(255,255,255),
+					bgcolor: this.rgb(0,102,0),
 				},
 				callback: function(feedback, bank) {
 					var ret = false;
