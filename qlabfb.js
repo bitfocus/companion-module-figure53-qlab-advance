@@ -80,7 +80,13 @@ instance.GetUpgradeScripts = function() {
 				}
 			}
 			return changed;
-		}
+		},
+		instance_skel.CreateConvertToBooleanFeedbackUpgradeScript({
+			'q_run': true,
+			'min_go': true,
+			'ws_mode': true,
+			'override': true
+		})
 	]
 }
 
@@ -247,7 +253,7 @@ instance.prototype.updateRunning = function () {
 		eft = eft + emm + ":";
 	}
 	eft = eft + ess;
-	
+
 	var tLeft = rc.duration * (1 - rc.pctElapsed);
 	if (tLeft > 0) {
 		tLeft += tenths;

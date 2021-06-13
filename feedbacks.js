@@ -32,51 +32,31 @@ module.exports = {
 				}.bind(this)
 			},
 			q_run: {
-				label: 'Color when Cue is running',
-				description: 'Set button colors if the specified cue is running',
-				options: [{
+				type: 'boolean',
+				label: 'Indicate Cue is running',
+				description: 'Indicate on button when the specified cue is running',
+				options: [ {
 					type: 'textinput',
 					label: 'Cue Number',
 					id: 'cue',
 					default: ""
+				} ],
+				style: {
+					bgcolor: this.rgb(102,0,0),
+					color: this.rgb(255,255,255),
 				},
-				{
-					type: 'colorpicker',
-					label: 'Text color',
-					id: 'fg',
-					default: '16777215'
-				},
-				{
-					type: 'colorpicker',
-					label: 'Background color',
-					id: 'bg',
-					default: this.rgb(102,0,0)
-				}],
 				callback: function(feedback, bank) {
 					var opt = feedback.options;
 					var rqID = this.cueByNum[opt.cue.replace(/[^\w\.]/gi,'_')];
 					var rq = (rqID && this.wsCues[rqID]);
-					if (rq && rq.isRunning) {
-						return { color: opt.fg, bgcolor: opt.bg };
-					}
+					return (rq && rq.isRunning);
 				}.bind(this)
 			},
 			min_go: {
-				label: 'Color for Go button Status',
-				description: 'Set Button colors for Go button Status',
-				options: [{
-					type: 'colorpicker',
-					label: 'Text color',
-					id: 'fg',
-					default: '16777215'
-				},
-				{
-					type: 'colorpicker',
-					label: 'Background color',
-					id: 'bg',
-					default: this.rgb(0,102,0)
-				},
-				{
+				type: 'boolean',
+				label: 'Indicate Go button Status',
+				description: 'Indicate on Button the QLab Go button Status',
+				options: [ {
 					type: 'dropdown',
 					label: 'Status?',
 					id: 'goMode',
@@ -85,36 +65,28 @@ module.exports = {
 						{ id: '0', label: 'Disabled' },
 						{ id: '1', label: 'Enabled' }
 					]
-
 				}],
+				style: {
+					color: self.rgb(255,255,255),
+					bgcolor: self.rgb(0,102,0),
+				},
 				callback: function(feedback, bank) {
-					var ret = {};
+					var ret = false;
 					var options = feedback.options;
 
 					if (this.goDisabled && (options.goMode == '0')) {
-						ret = { color: options.fg, bgcolor: options.bg };
+						ret = true;
 					} else if ((options.goMode == '1')) {
-						ret = { color: options.fg, bgcolor: options.bg };
+						ret = true;
 					}
 					return ret;
 				}.bind(this)
 			},
 			ws_mode: {
-				label: 'Color for Workspace Mode',
-				description: 'Set Button colors for Show/Edit/Audition Mode',
+				type: 'boolean',
+				label: 'Indicate Workspace Mode',
+				description: 'Indicate on Button QLab Show/Edit/Audition Mode',
 				options: [{
-					type: 'colorpicker',
-					label: 'Text color',
-					id: 'fg',
-					default: '16777215'
-				},
-				{
-					type: 'colorpicker',
-					label: 'Background color',
-					id: 'bg',
-					default: this.rgb(0, 128, 0)
-				},
-				{
 					type: 'dropdown',
 					label: 'Which Mode?',
 					id: 'showMode',
@@ -125,21 +97,26 @@ module.exports = {
 						{ id: '2', label: 'Audition'}
 					]
 				}],
+				style: {
+					color: this.rgb(255,255,255),
+					bgcolor: this.rgb(0, 128, 0)
+				},
 				callback: function(feedback, bank) {
-					var ret = {};
+					var ret = false;
 					var options = feedback.options;
 
 					if (this.auditMode && (options.showMode == '2')) {
-						ret = { color: options.fg, bgcolor: options.bg };
+						ret = true;
 					} else if (this.showMode && (options.showMode == '1')) {
-						ret = { color: options.fg, bgcolor: options.bg };
+						ret = true;
 					} else if (!this.showMode && (options.showMode == '0')) {
-						ret = { color: options.fg, bgcolor: options.bg };
+						ret = true;
 					}
 					return ret;
 				}.bind(this)
 			},
 			override: {
+				type: 'boolean',
 				label: 'Color for Master Override',
 				description: 'Set Button colors when Override is Active',
 				options: [{
@@ -147,25 +124,17 @@ module.exports = {
 					label: 'Override',
 					id: 'which',
 					choices: this.choices.OVERRIDE
-				},
-				{
-					type: 'colorpicker',
-					label: 'Foreground color',
-					id: 'fg',
-					default: '16777215'
-				},
-				{
-					type: 'colorpicker',
-					label: 'Background color',
-					id: 'bg',
-					default: this.rgb(102, 0, 0)
 				}],
+				style: {
+					color: this.rgb(255,255,255),
+					bgcolor: this.rgb(102, 0, 0)
+				},
 				callback: function(feedback, bank) {
-					var ret = {};
+					var ret = false;
 					var options = feedback.options;
 
 					if (!this.overrides[options.which]) {
-						ret = { color: options.fg, bgcolor: options.bg };
+						ret = true;
 					}
 					return ret;
 				}.bind(this)

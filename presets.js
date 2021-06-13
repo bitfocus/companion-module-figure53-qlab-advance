@@ -64,25 +64,31 @@ module.exports = {
 				{
 					type: 'min_go',
 					options: {
-						fg: 16777215,
-						bg: this.rgb(0,102,0),
 						goMode: 1
+					},
+					style: {
+						color: 16777215,
+						bgcolor: this.rgb(0,102,0)
 					}
 				},
 				{
 					type: 'ws_mode',
 					options: {
-						fg: 16777215,
-						bg: this.rgb(0,102,153),
 						showMode: 2
+					},
+					style: {
+						color: 16777215,
+						bgcolor: this.rgb(0,102,153),
 					}
 				},
 				{
 					type: 'min_go',
 					options: {
-						fg: 16777215,
-						bg: this.rgb(153,0,0),
 						goMode: 0
+					},
+					style: {
+						color: 16777215,
+						bgcolor: this.rgb(153,0,0),
 					}
 				}
 			]
