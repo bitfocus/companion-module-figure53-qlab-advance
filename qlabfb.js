@@ -80,7 +80,13 @@ instance.GetUpgradeScripts = function() {
 				}
 			}
 			return changed;
-		}
+		},
+		instance_skel.CreateConvertToBooleanFeedbackUpgradeScript({
+			'q_run': true,
+			'min_go': true,
+			'ws_mode': true,
+			'override': true
+		})
 	]
 }
 
@@ -230,10 +236,29 @@ instance.prototype.updateRunning = function () {
 	var tenths = (self.config.useTenths ? 0 : 1);
 	var rc = self.runningCue;
 
+	var tElapsed = rc.duration * rc.pctElapsed;
+
+	var eh = Math.floor(tElapsed / 3600);
+	var ehh = ('00' + eh).slice(-2);
+	var em = Math.floor(tElapsed / 60) % 60;
+	var emm = ('00' + em).slice(-2);
+	var es = Math.floor(tElapsed % 60);
+	var ess = ('00' + es).slice(-2);
+	var eft = '';
+
+	if (ehh > 0) {
+		eft = ehh + ":";
+	}
+	if (emm > 0) {
+		eft = eft + emm + ":";
+	}
+	eft = eft + ess;
+
 	var tLeft = rc.duration * (1 - rc.pctElapsed);
 	if (tLeft > 0) {
 		tLeft += tenths;
 	}
+
 	var h = Math.floor(tLeft / 3600);
 	var hh = ('00' + h).slice(-2);
 	var m = Math.floor(tLeft / 60) % 60;
@@ -271,6 +296,11 @@ instance.prototype.updateRunning = function () {
 	self.setVariable('r_mm', mm);
 	self.setVariable('r_ss', ss);
 	self.setVariable('r_left',ft);
+	self.setVariable('e_hhmmss', ehh + ":" + emm + ":" + ess);
+	self.setVariable('e_hh', ehh);
+	self.setVariable('e_mm', emm);
+	self.setVariable('e_ss', ess);
+	self.setVariable('e_time', eft);
 	self.checkFeedbacks('run_bg');
 };
 

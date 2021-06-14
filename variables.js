@@ -66,6 +66,26 @@ module.exports = {
 			{
 				label: 'Running Cue Time left, Second',
 				name:  'r_ss'
+			},
+			{
+				label: 'Running Cue Elapsed Time, variable size',
+				name:  'e_time'
+			},
+			{
+				label: 'Running Cue Elapsed Time, HH:MM:SS',
+				name:  'e_hhmmss'
+			},
+			{
+				label: 'Running Cue Elapsed Time, Hour',
+				name:  'e_hh'
+			},
+			{
+				label: 'Running Cue Elapsed Time, Minute',
+				name:  'e_mm'
+			},
+			{
+				label: 'Running Cue Elapsed Time, Second',
+				name:  'e_ss'
 			}
 		];
 		return(variables);
