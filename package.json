@@ -21,5 +21,13 @@
 	"contributors": [
 		"Per Røine <per.roine@gmail.com>"
 	],
-	"license": "MIT"
+	"license": "MIT",
+	"homepage": "https://github.com/bitfocus/companion-module-figure53-qlab-advance#readme",
+	"bugs": {
+		"url": "https://github.com/bitfocus/companion-module-figure53-qlab-advance/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/bitfocus/companion-module-figure53-qlab-advance.git"
+	}
 }
