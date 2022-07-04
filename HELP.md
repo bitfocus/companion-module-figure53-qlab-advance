@@ -2,9 +2,10 @@
 
 What does QLab do?
 QLab makes it simple to create intricate designs of light, sound, and video, which you play back during a live performance.
-QLab allows you to lock in exactly how you want the light, sound, and video to play during your performance. When you’re done designing, you'll switch to “show mode” and run your show just by pressing “GO”.
+QLab allows you to lock in exactly how you want the light, sound, and video to play during your performance. When you are done designing, switch to “show mode” and run your show just by pressing “GO”.
 
-Go over to [figure 53](https://figure53.com/) and checkout the software.
+The software is available at [QLab.app](qlab.app). You can use QLab for 2 channel audio and 1 screen video without
+needing a license.
 
 This module adds a TCP mode option to the *QLab* module.
 Due to the nature and volume of information feedback and variables are only available in TCP mode.
@@ -28,6 +29,7 @@ Action | Description
 **Go** | Tell the current cue list of the given workspace to GO.
 **Stop** | Stop playback but allow effects to continue rendering. e.g., playback stops, but reverbs decay naturally.
 **Panic** | Tell the workspace to panic. A panic is a brief gradual fade out leading into a hard stop. A double panic will trigger an immediate hard stop.
+**Panic In Time** | Tell the workspace to panic over time specified.
 **Reset** | Reset the workspace. Resetting stops all cues, returns the playhead to the top of the current cue list, and restores any temporary changes made to cues (such as retargeting via a Target cue or adjustments using a "live" OSC method.)
 **Next** | Move the selection down one cue.
 **Previous** | Move the selection up one cue.
@@ -35,10 +37,14 @@ Action | Description
 **Resume** | Un-pause all paused cues in the workspace.
 **Preview** | Preview the selected cue without moving the Playhead.
 **Toggle Pause** | Pause/Unpause selected cue
-**GoTo (cue)** | Move the playhead to (cue). Doesn't start the cue.
-**Start (cue)** | Start (cue). Doesn't move the playhead. If the specified cue is playing, this command has no effect.
+**GoTo (Cue/ID)** | Move the playhead to (Cue/ID). Does not start the cue.
+**Start (Cue/ID)** | Start (Cue/ID). Does not move the playhead. If the specified cue is playing, this command has no effect.
+**Stop (Cue/ID)** | Stops (Cue/ID) if Playing. Does not move the playhead.
+**Panic (Cue/ID)** | Panic (Cue/ID) if Playing. Does not move the playhead.
+**Panic (Cue/ID) In Time** | Panic (Cue/ID) over time specified if Playing. Does not move the playhead.
 **Show Mode** | Enable for Show Mode, Disable for Edit Mode.
 **Audition Window** | Show or Hide the Audition Window.
+**Override Window** | Show or Hide the Override Controls Window.
 **Master Override** | Set Master override for Midi, MSC, SysEx, OSC, Timecode, Art-Net On or Off
 **Set Minimum Go** | Sets the time for double-GO protection
 **Increase Prewait** | Increases the prewait time by given time for the selected cue.
@@ -81,6 +87,7 @@ Variable | Description
 **$(INSTANCENAME:r_ss)** | Seconds left for Running Cue
 **$(INSTANCENAME:r_left)** | Shortest display time left for Running Cue. Shows .1 increments if tenths option set.
 **$(INSTANCENAME:q_{num}_name)** | Name of the QLab cue number {num}. See below for certain restrictions.
+**$(INSTANCENAME:q_{ID}_name)** | Name of the QLab cue ID {ID}. See below for certain restrictions.
 **$(INSTANCENAME:min_go)** | Current value of double-go protection (in seconds)
 
 To use these, replace INSTANCENAME with the name of your module instance.
@@ -91,16 +98,18 @@ Feedback | Description
 **Playhead Cue Color as Background** | Sets the button backgound to QLab color of the current playhead cue
 **Running Cue Color as Background** | Sets the button background to QLab color of the currently running cue
 **Cue Number Color as Background** | Sets the button background to QLab color of a specified cue
-**Colors for Workspace Mode** | Set the button color for QLab workspace modes: Audition (window on), Show Mode, Edit Mode
 **Colors for GO status** | Set the button color for the GO button state: active or disabled via the double-go timer
-**Colors for Master Override** | Set the button colors if the selected Override is Active (Turned off)
-**Colors when Cue # is Running** | Set the button colors when a specific cue is running
+**Indicate Workspace Mode** | Set the button to indicate the QLab workspace mode: Audition (window on), Show Mode, Edit Mode
+**Indicate Override Window On** | Set the button to indicate Override Window is Visible
+**Indicate Master Override** | Set the button to indicate if the selected Override is Active (Turned off)
+**Show Cue # is Running** | Set the button to show when a specific cue is running
+**Show Cue ID is Running** | Set the button to show when a specific cue ID is running
 
 ## OSC
 This module connects to QLab on port 53000.
 
-From Qlab preferences OSC controls tab make sure you have the "Use OSC controls" checkbox ticked.
-![Qlab](images/qlab.jpg?raw=true "Qlab")
+From QLab preferences OSC controls tab make sure you have the "Use OSC controls" checkbox ticked.
+![QLab](images/qlab.jpg?raw=true "QLab")
 
 ### Running cue examples
  QLab can run many cues at the same time while Stream Deck has a limited number of buttons visible at once. So which *one* cue is the most useful to show on a button? This module looks for the most recently run (GO) cue and favors *run all at once* Group cues over other types of cues.
@@ -109,5 +118,8 @@ From Qlab preferences OSC controls tab make sure you have the "Use OSC controls"
 - Now add 2 more screens with more images. Each transition (1 image for each screen) is now placed in a *run all* Group cue for list management. After the 5 group cues are run, QLab will show 20 cues active, 5 slides for each screen plus the 5 group cues. The last 'GO' **Group** cue will be the 'Running' cue.
 - If the last 'GO' Group cue is *enter then run each*, the most recent 'GO' cue in the group will be the 'Running' cue.
 
-### Cue Numbers
-QLab allows almost any characters in a Cue Number. Some characters don't play well with OSC or Companion. Using '$', '(', or ')' in your Cue Number won't work if you want to use the q_{cue}_name variable or the 'q_bg' feedback.
+### Cue Numbers / IDs
+QLab allows almost any characters in a Cue Number. Some characters don't play well with OSC or Companion. Using '$', '(', or ')' in your Cue Number won't work if you want to use the `q_{num}_name` variable or the `q_bg` feedback.\
+Transport actions, variables, and feedbacks have an ID version that uses the QLab Unique Cue ID as the target instead of the Cue Number.\
+The examples and descriptions use {num} as a place marker for the Cue or ID to use.\
+Do not enter the braces {}: To refer to Cue #10 you would enter `q_10_name`.

@@ -155,6 +155,7 @@ instance.prototype.resetVars = function (doUpdate) {
 				self.setVariable('q_' + qNum + '_name');
 			}
 			self.checkFeedbacks('q_bg');
+			self.checkFeedbacks('qid_bg');
 		});
 	}
 
@@ -225,8 +226,9 @@ instance.prototype.updateQVars = function (q) {
 	if (qNum != '' && q.qName != '' && (q.qName != oqName || qColor != oqColor)) {
 		self.setVariable('q_' + qNum + '_name', q.qName);
 		self.cueColors[qNum] = q.qColor;
-		self.cueByNum[qNum] = q.uniqueID;
+		self.cueByNum[qNum] = qID;
 		self.checkFeedbacks('q_bg');
+		self.checkFeedbacks('qid_bg');
 	}
 };
 
@@ -434,6 +436,7 @@ instance.prototype.prime_vars = function (ws) {
 
 		self.sendOSC("/cueLists", []);
 		self.sendOSC("/auditionWindow",[], true);
+		self.sendOSC("/overrideWindow",[], true);
 		self.sendOSC("/showMode",[]);
 		self.sendOSC("/settings/general/minGoTime");
 		for (var o in self.choices.OVERRIDE) {
@@ -456,8 +459,10 @@ instance.prototype.rePulse = function (ws) {
 	var cl = self.cl;
 	var now = Date.now();
 
-	if (0==(self.pollCount % 10)) {
+	if (0==(self.pollCount % (self.config.useTenths ? 10 : 4))) {
 		self.sendOSC("/auditionWindow", [], true);
+		self.sendOSC("/overrideWindow", [], true);
+
 		self.sendOSC("/cue_id" + (cl ? "/" + cl : "") + "/playheadId",[]);
 
 		if (self.qLab3) {
@@ -484,6 +489,8 @@ instance.prototype.rePulse = function (ws) {
 						self.setVariable('q_' + qNum + '_name');
 					}
 					self.checkFeedbacks('q_bg');
+					self.checkFeedbacks('qid_bg');
+
 				}
 				delete self.requestedCues[k];
 			}
@@ -669,7 +676,9 @@ instance.prototype.updateCues = function (jCue, stat, ql) {
 			i += 1;
 		}
 		self.checkFeedbacks('q_bg');
+		self.checkFeedbacks('qid_bg');
 		self.checkFeedbacks('q_run');
+		self.checkFeedbacks('qid_run');
 		if (dupIds) {
 			self.status(self.STATUS_WARNING, "Multiple cues\nwith the same cue_id");
 		}
@@ -695,6 +704,7 @@ instance.prototype.updateCues = function (jCue, stat, ql) {
 				}
 			}
 			self.checkFeedbacks('q_run');
+			self.checkFeedbacks('qid_run');
 			self.updatePlaying();
 			if ('' == self.cl || self.cueList[self.cl] && self.cueList[self.cl].includes(q.uniqueID)) {
 				if (q.uniqueID == self.nextCue) {
@@ -866,6 +876,7 @@ instance.prototype.readUpdate = function (message) {
 	} else if ((mf.length == 4) && (mf[2] == 'workspace')) {
 		self.sendOSC("/showMode",[]);
 		self.sendOSC("/auditionWindow",[], true);
+		self.sendOSC("/overrideWindow", [], true);
 	} else if (ma.match(/\/settings\/general$/)) {
 		// ug. 8 more bytes and they could have sent the 'new' value :(
 		self.sendOSC("/settings/general/minGoTime");
@@ -921,7 +932,7 @@ instance.prototype.readReply = function (message) {
 			self.debug('cleared stray interval');
 			clearInterval(self.pulse);
 		}
-		self.pulse = setInterval(function() { self.rePulse(ws); }, 100);
+		self.pulse = setInterval(function() { self.rePulse(ws); }, self.config.useTenths ? 100 : 250);
 	} else if (ma.match(/version$/)) {
 		if (j.data != undefined) {
 			self.qLab3 = (j.data.match(/^4\./)==null);
@@ -932,7 +943,7 @@ instance.prototype.readReply = function (message) {
 				self.debug('cleared stray interval');
 				clearInterval(self.pulse);
 			}
-			self.pulse = setInterval(function() { self.rePulse(ws); }, 100);
+			self.pulse = setInterval(function() { self.rePulse(ws); }, self.config.useTenths ? 100 : 250);
 		} else {
 			self.needWorkspace = (!self.qLab3);
 		}
@@ -997,6 +1008,11 @@ instance.prototype.readReply = function (message) {
 			self.auditMode = j.data;
 			self.checkFeedbacks('ws_mode');
 		}
+	} else if (ma.match(/overrideWindow$/)) {
+		if (self.overrideWindow != j.data){
+			self.overrideWindow = j.data;
+			self.checkFeedbacks('override_visible');
+		}
 	} else if (ma.match(/minGoTime$/)) {
 		self.minGo = j.data;
 		self.setVariable('min_go', (Math.round(j.data * 100) / 100).toFixed(2));
@@ -1025,7 +1041,7 @@ instance.prototype.config_fields = function () {
 			id: 'info',
 			width: 12,
 			label: 'Information',
-			value: 'Controls Qlab by <a href="https://figure53.com/" target="_new">Figure 53</a>' +
+			value: 'Controls <a href="https://qlab.app" target="_new">QLab</a> by Figure 53.' +
 				'<br>Feedback and variables require TCP<br>which will increase network traffic.'
 		},
 		{
@@ -1055,7 +1071,7 @@ instance.prototype.config_fields = function () {
 		{
 			type: 'textinput',
 			id: 'passcode',
-			label: 'OSC Pascode',
+			label: 'OSC Passcode',
 			width: 12,
 			tooltip: 'The passcode to controll QLab.\nLeave blank if not needed.'
 		},
@@ -1160,6 +1176,14 @@ instance.prototype.action = function (action) {
 			cmd = '/playhead/' + opt.cue;
 			break;
 
+		case 'start_id':
+			cmd = '/cue_id/' + opt.cueId + '/start';
+			break;
+
+		case 'goto_id':
+			cmd = '/playheadId/' + opt.cueId;
+			break;
+
 		case 'go':
 			cmd = '/go';
 			break;
@@ -1184,8 +1208,57 @@ instance.prototype.action = function (action) {
 			cmd = '/cue/selected/stop';
 			break;
 
+		case 'copyCueId':
+			self.actions();
+			self.init_feedbacks();
+			break;
+
+		case 'stop_cue':
+			cmd = '/cue/' + opt.cue + '/stop';
+			break;
+
+		case 'stop_id':
+			cmd = '/cue_id/' + opt.cueId + '/stop';
+			break;
+
 		case 'panic':
 			cmd = '/panic';
+			break;
+
+		case 'panicSelected':
+			cmd = '/cue/selected/panic';
+			break;
+
+		case 'panicInTime':
+			cmd = '/cue/selected/panicInTime';
+			arg = {
+				type: typeTime,
+				value: optTime
+			};
+			break;
+
+		case 'panic_cue':
+			cmd = '/cue/' + opt.cue + '/panic';
+			break;
+
+		case 'panicInTime_cue':
+			cmd = '/cue/' + opt.cue + '/panicInTime';
+			arg = {
+				type: typeTime,
+				value: optTime
+			};
+			break;
+
+		case 'panic_id':
+			cmd = '/cue_id/' + opt.cueId + '/panic';
+			break;
+
+		case 'panicInTime_id':
+			cmd = '/cue_id/' + opt.cueId + '/panicInTime';
+			arg = {
+				type: typeTime,
+				value: optTime
+			};
 			break;
 
 		case 'reset':
@@ -1341,6 +1414,13 @@ instance.prototype.action = function (action) {
 			};
 			cmd = '/auditionWindow';
 			break;
+		case 'overrideWindow':
+			arg = {
+				type: 'i',
+				value: setToggle(self.overrideWindow,opt.onOff)
+			};
+			cmd = '/overrideWindow';
+			break;
 		case 'minGo':
 			arg = {
 				type: typeTime,
@@ -1386,11 +1466,11 @@ instance.prototype.action = function (action) {
 		debug("Not connected to", self.config.host);
 	} else if (cmd !== undefined) {
 		debug('sending', cmd, arg, "to", self.config.host);
-		// everything except 'auditionWindow' works on a specific workspace
-		self.sendOSC(cmd, arg, ('/auditionWindow' == cmd));
+		// everything except 'auditionWindow' and 'overrideWindow' works on a specific workspace
+		self.sendOSC(cmd, arg, (['/auditionWindow','/overrideWindow'].includes(cmd)));
 	}
-	// QLab does not send audition window updates
-	if (self.useTCP && cmd == '/auditionWindow') {
+	// QLab does not send window updates so ask for status
+	if (self.useTCP && ['/auditionWindow','/overrideWindow'].includes(cmd)) {
 		self.sendOSC(cmd, [], true);
 		self.sendOSC("/cue/playhead/valuesForKeys",self.qCueRequest);
 	}

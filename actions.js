@@ -12,27 +12,124 @@ module.exports = {
 			'resume':           { label: 'Resume' },
 			'togglePause':		{ label: 'Toggle Pause'},
 			'stopSelected':     { label: 'Stop selected' },
-			'panic':            { label: 'Panic' },
+			'panic':            { label: 'Panic (ALL)' },
+			'panicInTime': {
+				label: 'Panic (ALL) In Time',
+				options: [{
+					type: 'textinput',
+					label: 'Time in Seconds',
+					id: 'time',
+					regex: this.REGEX_FLOAT,
+					default: 0
+				}],
+			},
 			'reset':            { label: 'Reset' },
 			'load':             { label: 'Load Cue' },
 			'preview':          { label: 'Preview'},
-			'start': {
-				label: 'Start (cue)',
-				options: [{
-					type: 'textinput',
-					label: 'Cue',
-					id: 'cue',
-					default: "1"
-				}]
-			},
 			'goto': {
 				label: 'Go To (cue)',
 				options: [{
 					type: 'textinput',
 					label: 'Cue',
 					id: 'cue',
-					default: "1"
+					default: '1',
+					default: this.nextCue.qNumber
 				}]
+			},
+			'start': {
+				label: 'Start (cue)',
+				options: [{
+					type: 'textinput',
+					label: 'Cue',
+					id: 'cue',
+					default: '1'
+				}]
+			},
+			'stop_cue': {
+				label: 'Stop (cue)',
+				options: [{
+					type: 'textinput',
+					label: 'Cue',
+					id: 'cue',
+					default: '1',
+				}, ],
+			},
+			'panic_cue': {
+				label: 'Panic (Cue)',
+				options: [{
+					type: 'textinput',
+					label: 'Cue',
+					id: 'cue',
+				}, ],
+			},
+			'panicInTime_cue': {
+				label: 'Panic (Cue) In Time',
+				options: [{
+						type: 'textinput',
+						label: 'Cue',
+						id: 'cue',
+					},
+					{
+						type: 'textinput',
+						label: 'Time in Seconds',
+						id: 'time',
+						regex: this.REGEX_FLOAT,
+						default: 0
+					},
+				],
+			},
+			'goto_id': {
+				label: 'Goto (Cue ID)',
+				options: [{
+					type: 'textinput',
+					label: 'Cue ID',
+					id: 'cueId',
+					default: this.nextCue
+				}, ],
+			},
+			'start_id': {
+				label: 'Start (Cue ID)',
+				options: [{
+					type: 'textinput',
+					label: 'Cue ID',
+					id: 'cueId',
+					default: this.nextCue
+				}, ],
+			},
+			'stop_id': {
+				label: 'Stop (Cue ID)',
+				options: [{
+					type: 'textinput',
+					label: 'Cue ID',
+					id: 'cueId',
+					default: this.nextCue
+				}, ],
+			},
+			'panic_id': {
+				label: 'Panic (Cue ID)',
+				options: [{
+					type: 'textinput',
+					label: 'Cue ID',
+					id: 'cueId',
+					default: this.nextCue
+				}, ],
+			},
+			'panicInTime_id': {
+				label: 'Panic (Cue ID) In Time',
+				options: [{
+						type: 'textinput',
+						label: 'Cue ID',
+						id: 'cueId',
+						default: this.nextCue
+					},
+					{
+						type: 'textinput',
+						label: 'Time in Seconds',
+						id: 'time',
+						regex: this.REGEX_FLOAT,
+						default: 0
+					},
+				],
 			},
 			'showMode': {
 				label: 'Show mode',
@@ -54,6 +151,16 @@ module.exports = {
 					choices: this.choices.TOGGLE
 				}]
 			},
+			'overrideWindow': {
+				label: 'Override Controls Window',
+				options: [{
+					type: 	'dropdown',
+					label: 	'Mode',
+					id:		'onOff',
+					default: 1,
+					choices: this.choices.TOGGLE
+				}]
+			},
 			'overrides': {
 				label: 'Master Override',
 				options: [
@@ -61,6 +168,7 @@ module.exports = {
 					type:	'dropdown',
 					label:	'Override',
 					id:		'which',
+					default: this.choices.OVERRIDE[0].id,
 					choices: this.choices.OVERRIDE
 				},
 				{
@@ -79,7 +187,7 @@ module.exports = {
 					label: 'Time in Seconds',
 					id: 'time',
 					regex: this.REGEX_FLOAT,
-					default: "0"
+					default: 0
 				}]
 			},
 			'prewait_dec': {
@@ -89,7 +197,7 @@ module.exports = {
 					label: 'Time in seconds',
 					id: 'time',
 					regex: this.REGEX_FLOAT,
-					default: "1"
+					default: 1
 				}]
 			},
 			'prewait_inc': {
@@ -99,7 +207,7 @@ module.exports = {
 					label: 'Time in seconds',
 					id: 'time',
 					regex: this.REGEX_FLOAT,
-					default: "1"
+					default: 1
 				}]
 			},
 			'postwait_dec': {
@@ -109,7 +217,7 @@ module.exports = {
 					label: 'Time in seconds',
 					id: 'time',
 					regex: this.REGEX_FLOAT,
-					default: "1"
+					default: 1
 				}]
 			},
 			'postwait_inc': {
@@ -119,7 +227,7 @@ module.exports = {
 					label: 'Time in seconds',
 					id: 'time',
 					regex: this.REGEX_FLOAT,
-					default: "1"
+					default: 1
 				}]
 			},
 			'duration_dec': {
@@ -129,7 +237,7 @@ module.exports = {
 					label: 'Time in seconds',
 					id: 'time',
 					regex: this.REGEX_FLOAT,
-					default: "1"
+					default: 1
 				}]
 			},
 			'duration_inc': {
@@ -139,7 +247,7 @@ module.exports = {
 					label: 'Time in seconds',
 					id: 'time',
 					regex: this.REGEX_FLOAT,
-					default: "1"
+					default: 1
 				}]
 			},
 			'startTime_dec': {
@@ -149,7 +257,7 @@ module.exports = {
 					label: 'Time in seconds',
 					id: 'time',
 					regex: this.REGEX_FLOAT,
-					default: "1"
+					default: 1
 				}]
 			},
 			'startTime_inc': {
@@ -159,7 +267,7 @@ module.exports = {
 					label: 'Time in seconds',
 					id: 'time',
 					regex: this.REGEX_FLOAT,
-					default: "1"
+					default: 1
 				}]
 			},
 			'endTime_dec': {
@@ -169,7 +277,7 @@ module.exports = {
 					label: 'Time in seconds',
 					id: 'time',
 					regex: this.REGEX_FLOAT,
-					default: "1"
+					default: 1
 				}]
 			},
 			'endTime_inc': {
@@ -179,7 +287,7 @@ module.exports = {
 					label: 'Time in seconds',
 					id: 'time',
 					regex: this.REGEX_FLOAT,
-					default: "1"
+					default: 1
 				}]
 			},
 			'continue': {
