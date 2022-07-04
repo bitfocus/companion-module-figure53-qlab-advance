@@ -23,7 +23,7 @@ module.exports = {
 		{ id: 'mscInputEnabled',	label: 'MSC Input' },
 		{ id: 'mscOutputEnabled', 	label: 'MSC Output' },
 		{ id: 'sysexInputEnabled',	label: 'SysEx Input' },
-		{ id: 'sysexInputEnabled',	label: 'SysEx Output' },
+		{ id: 'sysexOutputEnabled',	label: 'SysEx Output' },
 		{ id: 'oscOutputEnabled',	label: 'OSC Output' },
 		{ id: 'timecodeInputEnabled', label: 'Timecode Input' },
 		{ id: 'timecodeOutputEnabled', label: 'Timecode Output' },
