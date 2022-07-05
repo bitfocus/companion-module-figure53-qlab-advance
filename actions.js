@@ -357,6 +357,9 @@ module.exports = {
 					default: 1,
 					choices: this.choices.TOGGLE
 				}]
+			},
+			'copyCueID': {
+				label: 'Copy Unique Cue ID'
 			}
 		};
 		return(actions);

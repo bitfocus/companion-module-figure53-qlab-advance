@@ -63,10 +63,12 @@ Action | Description
 **Set/Unset Autoload** | Set / Unset the Autoload property of the selected cue.
 **Set Continue Mode** | Sets the continue mode of the selected cue.
 **Set Cue Color** | Sets the color of the selected cue.
+**Copy Unique Cue ID** | Copies the Unique ID of the cue at the Playhead to actions and feedbacks.
+The next action or feedback inserted will have the Unique ID already filled in.
 
 There are presets included for most of these actions.\
 Show Mode, Audition Window, Arm, and Autoload actions also have a Toggle option to invert the current setting of the cue.\
-For additional actions please raise a feature request at [github](https://github.com/bitfocus/companion-module-qlab-advance/issues)\
+For additional actions please raise a feature request at [github](https://github.com/bitfocus/companion-module-qlab-advance/issues)
 
 ## Variables available (TCP mode only)
 Variable | Description
@@ -87,7 +89,7 @@ Variable | Description
 **$(INSTANCENAME:r_ss)** | Seconds left for Running Cue
 **$(INSTANCENAME:r_left)** | Shortest display time left for Running Cue. Shows .1 increments if tenths option set.
 **$(INSTANCENAME:q_{num}_name)** | Name of the QLab cue number {num}. See below for certain restrictions.
-**$(INSTANCENAME:q_{ID}_name)** | Name of the QLab cue ID {ID}. See below for certain restrictions.
+**$(INSTANCENAME:id_{ID}_name)** | Name of the QLab cue ID {ID}. See below for certain restrictions.
 **$(INSTANCENAME:min_go)** | Current value of double-go protection (in seconds)
 
 To use these, replace INSTANCENAME with the name of your module instance.
@@ -120,6 +122,6 @@ From QLab preferences OSC controls tab make sure you have the "Use OSC controls"
 
 ### Cue Numbers / IDs
 QLab allows almost any characters in a Cue Number. Some characters don't play well with OSC or Companion. Using '$', '(', or ')' in your Cue Number won't work if you want to use the `q_{num}_name` variable or the `q_bg` feedback.\
-Transport actions, variables, and feedbacks have an ID version that uses the QLab Unique Cue ID as the target instead of the Cue Number.\
+Transport actions, variables, and feedbacks have an ID version that uses the QLab Unique Cue ID as the target instead of the Cue Number. QLab does not show this internal ID so there is a special action **Copy Unique Cue ID** that will temporarily insert the ID of the playhead/selected cue into the ID style actions. \
 The examples and descriptions use {num} as a place marker for the Cue or ID to use.\
 Do not enter the braces {}: To refer to Cue #10 you would enter `q_10_name`.

@@ -135,6 +135,7 @@ instance.prototype.resetVars = function (doUpdate) {
 	var self = this;
 	var qName = '';
 	var qNum = '';
+	var qID = '';
 	var cues = self.wsCues;
 
 	// play head info
@@ -150,10 +151,14 @@ instance.prototype.resetVars = function (doUpdate) {
 		Object.keys(cues).forEach(function (cue) {
 			qNum = cues[cue].qNumber.replace(/[^\w\.]/gi,'_');
 			qName = cues[cue].qName;
-			if (qNum != '' && qName != '') {
-				delete self.cueColors[qNum];
-				self.setVariable('q_' + qNum + '_name');
+			qID = cues[cue].uniqueID;
+			if (qName != '') {
+				if (qNum != '') {
+					delete self.cueColors[qNum];
+					self.setVariable('q_' + qNum + '_name');
+				}
 			}
+			self.setVariable('id_' + qID + '_name');
 			self.checkFeedbacks('q_bg');
 			self.checkFeedbacks('qid_bg');
 		});
@@ -223,10 +228,14 @@ instance.prototype.updateQVars = function (q) {
 		}
 	}
 	// set new value
-	if (qNum != '' && q.qName != '' && (q.qName != oqName || qColor != oqColor)) {
-		self.setVariable('q_' + qNum + '_name', q.qName);
-		self.cueColors[qNum] = q.qColor;
-		self.cueByNum[qNum] = qID;
+	if (q.qName != '' && (q.qName != oqName || qColor != oqColor)) {
+		if (qNum != '') {
+			self.setVariable('q_' + qNum + '_name', q.qName);
+			self.cueColors[qNum] = q.qColor;
+			self.cueByNum[qNum] = qID;
+		}
+		self.setVariable('id_' + qID + '_name', q.qName);
+
 		self.checkFeedbacks('q_bg');
 		self.checkFeedbacks('qid_bg');
 	}
@@ -488,6 +497,7 @@ instance.prototype.rePulse = function (ws) {
 						delete self.cueColors[qNum];
 						self.setVariable('q_' + qNum + '_name');
 					}
+					self.setVariable('id_' + cues[k].uniqueID + '_name');
 					self.checkFeedbacks('q_bg');
 					self.checkFeedbacks('qid_bg');
 
@@ -1176,6 +1186,10 @@ instance.prototype.action = function (action) {
 			cmd = '/playhead/' + opt.cue;
 			break;
 
+		case 'copyCueID':
+			self.actions();
+			self.init_feedbacks();
+			break
 		case 'start_id':
 			cmd = '/cue_id/' + opt.cueId + '/start';
 			break;
