@@ -40,6 +40,7 @@ module.exports = {
 					type: 	'dropdown',
 					label: 	'Mode',
 					id:		'onOff',
+					default: 1,
 					choices: this.choices.TOGGLE
 				}]
 			},
@@ -49,6 +50,7 @@ module.exports = {
 					type: 	'dropdown',
 					label: 	'Mode',
 					id:		'onOff',
+					default: 1,
 					choices: this.choices.TOGGLE
 				}]
 			},
@@ -65,6 +67,7 @@ module.exports = {
 					type:	'dropdown',
 					label:	'Mode',
 					id:		'onOff',
+					default: 1,
 					choices: this.choices.TOGGLE
 				}]
 			},
@@ -194,6 +197,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Arm',
 					id: 'armId',
+					default: 1,
 					choices: this.choices.TOGGLE
 				}]
 			},
@@ -203,6 +207,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Autoload',
 					id: 'autoId',
+					default: 1,
 					choices: this.choices.TOGGLE
 				}]
 			},
@@ -212,6 +217,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Flagged',
 					id: 'flagId',
+					default: 1,
 					choices: this.choices.TOGGLE
 				}]
 			},
