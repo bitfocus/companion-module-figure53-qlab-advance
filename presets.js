@@ -924,10 +924,10 @@ module.exports = {
 			c = this.colors.colorName[i];
 			presets.push({
 				category: 'Edit',
-				label: 'Cue Colour',
+				label: 'Cue Color',
 				bank: {
 					style: 'text',
-					text: 'Cue Colour ' + c.label,
+					text: 'Cue Color ' + c.label,
 					//size: '14',
 					color: textColor(this.colors.colorRGB[c.id]),
 					bgcolor: this.colors.colorRGB[c.id]
