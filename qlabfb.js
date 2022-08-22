@@ -949,7 +949,7 @@ instance.prototype.readReply = function (message) {
 		self.pulse = setInterval(function() { self.rePulse(ws); }, self.config.useTenths ? 100 : 250);
 	} else if (ma.match(/version$/)) {
 		if (j.data != undefined) {
-			self.qLab3 = (j.data.match(/^4\./)==null);
+			self.qLab3 = (j.data.match(/^(4|5)\./)==null);
 			self.setVariable('q_ver', j.data);
 		}
 		if (self.qLab3) { // QLab3 always has a 'workspace' (it may be empty)
