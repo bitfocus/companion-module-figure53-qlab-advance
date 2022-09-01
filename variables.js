@@ -24,6 +24,10 @@ module.exports = {
 				name:  'n_num'
 			},
 			{
+				label: 'Playhead Cue Type',
+				name:  'n_type'
+			},
+			{
 				label: 'Playhead Notes',
 				name:  'n_notes'
 			},

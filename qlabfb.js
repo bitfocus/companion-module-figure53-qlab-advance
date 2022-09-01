@@ -195,6 +195,7 @@ instance.prototype.updateNextCue = function () {
 	self.setVariable('n_id', nc.uniqueID);
 	self.setVariable('n_name', nc.qName);
 	self.setVariable('n_num', nc.qNumber);
+	self.setVariable('n_type', nc.qType);
 	self.setVariable('n_notes', nc.Notes);
 	self.setVariable('n_stat', nc.isBroken ? self.QSTATUS_CHAR.broken :
 							nc.isRunning ? self.QSTATUS_CHAR.running :
@@ -208,9 +209,11 @@ instance.prototype.updateQVars = function (q) {
 	var self = this;
 	var qID = q.uniqueID;
 	var qNum = (q.qNumber).replace(/[^\w\.]/gi,'_');
+	var qType = q.qType;
 	var qColor = q.qColor;
 	var oqNum = '';
 	var oqName = '';
+	var oqType = '';
 	var oqColor = 0;
 	var oqOrder = -1;
 
@@ -218,6 +221,7 @@ instance.prototype.updateQVars = function (q) {
 	if (qID in self.wsCues) {
 		oqNum = self.wsCues[qID].qNumber.replace(/[^\w\.]/gi,'_');
 		oqName = self.wsCues[qID].qName;
+		oqType = self.wsCues[qID].qType;
 		oqColor = self.wsCues[qID].qColor;
 		oqOrder = self.wsCues[qID].qOrder;
 		if (oqNum != '' && oqNum != q.qNumber) {
@@ -945,7 +949,7 @@ instance.prototype.readReply = function (message) {
 		self.pulse = setInterval(function() { self.rePulse(ws); }, self.config.useTenths ? 100 : 250);
 	} else if (ma.match(/version$/)) {
 		if (j.data != undefined) {
-			self.qLab3 = (j.data.match(/^4\./)==null);
+			self.qLab3 = (j.data.match(/^(4|5)\./)==null);
 			self.setVariable('q_ver', j.data);
 		}
 		if (self.qLab3) { // QLab3 always has a 'workspace' (it may be empty)
