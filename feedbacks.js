@@ -63,8 +63,8 @@ module.exports = {
 				},
 				callback: function(feedback, bank) {
 					var opt = feedback.options;
-					// var rqID = this.cueByNum[opt.cue.replace(/[^\w\.]/gi,'_')];
-					var rq = this.wsCues[opt.cueID];
+					var rqID = this.cueByNum[opt.cue.replace(/[^\w\.]/gi,'_')];
+					var rq = this.wsCues[rqID];
 					return (rq && rq.isRunning);
 				}.bind(this)
 			},

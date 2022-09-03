@@ -211,9 +211,9 @@ instance.prototype.updateQVars = function (q) {
 	var qNum = (q.qNumber).replace(/[^\w\.]/gi,'_');
 	var qType = q.qType;
 	var qColor = q.qColor;
-	var oqNum = '';
-	var oqName = '';
-	var oqType = '';
+	var oqNum = null;
+	var oqName = null;
+	var oqType = null;
 	var oqColor = 0;
 	var oqOrder = -1;
 
@@ -232,7 +232,7 @@ instance.prototype.updateQVars = function (q) {
 		}
 	}
 	// set new value
-	if (q.qName != '' && (q.qName != oqName || qColor != oqColor)) {
+	if (q.qName != oqName || qColor != oqColor) {
 		if (qNum != '') {
 			self.setVariable('q_' + qNum + '_name', q.qName);
 			self.cueColors[qNum] = q.qColor;
