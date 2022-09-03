@@ -32,7 +32,7 @@ function JSONtoCue(newCue, j, i) {
 	var isExistingQ;
 
 	newCue.uniqueID = j.uniqueID;
-	newCue.qName = j.listName;
+	newCue.qName = (j.listName == '' ? '[none]': j.listName);
 	newCue.qNumber = j.number;
 	newCue.qColorName = j.colorName;
 	newCue.qType = j.type.toLowerCase();
