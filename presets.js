@@ -1,28 +1,21 @@
 // determine text color for a background color
-textColor = function(pbin){
-
-    var r = pbin >> 16;
-    var g = pbin >> 8 & 0xFF;
-	var b = pbin & 0xFF;
-	var lum = Math.sqrt(
-		0.299 * (r * r) +
-		0.587 * (g * g) +
-		0.114 * (b * b)
-		);
+textColor = function (pbin) {
+	var r = pbin >> 16
+	var g = (pbin >> 8) & 0xff
+	var b = pbin & 0xff
+	var lum = Math.sqrt(0.299 * (r * r) + 0.587 * (g * g) + 0.114 * (b * b))
 
 	// determine whether the color is light or dark
-	if (lum>127.5) {
-		return '0';
+	if (lum > 127.5) {
+		return '0'
 	} else {
-		return '16777215';
+		return '16777215'
 	}
-};
+}
 
 module.exports = {
-
-	setPresets: function() {
-
-		var presets = [];
+	setPresets: function () {
+		var presets = []
 
 		presets.push({
 			category: 'CueList',
@@ -34,14 +27,14 @@ module.exports = {
 				pngalignment: 'center:center',
 				size: '18',
 				color: this.rgb(255, 255, 255),
-				bgcolor: 0
+				bgcolor: 0,
 			},
 			actions: [
 				{
 					action: 'pause',
-				}
-			]
-		});
+				},
+			],
+		})
 
 		presets.push({
 			category: 'CueList',
@@ -52,47 +45,47 @@ module.exports = {
 				png64: this.ICON_PLAY_INACTIVE,
 				pngalignment: 'center:center',
 				size: '18',
-				color: this.rgb(255,255,255),
-				bgcolor: 0
+				color: this.rgb(255, 255, 255),
+				bgcolor: 0,
 			},
 			actions: [
 				{
 					action: 'go',
-				}
+				},
 			],
 			feedbacks: [
 				{
 					type: 'min_go',
 					options: {
-						goMode: 1
+						goMode: 1,
 					},
 					style: {
 						color: 16777215,
-						bgcolor: this.rgb(0,102,0)
-					}
+						bgcolor: this.rgb(0, 102, 0),
+					},
 				},
 				{
 					type: 'ws_mode',
 					options: {
-						showMode: 2
+						showMode: 2,
 					},
 					style: {
 						color: 16777215,
-						bgcolor: this.rgb(0,102,153),
-					}
+						bgcolor: this.rgb(0, 102, 153),
+					},
 				},
 				{
 					type: 'min_go',
 					options: {
-						goMode: 0
+						goMode: 0,
 					},
 					style: {
 						color: 16777215,
-						bgcolor: this.rgb(153,0,0),
-					}
-				}
-			]
-		});
+						bgcolor: this.rgb(153, 0, 0),
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'CueList',
@@ -102,14 +95,14 @@ module.exports = {
 				text: 'Resume',
 				size: '18',
 				color: this.rgb(0, 0, 0),
-				bgcolor: this.rgb(0, 255, 0)
+				bgcolor: this.rgb(0, 255, 0),
 			},
 			actions: [
 				{
 					action: 'resume',
-				}
-			]
-		});
+				},
+			],
+		})
 
 		presets.push({
 			category: 'CueList',
@@ -119,14 +112,14 @@ module.exports = {
 				text: 'Stop',
 				size: '30',
 				color: '16777215',
-				bgcolor: this.rgb(255, 0, 0)
+				bgcolor: this.rgb(255, 0, 0),
 			},
 			actions: [
 				{
 					action: 'stop',
-				}
-			]
-		});
+				},
+			],
+		})
 
 		presets.push({
 			category: 'CueList',
@@ -136,14 +129,14 @@ module.exports = {
 				text: 'Stop selected',
 				size: '18',
 				color: '16777215',
-				bgcolor: this.rgb(255, 0, 0)
+				bgcolor: this.rgb(255, 0, 0),
 			},
 			actions: [
 				{
 					action: 'stopSelected',
-				}
-			]
-		});
+				},
+			],
+		})
 
 		presets.push({
 			category: 'CueList',
@@ -154,15 +147,15 @@ module.exports = {
 				png64: this.ICON_STOP_INACTIVE,
 				pngalignment: 'center:center',
 				size: '18',
-				color: this.rgb(255,255,255),
-				bgcolor: 0
+				color: this.rgb(255, 255, 255),
+				bgcolor: 0,
 			},
 			actions: [
 				{
 					action: 'panic',
-				}
-			]
-		});
+				},
+			],
+		})
 
 		presets.push({
 			category: 'CueList',
@@ -172,14 +165,14 @@ module.exports = {
 				text: 'Reset',
 				size: '24',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'reset',
-				}
-			]
-		});
+				},
+			],
+		})
 
 		presets.push({
 			category: 'CueList',
@@ -189,14 +182,14 @@ module.exports = {
 				text: 'Preview',
 				size: '18',
 				color: '16777215',
-				bgcolor: this.rgb(0, 128, 0)
+				bgcolor: this.rgb(0, 128, 0),
 			},
 			actions: [
 				{
 					action: 'preview',
-				}
-			]
-		});
+				},
+			],
+		})
 
 		presets.push({
 			category: 'CueList',
@@ -207,15 +200,15 @@ module.exports = {
 				png64: this.ICON_REW_INACTIVE,
 				pngalignment: 'center:center',
 				size: '18',
-				color: this.rgb(255,255,255),
-				bgcolor: 0
+				color: this.rgb(255, 255, 255),
+				bgcolor: 0,
 			},
 			actions: [
 				{
 					action: 'previous',
-				}
-			]
-		});
+				},
+			],
+		})
 
 		presets.push({
 			category: 'CueList',
@@ -226,15 +219,15 @@ module.exports = {
 				png64: this.ICON_FWD_INACTIVE,
 				pngalignment: 'center:center',
 				size: '18',
-				color: this.rgb(255,255,255),
-				bgcolor: 0
+				color: this.rgb(255, 255, 255),
+				bgcolor: 0,
 			},
 			actions: [
 				{
 					action: 'next',
-				}
-			]
-		});
+				},
+			],
+		})
 
 		presets.push({
 			category: 'CueList',
@@ -244,14 +237,14 @@ module.exports = {
 				text: 'Load\\nCue',
 				size: '24',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'load',
-				}
-			]
-		});
+				},
+			],
+		})
 
 		presets.push({
 			category: 'CueList',
@@ -261,17 +254,17 @@ module.exports = {
 				text: 'Show\\nMode',
 				size: '24',
 				color: '16777215',
-				bgcolor: this.rgb(0, 128, 0)
+				bgcolor: this.rgb(0, 128, 0),
 			},
 			actions: [
 				{
 					action: 'showMode',
 					options: {
-						onOff: '1'
-					}
-				}
-			]
-		});
+						onOff: '1',
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'CueList',
@@ -281,17 +274,17 @@ module.exports = {
 				text: 'Edit\\nMode',
 				size: '24',
 				color: '16777215',
-				bgcolor: this.rgb(72, 96, 96)
+				bgcolor: this.rgb(72, 96, 96),
 			},
 			actions: [
 				{
 					action: 'showMode',
 					options: {
-						onOff: '0'
-					}
-				}
-			]
-		});
+						onOff: '0',
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'CueList',
@@ -302,17 +295,17 @@ module.exports = {
 				size: '18',
 				color: '16777215',
 				tooltip: 'Opens the Audition Window',
-				bgcolor: this.rgb(0, 64, 128)
+				bgcolor: this.rgb(0, 64, 128),
 			},
 			actions: [
 				{
 					action: 'auditMode',
 					options: {
-						onOff: '1'
-					}
-				}
-			]
-		});
+						onOff: '1',
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'CueList',
@@ -323,17 +316,17 @@ module.exports = {
 				size: '18',
 				color: '16777215',
 				tooltip: 'Closes the Audition Window',
-				bgcolor: this.rgb(64, 96, 96)
+				bgcolor: this.rgb(64, 96, 96),
 			},
 			actions: [
 				{
 					action: 'auditMode',
 					options: {
-						onOff: '0'
-					}
-				}
-			]
-		});
+						onOff: '0',
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -343,17 +336,17 @@ module.exports = {
 				text: 'PreWait\\nDecrease\\n1 sec',
 				size: '14',
 				color: this.rgb(255, 255, 255),
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'prewait_dec',
 					options: {
 						time: '1',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -363,17 +356,17 @@ module.exports = {
 				text: 'PreWait\\nDecrease\\n10 sec',
 				size: '14',
 				color: this.rgb(255, 255, 255),
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'prewait_dec',
 					options: {
 						time: '10',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -383,17 +376,17 @@ module.exports = {
 				text: 'PreWait\\nIncrease\\n10 sec',
 				size: '14',
 				color: this.rgb(255, 255, 255),
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'prewait_inc',
 					options: {
 						time: '10',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -403,18 +396,17 @@ module.exports = {
 				text: 'PreWait\\nIncrease\\n1 sec',
 				size: '14',
 				color: this.rgb(255, 255, 255),
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'prewait_inc',
 					options: {
 						time: '1',
-					}
-				}
-			]
-		});
-
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -424,17 +416,17 @@ module.exports = {
 				text: 'PostWait\\nDecrease\\n1 sec',
 				size: '14',
 				color: this.rgb(255, 255, 255),
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'postwait_dec',
 					options: {
 						time: '1',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -444,17 +436,17 @@ module.exports = {
 				text: 'PostWait\\nDecrease\\n10 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'postwait_dec',
 					options: {
 						time: '10',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -464,17 +456,17 @@ module.exports = {
 				text: 'PostWait\\nIncrease\\n10sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'postwait_inc',
 					options: {
 						time: '10',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -484,18 +476,17 @@ module.exports = {
 				text: 'PostWait\\nIncrease\\n1 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'postwait_inc',
 					options: {
 						time: '1',
-					}
-				}
-			]
-		});
-
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -505,17 +496,17 @@ module.exports = {
 				text: 'Duration\\nDecrease\\n1 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'duration_dec',
 					options: {
 						time: '1',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -525,17 +516,17 @@ module.exports = {
 				text: 'Duration\\nDecrease\\n10sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'duration_dec',
 					options: {
 						time: '10',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -545,17 +536,17 @@ module.exports = {
 				text: 'Duration\\nIncrease\\n10 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'duration_inc',
 					options: {
 						time: '10',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -565,17 +556,17 @@ module.exports = {
 				text: 'Duration\\nIncrease\\n1 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'duration_inc',
 					options: {
 						time: '1',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -585,17 +576,17 @@ module.exports = {
 				text: 'Start Time\\nIncrease\\n1 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'startTime_inc',
 					options: {
 						time: '1',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -605,17 +596,17 @@ module.exports = {
 				text: 'Start Time\\nIncrease\\n10 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'startTime_inc',
 					options: {
 						time: '10',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -625,17 +616,17 @@ module.exports = {
 				text: 'Start Time\\nDecrease\\n1 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'startTime_dec',
 					options: {
 						time: '1',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -645,17 +636,17 @@ module.exports = {
 				text: 'Start Time\\nDecrease\\n10 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'startTime_dec',
 					options: {
 						time: '10',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -665,17 +656,17 @@ module.exports = {
 				text: 'End Time\\nIncrease\\n1 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'endTime_inc',
 					options: {
 						time: '1',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -685,17 +676,17 @@ module.exports = {
 				text: 'End Time\\nIncrease\\n10 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'endTime_inc',
 					options: {
 						time: '10',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -705,17 +696,17 @@ module.exports = {
 				text: 'End Time\\nDecrease\\n1 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'endTime_dec',
 					options: {
 						time: '1',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -725,17 +716,17 @@ module.exports = {
 				text: 'End Time\\nDecrease\\n10 sec',
 				size: '14',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'endTime_dec',
 					options: {
 						time: '10',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -745,17 +736,17 @@ module.exports = {
 				text: 'Do Not Continue',
 				size: '14',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'continue',
 					options: {
 						contId: '0',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -765,17 +756,17 @@ module.exports = {
 				text: 'Auto Continue',
 				size: '14',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'continue',
 					options: {
 						contId: '1',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -785,17 +776,17 @@ module.exports = {
 				text: 'Auto Follow',
 				size: '14',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'continue',
 					options: {
 						contId: '2',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -805,17 +796,17 @@ module.exports = {
 				text: 'Disarm',
 				size: '14',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'arm',
 					options: {
 						armId: '0',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -825,17 +816,17 @@ module.exports = {
 				text: 'Arm',
 				size: '14',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'arm',
 					options: {
 						armId: '1',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -845,17 +836,17 @@ module.exports = {
 				text: 'Autoload Enable',
 				size: '14',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'autoload',
 					options: {
 						autoId: '1',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -865,17 +856,17 @@ module.exports = {
 				text: 'Autoload Disable',
 				size: '14',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'autoload',
 					options: {
 						autoId: '0',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -885,17 +876,17 @@ module.exports = {
 				text: 'Flagged',
 				size: '14',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'flagged',
 					options: {
 						flaggId: '1',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
 		presets.push({
 			category: 'Edit',
@@ -905,23 +896,23 @@ module.exports = {
 				text: 'Unflagged',
 				size: '14',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 100)
+				bgcolor: this.rgb(0, 0, 100),
 			},
 			actions: [
 				{
 					action: 'flagged',
 					options: {
 						flaggId: '0',
-					}
-				}
-			]
-		});
+					},
+				},
+			],
+		})
 
-		var i;
-		var c;
+		var i
+		var c
 
-		for(i in this.colors.colorName) {
-			c = this.colors.colorName[i];
+		for (i in this.colors.colorName) {
+			c = this.colors.colorName[i]
 			presets.push({
 				category: 'Edit',
 				label: 'Cue Color',
@@ -930,20 +921,19 @@ module.exports = {
 					text: 'Cue Color ' + c.label,
 					//size: '14',
 					color: textColor(this.colors.colorRGB[c.id]),
-					bgcolor: this.colors.colorRGB[c.id]
+					bgcolor: this.colors.colorRGB[c.id],
 				},
 				actions: [
 					{
 						action: 'cueColor',
 						options: {
-							colorId: c.id
-						}
-					}
-				]
-			});
+							colorId: c.id,
+						},
+					},
+				],
+			})
 		}
 
-		return(presets);
-	}
-};
-
+		return presets
+	},
+}

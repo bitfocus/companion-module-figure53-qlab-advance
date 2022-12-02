@@ -77,6 +77,7 @@ Variable | Description
 **$(INSTANCENAME:n_id)** | UniqueID of the current Playhead Cue
 **$(INSTANCENAME:n_name)** | Name of the current Playhead Cue or [none]
 **$(INSTANCENAME:n_num)** | Number of the current Playhead Cue
+**$(INSTANCENAME:n_type)** | Cue Type of the current Playhead Cue
 **$(INSTANCENAME:n_notes)** | First 20 characters of the Note on the Playhead Cue
 **$(INSTANCENAME:n_stat)** | Playhead Cue Status: "✕" if broken, "⏽" if loaded, "⏵" if running, "⏸" if paused, otherwise "·"
 **$(INSTANCENAME:r_id)** | UniqueID of the current Running Cue
