@@ -1212,6 +1212,8 @@ instance.prototype.action = function (action) {
 	var nc = self.wsCues[self.nextCue]
 	var optTime
 	var typeTime
+	var optCue
+	var optCueId
 
 	// internal function for action (not anonymous)
 	// self is properly scoped to next outer closure
@@ -1219,9 +1221,20 @@ instance.prototype.action = function (action) {
 		return '2' == opt ? 1 - (oldVal ? 1 : 0) : parseInt(opt)
 	}
 
+	self.parseVariables(opt.cue, function (v) {
+		optCue = v
+	})
+
+	self.parseVariables(opt.cueId, function (v) {
+		optCueId = v
+	})
+
 	// if this is a +/- time action, preformat seconds arg
 	if (opt != undefined && opt.time != undefined) {
-		optTime = parseFloat(opt.time)
+		self.parseVariables(opt.time, function (v) {
+			optTime = v
+		})
+		optTime = parseFloat(optTime)
 		if (optTime.isInteger) {
 			typeTime = 'i'
 		} else {
@@ -1231,23 +1244,24 @@ instance.prototype.action = function (action) {
 
 	switch (action.action) {
 		case 'start':
-			cmd = '/cue/' + opt.cue + '/start'
+			cmd = '/cue/' + optCue + '/start'
 			break
 
 		case 'goto':
-			cmd = '/playhead/' + opt.cue
+			cmd = '/playhead/' + optCue
 			break
 
 		case 'copyCueID':
 			self.actions()
 			self.init_feedbacks()
 			break
+
 		case 'start_id':
-			cmd = '/cue_id/' + opt.cueId + '/start'
+			cmd = '/cue_id/' + optCueId + '/start'
 			break
 
 		case 'goto_id':
-			cmd = '/playheadId/' + opt.cueId
+			cmd = '/playheadId/' + optCueId
 			break
 
 		case 'go':
@@ -1274,17 +1288,12 @@ instance.prototype.action = function (action) {
 			cmd = '/cue/selected/stop'
 			break
 
-		case 'copyCueId':
-			self.actions()
-			self.init_feedbacks()
-			break
-
 		case 'stop_cue':
-			cmd = '/cue/' + opt.cue + '/stop'
+			cmd = '/cue/' + optCue + '/stop'
 			break
 
 		case 'stop_id':
-			cmd = '/cue_id/' + opt.cueId + '/stop'
+			cmd = '/cue_id/' + optCueId + '/stop'
 			break
 
 		case 'panic':
@@ -1304,11 +1313,11 @@ instance.prototype.action = function (action) {
 			break
 
 		case 'panic_cue':
-			cmd = '/cue/' + opt.cue + '/panic'
+			cmd = '/cue/' + optCue + '/panic'
 			break
 
 		case 'panicInTime_cue':
-			cmd = '/cue/' + opt.cue + '/panicInTime'
+			cmd = '/cue/' + optCue + '/panicInTime'
 			arg = {
 				type: typeTime,
 				value: optTime,
@@ -1316,11 +1325,11 @@ instance.prototype.action = function (action) {
 			break
 
 		case 'panic_id':
-			cmd = '/cue_id/' + opt.cueId + '/panic'
+			cmd = '/cue_id/' + optCueId + '/panic'
 			break
 
 		case 'panicInTime_id':
-			cmd = '/cue_id/' + opt.cueId + '/panicInTime'
+			cmd = '/cue_id/' + optCueId + '/panicInTime'
 			arg = {
 				type: typeTime,
 				value: optTime,
