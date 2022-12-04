@@ -1221,16 +1221,16 @@ instance.prototype.action = function (action) {
 		return '2' == opt ? 1 - (oldVal ? 1 : 0) : parseInt(opt)
 	}
 
-	self.parseVariables(opt.cue, function (v) {
+	self.parseVariables(opt?.cue, function (v) {
 		optCue = v
 	})
 
-	self.parseVariables(opt.cueId, function (v) {
+	self.parseVariables(opt?.cueId, function (v) {
 		optCueId = v
 	})
 
 	// if this is a +/- time action, preformat seconds arg
-	if (opt != undefined && opt.time != undefined) {
+	if ( opt?.time ) {
 		self.parseVariables(opt.time, function (v) {
 			optTime = v
 		})
@@ -1305,7 +1305,7 @@ instance.prototype.action = function (action) {
 			break
 
 		case 'panicInTime':
-			cmd = '/cue/selected/panicInTime'
+			cmd = '/panicInTime'
 			arg = {
 				type: typeTime,
 				value: optTime,
