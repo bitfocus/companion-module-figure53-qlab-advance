@@ -1,12 +1,7 @@
 'use strict'
 /* eslint-disable no-useless-escape */
-var instance_skel = require('../../instance_skel')
-
-var OSC = require('osc')
-
-var debug
-
-var log
+const instance_skel = require('../../instance_skel')
+const OSC = require('osc')
 
 function instance(system, id, config) {
 	var self = this
@@ -53,25 +48,18 @@ instance.GetUpgradeScripts = function () {
 		function (context, config, actions, feedbacks) {
 			var changed = false
 
-			function upgradePass(actions, changed) {
-				for (var k in actions) {
-					var action = actions[k]
-
-					if (action.action == 'autoLoad') {
-						if (action.options.autoId == 1) {
-							action.action = 'autoload'
-							changed = true
-						}
-					}
-					if ('flagged' == action.action && action.options.flaggId) {
-						action.options.flagId = action.options.flaggId
-						delete action.options.flaggId
+			for (let action of actions) {
+				if (action.action == 'autoLoad') {
+					if (action.options.autoId == 1) {
+						action.action = 'autoload'
+						changed = true
 					}
 				}
-				return changed
+				if ('flagged' == action.action && action.options.flaggId) {
+					action.options.flagId = action.options.flaggId
+					delete action.options.flaggId
+				}
 			}
-
-			changed = upgradePass(actions, changed)
 
 			if (config) {
 				if (config.useTenths == undefined) {
@@ -87,6 +75,20 @@ instance.GetUpgradeScripts = function () {
 			ws_mode: true,
 			override: true,
 		}),
+		function (context, config, actions, feedbacks) {
+			// users from figure53-qlab (the other version)
+
+			var changed = false
+
+			for (let action of actions) {
+				if ('flagged' == action.action && action.options.flaggId) {
+					action.options.flagId = action.options.flaggId
+					delete action.options.flaggId
+				}
+			}
+
+			return changed
+		},
 	]
 }
 
@@ -334,8 +336,6 @@ instance.prototype.updateRunning = function () {
 
 instance.prototype.updateConfig = function (config) {
 	var self = this
-	var ws = ''
-	var cl = ''
 
 	self.config = config
 	self.applyConfig(config)
@@ -359,8 +359,6 @@ instance.prototype.init = function () {
 	self.status(self.STATUS_UNKNOWN, 'Connecting')
 
 	self.applyConfig(self.config)
-	debug = self.debug
-	log = self.log
 	self.init_osc()
 	self.init_presets()
 	if (self.useTCP) {
@@ -422,7 +420,6 @@ instance.prototype.prime_vars = function (ws) {
 	var self = this
 
 	if (self.needPasscode && (self.config.passcode == undefined || self.config.passcode == '')) {
-		self.status(self.STATUS_UNKNOWN, 'Wrong Passcode')
 		self.status(self.STATUS_WARNING, 'Wrong Passcode')
 		self.debug('waiting for passcode')
 		self.sendOSC('/connect', [])
@@ -548,7 +545,9 @@ instance.prototype.init_osc = function () {
 	}
 
 	if (self.qSocket) {
+		self.ready = false
 		self.qSocket.close()
+		delete self.qSocket
 	}
 
 	if (!self.useTCP) {
@@ -569,7 +568,7 @@ instance.prototype.init_osc = function () {
 		self.qSocket.open()
 
 		self.qSocket.on('error', function (err) {
-			debug('Error', err)
+			self.debug('Error', err)
 			self.connecting = false
 			if (!self.hasError) {
 				self.log('error', 'Error: ' + err.message)
@@ -577,7 +576,9 @@ instance.prototype.init_osc = function () {
 				self.hasError = true
 			}
 			if (err.code == 'ECONNREFUSED') {
-				self.qSocket.removeAllListeners()
+				if (self.qSocket) {
+					self.qSocket.removeAllListeners()
+				}
 				if (self.timer !== undefined) {
 					clearTimeout(self.timer)
 				}
@@ -605,7 +606,7 @@ instance.prototype.init_osc = function () {
 				if (self.qSocket != undefined) {
 					self.qSocket.removeAllListeners()
 				}
-				debug('Connection closed')
+				self.debug('Connection closed')
 				self.ready = false
 				if (self.disabled) {
 					self.status(self.STATUS_UNKNOWN, 'Disabled')
@@ -650,7 +651,7 @@ instance.prototype.init_osc = function () {
 				// debug("readReply");
 				self.readReply(message)
 			} else {
-				debug(message.address, message.args)
+				self.debug(message.address, message.args)
 			}
 		})
 	}
@@ -888,7 +889,7 @@ instance.prototype.readUpdate = function (message) {
 			if ((self.cl == '' || cl == self.cl) && oa !== self.nextCue) {
 				// playhead changed
 				self.nextCue = oa
-				debug('playhead: ' + oa)
+				self.debug('playhead: ' + oa)
 				self.sendOSC('/cue_id/' + oa + '/valuesForKeys', self.qCueRequest)
 				self.requestedCues[oa] = Date.now()
 			}
@@ -1096,7 +1097,7 @@ instance.prototype.readReply = function (message) {
 instance.prototype.config_fields = function () {
 	var self = this
 
-	var configs = [
+	const configs = [
 		{
 			type: 'text',
 			id: 'info',
@@ -1147,8 +1148,9 @@ instance.prototype.config_fields = function () {
 			default: 'default',
 		},
 	]
+
 	if (Object.keys(self.cueList).length > 0) {
-		var clist = {
+		const clist = {
 			type: 'dropdown',
 			id: 'cuelist',
 			label: 'Specific Cue List',
@@ -1162,15 +1164,17 @@ instance.prototype.config_fields = function () {
 				},
 			],
 		}
-		var c
-		for (c in self.cueList) {
+
+		for (let c in self.cueList) {
 			clist.choices.push({
 				id: c,
 				label: self.wsCues[c].qName,
 			})
 		}
+
 		configs.push(clist)
 	}
+
 	return configs
 }
 
@@ -1188,15 +1192,14 @@ instance.prototype.destroy = function () {
 		delete self.pulse
 	}
 	if (self.qSocket) {
+		self.ready = false
 		self.qSocket.close()
 		delete self.qSocket
 	}
-	self.status(self.STATUS_UNKNOWN, 'Disabled')
-	debug('destroy', self.id)
 }
 
 // eslint-disable-next-line no-unused-vars
-instance.prototype.actions = function (system) {
+instance.prototype.actions = function () {
 	this.setActions(this.Actions.setActions.call(this))
 }
 
@@ -1230,7 +1233,7 @@ instance.prototype.action = function (action) {
 	})
 
 	// if this is a +/- time action, preformat seconds arg
-	if ( opt?.time ) {
+	if (opt?.time) {
 		self.parseVariables(opt.time, function (v) {
 			optTime = v
 		})
@@ -1538,9 +1541,9 @@ instance.prototype.action = function (action) {
 	}
 
 	if (self.useTCP && !self.ready) {
-		debug('Not connected to', self.config.host)
+		self.debug('Not connected to', self.config.host)
 	} else if (cmd !== undefined) {
-		debug('sending', cmd, arg, 'to', self.config.host)
+		self.debug('sending', cmd, arg, 'to', self.config.host)
 		// everything except 'auditionWindow' and 'overrideWindow' works on a specific workspace
 		self.sendOSC(cmd, arg, ['/auditionWindow', '/overrideWindow'].includes(cmd))
 	}

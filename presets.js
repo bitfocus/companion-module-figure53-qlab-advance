@@ -908,11 +908,7 @@ module.exports = {
 			],
 		})
 
-		var i
-		var c
-
-		for (i in this.colors.colorName) {
-			c = this.colors.colorName[i]
+		for (let c of this.colors.colorName) {
 			presets.push({
 				category: 'Edit',
 				label: 'Cue Color',
