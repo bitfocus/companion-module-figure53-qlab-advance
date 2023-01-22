@@ -1,9 +1,11 @@
 {
 	"name": "figure53-qlab-advance",
 	"legacy": [
-		"qlab-advance"
+		"qlab-advance",
+		"qlab",
+		"figure53-qlab"
 	],
-	"version": "1.5.2",
+	"version": "1.5.3",
 	"api_version": "1.0.0",
 	"keywords": [
 		"Software",
