@@ -1,194 +1,132 @@
-'use strict'
 /* eslint-disable no-useless-escape */
-const instance_skel = require('../../instance_skel')
-const OSC = require('osc')
+import OSC from 'osc'
+import { runEntrypoint, InstanceBase, InstanceStatus } from '@companion-module/base'
+import { compileActionDefinitions } from './actions.js'
+import { compileFeedbackDefinitions } from './feedbacks.js'
+import { compilePresetDefinitions } from './presets.js'
+import { compileVariableDefinition } from './variables.js'
+import { UpgradeScripts } from './upgrades.js'
+import { GetConfigFields } from './config.js'
+import Cue from './cues.js'
+import * as Choices from './choices.js'
 
-class instance extends instance_skel {
-	constructor(system, id, config) {
-		super(arguments)
+function cueToStatusChar(cue) {
+	if (cue.isBroken) return '\u2715'
+	if (cue.isRunning) return '\u23F5'
+	if (cue.isPaused) return '\u23F8'
+	if (cue.isLoaded) return '\u23FD'
+	return '\u00b7'
+}
 
-		var self = this
-		var po = 0
+class QLabInstance extends InstanceBase {
+	qCueRequest = [
+		{
+			type: 's',
+			value:
+				'["number","uniqueID","listName","type","isPaused","duration","actionElapsed","parent","flagged","notes",' +
+				'"autoLoad","colorName","isRunning","isLoaded","armed","isBroken","percentActionElapsed","cartPosition",' +
+				'"infiniteLoop","holdLastFrame"]',
+		},
+	]
 
-		self.connecting = false
-		self.needPasscode = false
-		self.useTCP = false
-		self.qLab3 = false
-		self.hasError = false
-		self.disabled = true
-		self.pollCount = 0
+	constructor(internal) {
+		super(internal)
 
-		self.colors = require('./colors')
-		self.choices = require('./choices')
-		self.Cue = require('./cues')
-		self.Presets = require('./presets')
-		self.Actions = require('./actions')
-		self.Variables = require('./variables')
-		self.Feedbacks = require('./feedbacks')
+		this.connecting = false
+		this.needPasscode = false
+		this.useTCP = false
+		this.qLab3 = false
+		this.hasError = false
+		this.disabled = true
+		this.pollCount = 0
 
-		self.resetVars()
-
-		// each instance needs a separate local port
-		id.split('').forEach(function (c) {
-			po += c.charCodeAt(0)
-		})
-		self.port_offset = po
-
-		self.actions() // export actions
-
-		if (process.env.DEVELOPER) {
-			self.config._configIdx = -1
-		}
-
-		return self
+		this.resetVars()
 	}
-	static GetUpgradeScripts() {
-		return [
-			function (context, config, actions, feedbacks) {
-				var changed = false
 
-				for (let action of actions) {
-					if (action.action == 'autoLoad') {
-						if (action.options.autoId == 1) {
-							action.action = 'autoload'
-							changed = true
-						}
-					}
-					if ('flagged' == action.action && action.options.flaggId) {
-						action.options.flagId = action.options.flaggId
-						delete action.options.flaggId
-					}
-				}
-
-				if (config) {
-					if (config.useTenths == undefined) {
-						config.useTenths = false
-						changed = true
-					}
-				}
-				return changed
-			},
-			instance_skel.CreateConvertToBooleanFeedbackUpgradeScript({
-				q_run: true,
-				min_go: true,
-				ws_mode: true,
-				override: true,
-			}),
-			function (context, config, actions, feedbacks) {
-				// users from figure53-qlab (the other version)
-				var changed = false
-
-				for (let action of actions) {
-					if ('flagged' == action.action && action.options.flaggId) {
-						action.options.flagId = action.options.flaggId
-						delete action.options.flaggId
-					}
-				}
-
-				return changed
-			},
-		]
-	}
 	applyConfig(config) {
-		var self = this
-		var ws = config.workspace
-		var cl = config.cuelist
+		let ws = config.workspace
+		let cl = config.cuelist
 
 		if (ws !== undefined && ws !== '' && ws !== 'default') {
-			self.ws = '/workspace/' + ws
+			this.ws = '/workspace/' + ws
 		} else {
-			self.ws = ''
+			this.ws = ''
 		}
 
 		if (cl && cl !== '' && cl !== 'default') {
-			self.cl = cl
+			this.cl = cl
 		} else {
-			self.cl = ''
+			this.cl = ''
 		}
 
 		if (config.useTCP == undefined) {
 			config.useTCP = true
 		}
 
-		self.useTCP = config.useTCP
+		this.useTCP = config.useTCP
 	}
-	resetVars(doUpdate) {
-		var self = this
-		var qName = ''
-		var qNum = ''
-		var qID = ''
-		var cues = self.wsCues
 
+	resetVars(doUpdate) {
 		// play head info
-		self.nextCue = ''
+		this.nextCue = ''
 		// most recent running cue
-		self.runningCue = new self.Cue()
+		this.runningCue = new Cue()
 
 		// clear 'variables'
-		if (doUpdate && self.useTCP) {
-			self.updateNextCue()
-			self.updatePlaying()
+		if (doUpdate && this.useTCP) {
+			this.updateNextCue()
+			this.updatePlaying()
 
-			Object.keys(cues).forEach(function (cue) {
-				qNum = cues[cue].qNumber.replace(/[^\w\.]/gi, '_')
-				qName = cues[cue].qName
-				qID = cues[cue].uniqueID
-				if (qName != '') {
-					if (qNum != '') {
-						delete self.cueColors[qNum]
-						self.setVariable('q_' + qNum + '_name')
-					}
+			let newValues = {}
+
+			for (const [cue, cueObj] of Object.entries(this.wsCues)) {
+				let qNum = cueObj.qNumber.replace(/[^\w\.]/gi, '_')
+				let qName = cueObj.qName
+				let qID = cueObj.uniqueID
+				if (qName && qNum) {
+					delete this.cueColors[qNum]
+					newValues['q_' + qNum + '_name'] = undefined
 				}
-				self.setVariable('id_' + qID + '_name')
-				self.checkFeedbacks('q_bg')
-				self.checkFeedbacks('qid_bg')
-			})
+
+				newValues['id_' + qID + '_name'] = undefined
+			}
+
+			this.setVariableValues(newValues)
+			this.checkFeedbacks('q_bg', 'qid_bg')
 		}
 
 		// need a valid QLab reply
-		self.needWorkspace = true
-		self.needPasscode = false
+		this.needWorkspace = true
+		this.needPasscode = false
 
 		// list of cues and info for this QLab workspace
-		self.wsCues = {}
-		self.cueColors = {}
-		self.cueOrder = []
-		self.cueByNum = {}
-		self.cueList = {}
-		self.requestedCues = {}
-		self.overrides = {}
-		self.lastRunID = '-' + self.lastRunID
-		self.showMode = false
-		self.audition = false
-		self.goDisabled = false
-		self.goAfter = 0
-		self.minGo = 0
+		this.wsCues = {}
+		this.cueColors = {}
+		this.cueOrder = []
+		this.cueByNum = {}
+		this.cueList = {}
+		this.requestedCues = {}
+		this.overrides = {}
+		this.lastRunID = '-' + this.lastRunID
+		this.showMode = false
+		this.audition = false
+		this.goDisabled = false
+		this.goAfter = 0
+		this.minGo = 0
 	}
-	updateNextCue() {
-		var self = this
-		var nc = self.wsCues[self.nextCue]
-		if (!nc) {
-			nc = new self.Cue()
-		}
 
-		self.setVariable('n_id', nc.uniqueID)
-		self.setVariable('n_name', nc.qName)
-		self.setVariable('n_num', nc.qNumber)
-		self.setVariable('n_type', nc.qType)
-		self.setVariable('n_notes', nc.Notes)
-		self.setVariable(
-			'n_stat',
-			nc.isBroken
-				? self.QSTATUS_CHAR.broken
-				: nc.isRunning
-				? self.QSTATUS_CHAR.running
-				: nc.isPaused
-				? self.QSTATUS_CHAR.paused
-				: nc.isLoaded
-				? self.QSTATUS_CHAR.loaded
-				: self.QSTATUS_CHAR.idle
-		)
-		self.checkFeedbacks('playhead_bg')
+	updateNextCue() {
+		const nc = this.wsCues[this.nextCue] || new Cue()
+
+		this.setVariableValues({
+			n_id: nc.uniqueID,
+			n_name: nc.qName,
+			n_num: nc.qNumber,
+			n_type: nc.qType,
+			n_notes: nc.Notes,
+			n_stat: cueToStatusChar(nc),
+		})
+		this.checkFeedbacks('playhead_bg')
 	}
 	updateQVars(q) {
 		var self = this
@@ -202,6 +140,8 @@ class instance extends instance_skel {
 		var oqColor = 0
 		var oqOrder = -1
 
+		let variableValues = {}
+
 		// unset old variable?
 		if (qID in self.wsCues) {
 			oqNum = self.wsCues[qID].qNumber.replace(/[^\w\.]/gi, '_')
@@ -210,7 +150,7 @@ class instance extends instance_skel {
 			oqColor = self.wsCues[qID].qColor
 			oqOrder = self.wsCues[qID].qOrder
 			if (oqNum != '' && oqNum != q.qNumber) {
-				self.setVariable('q_' + oqNum + '_name')
+				variableValues['q_' + oqNum + '_name'] = undefined
 				self.cueColors[oqNum] = 0
 				delete self.cueByNum[oqNum]
 				oqName = ''
@@ -219,15 +159,16 @@ class instance extends instance_skel {
 		// set new value
 		if (q.qName != oqName || qColor != oqColor) {
 			if (qNum != '') {
-				self.setVariable('q_' + qNum + '_name', q.qName)
+				variableValues['q_' + qNum + '_name'] = q.qName
 				self.cueColors[qNum] = q.qColor
 				self.cueByNum[qNum] = qID
 			}
-			self.setVariable('id_' + qID + '_name', q.qName)
+			variableValues['id_' + qID + '_name'] = q.qName
 
-			self.checkFeedbacks('q_bg')
-			self.checkFeedbacks('qid_bg')
+			this.checkFeedbacks('q_bg', 'qid_bg')
 		}
+
+		this.setVariableValues(variableValues)
 	}
 	updateRunning() {
 		var self = this
@@ -281,93 +222,82 @@ class instance extends instance_skel {
 			}
 		}
 
-		self.setVariable('r_id', rc.uniqueID)
-		self.setVariable('r_name', rc.qName)
-		self.setVariable('r_num', rc.qNumber)
-		self.setVariable(
-			'r_stat',
-			rc.isBroken
-				? self.QSTATUS_CHAR.broken
-				: rc.isRunning
-				? self.QSTATUS_CHAR.running
-				: rc.isPaused
-				? self.QSTATUS_CHAR.paused
-				: rc.isLoaded
-				? self.QSTATUS_CHAR.loaded
-				: self.QSTATUS_CHAR.idle
-		)
-		self.setVariable('r_hhmmss', hh + ':' + mm + ':' + ss)
-		self.setVariable('r_hh', hh)
-		self.setVariable('r_mm', mm)
-		self.setVariable('r_ss', ss)
-		self.setVariable('r_left', ft)
-		self.setVariable('e_hhmmss', ehh + ':' + emm + ':' + ess)
-		self.setVariable('e_hh', ehh)
-		self.setVariable('e_mm', emm)
-		self.setVariable('e_ss', ess)
-		self.setVariable('e_time', eft)
-		self.checkFeedbacks('run_bg')
+		this.setVariableValues({
+			r_id: rc.uniqueID,
+			r_name: rc.qName,
+			r_num: rc.qNumber,
+
+			r_stat: cueToStatusChar(rc),
+
+			r_hhmmss: hh + ':' + mm + ':' + ss,
+			r_hh: hh,
+			r_mm: mm,
+			r_ss: ss,
+			r_left: ft,
+			e_hhmmss: ehh + ':' + emm + ':' + ess,
+			e_hh: ehh,
+			e_mm: emm,
+			e_ss: ess,
+			e_time: eft,
+		})
+
+		this.checkFeedbacks('run_bg')
 	}
-	updateConfig(config) {
-		var self = this
+	async configUpdated(config) {
+		this.config = config
+		this.applyConfig(config)
 
-		self.config = config
-		self.applyConfig(config)
-
-		self.resetVars()
-		self.init_osc()
-		self.init_presets()
-		if (self.useTCP) {
-			self.init_variables()
-			self.init_feedbacks()
-		} else {
-			self.setFeedbackDefinitions({})
-			self.setVariableDefinitions([])
-		}
+		this.resetVars()
+		this.init_osc()
+		this.init_actions()
+		this.init_presets()
+		this.init_variables()
+		this.init_feedbacks()
 	}
-	init() {
-		var self = this
-		self.disabled = false
+	async init(config) {
+		this.config = config
 
-		self.status(self.STATUS_UNKNOWN, 'Connecting')
+		this.disabled = false
+		this.updateStatus(InstanceStatus.Connecting)
 
-		self.applyConfig(self.config)
-		self.init_osc()
-		self.init_presets()
-		if (self.useTCP) {
-			self.init_variables()
-			self.init_feedbacks()
-		} else {
-			self.setFeedbackDefinitions({})
-			self.setVariableDefinitions([])
-		}
+		await this.configUpdated(config)
+	}
+	init_actions() {
+		this.setActionDefinitions(compileActionDefinitions(this))
 	}
 	init_presets() {
-		this.setPresetDefinitions(this.Presets.setPresets.call(this))
+		this.setPresetDefinitions(compilePresetDefinitions(this))
 	}
 	init_feedbacks() {
-		this.setFeedbackDefinitions(this.Feedbacks.setFeedbacks.call(this))
+		if (this.useTCP) {
+			this.setFeedbackDefinitions(compileFeedbackDefinitions(this))
+		} else {
+			this.setFeedbackDefinitions({})
+		}
 	}
 	init_variables() {
-		this.setVariableDefinitions(this.Variables.setVariables.call(this))
-		this.updateRunning()
-		this.updateNextCue()
+		if (this.useTCP) {
+			this.setVariableDefinitions(compileVariableDefinition(this))
+			this.updateRunning()
+			this.updateNextCue()
+		} else {
+			this.setVariableDefinitions([])
+		}
 	}
 	sendOSC(node, arg, bare) {
-		var self = this
-		var ws = bare ? '' : self.ws
+		var ws = bare ? '' : this.ws
 
-		if (!self.useTCP) {
+		if (!this.useTCP) {
 			var host = ''
-			if (self.config.host !== undefined && self.config.host !== '') {
-				host = self.config.host
+			if (this.config.host !== undefined && this.config.host !== '') {
+				host = this.config.host
 			}
-			if (self.config.passcode !== undefined && self.config.passcode !== '') {
-				self.oscSend(host, 53000, ws + '/connect', [self.config.passcode])
+			if (this.config.passcode !== undefined && this.config.passcode !== '') {
+				this.oscSend(host, 53000, ws + '/connect', [this.config.passcode])
 			}
-			self.oscSend(host, 53000, ws + node, arg)
-		} else if (self.ready) {
-			self.qSocket.send({
+			this.oscSend(host, 53000, ws + node, arg)
+		} else if (this.ready) {
+			this.qSocket.send({
 				address: ws + node,
 				args: arg,
 			})
@@ -375,7 +305,7 @@ class instance extends instance_skel {
 	}
 	connect() {
 		if (!this.hasError) {
-			this.status(this.STATUS_UNKNOWN, 'Connecting')
+			this.updateStatus(InstanceStatus.Connecting)
 		}
 		if (!this.disabled) {
 			this.init_osc()
@@ -387,8 +317,8 @@ class instance extends instance_skel {
 		var self = this
 
 		if (self.needPasscode && (self.config.passcode == undefined || self.config.passcode == '')) {
-			self.status(self.STATUS_WARNING, 'Wrong Passcode')
-			self.debug('waiting for passcode')
+			self.updateStatus(InstanceStatus.ConnectionFailure, 'Wrong Passcode')
+			self.log('debug', 'waiting for passcode')
 			self.sendOSC('/connect', [])
 			if (self.timer !== undefined) {
 				clearTimeout(self.timer)
@@ -398,13 +328,13 @@ class instance extends instance_skel {
 				clearInterval(self.pulse)
 				self.pulse = undefined
 			}
-			self.timer = setTimeout(function () {
+			self.timer = setTimeout(() => {
 				self.prime_vars(ws)
 			}, 5000)
 		} else if (self.needWorkspace && self.ready) {
 			self.sendOSC('/version', [], true) // app global, not workspace
 			if (self.config.passcode !== undefined && self.config.passcode !== '') {
-				self.debug('sending passcode to', self.config.host)
+				self.log('debug', 'sending passcode to ' + self.config.host)
 				self.sendOSC('/connect', [
 					{
 						type: 's',
@@ -431,14 +361,14 @@ class instance extends instance_skel {
 			self.sendOSC('/overrideWindow', [], true)
 			self.sendOSC('/showMode', [])
 			self.sendOSC('/settings/general/minGoTime')
-			for (var o in self.choices.OVERRIDE) {
-				self.sendOSC('/overrides/' + self.choices.OVERRIDE[o].id, [], true)
+			for (var o in Choices.OVERRIDE) {
+				self.sendOSC('/overrides/' + Choices.OVERRIDE[o].id, [], true)
 			}
 			if (self.timer !== undefined) {
 				clearTimeout(self.timer)
 				self.timer = undefined
 			}
-			self.timer = setTimeout(function () {
+			self.timer = setTimeout(() => {
 				self.prime_vars(ws)
 			}, 5000)
 		}
@@ -446,58 +376,65 @@ class instance extends instance_skel {
 	/**
 	 * heartbeat/poll function for 'updates' that aren't automatic
 	 */
-	rePulse(ws) {
-		var self = this
-		var rc = self.runningCue
-		var cl = self.cl
-		var now = Date.now()
+	rePulse() {
+		const now = Date.now()
 
-		if (0 == self.pollCount % (self.config.useTenths ? 10 : 4)) {
-			self.sendOSC('/auditionWindow', [], true)
-			self.sendOSC('/overrideWindow', [], true)
+		if (0 == this.pollCount % (this.config.useTenths ? 10 : 4)) {
+			this.sendOSC('/auditionWindow', [], true)
+			this.sendOSC('/overrideWindow', [], true)
 
-			self.sendOSC('/cue_id' + (cl ? '/' + cl : '') + '/playheadId', [])
+			this.sendOSC('/cue_id' + (this.cl ? '/' + this.cl : '') + '/playheadId', [])
 
-			if (self.qLab3) {
-				self.sendOSC('/showMode', [])
+			if (this.qLab3) {
+				this.sendOSC('/showMode', [])
 			}
 		}
-		self.pollCount++
-		if (Object.keys(self.requestedCues).length > 0) {
-			var timeOut = now - 500
-			var cues = self.wsCues
-			var qNum
-			var qName
-			for (var k in self.requestedCues) {
-				if (self.requestedCues[k] < timeOut) {
+		this.pollCount++
+
+		if (Object.keys(this.requestedCues).length > 0) {
+			let variableValues = {}
+			const checkFeedbacks = new Set()
+
+			const timeOut = now - 500
+			for (let k in this.requestedCues) {
+				if (this.requestedCues[k] < timeOut) {
 					// no response from QLab for at least 500ms
 					// so delete the cue from our list
-					if (cues[k]) {
+					const cueObj = this.wsCues[k]
+					if (cueObj) {
 						// QLab sometimes sends 'reload the whole cue list'
 						// so a cue we were waiting for may have been moved/deleted between checks
-						qNum = cues[k].qNumber.replace(/[^\w\.]/gi, '_')
-						qName = cues[k].qName
-						if (qNum != '' && qName != '') {
-							delete self.cueColors[qNum]
-							self.setVariable('q_' + qNum + '_name')
+						const qNum = cueObj.qNumber.replace(/[^\w\.]/gi, '_')
+						const qName = cueObj.qName
+						if (qNum && qName) {
+							delete this.cueColors[qNum]
+							variableValues['q_' + qNum + '_name'] = undefined
 						}
-						self.setVariable('id_' + cues[k].uniqueID + '_name')
-						self.checkFeedbacks('q_bg')
-						self.checkFeedbacks('qid_bg')
+						variableValues['id_' + cueObj.uniqueID + '_name'] = undefined
+						checkFeedbacks.add('q_bg')
+						checkFeedbacks.add('qid_bg')
 					}
-					delete self.requestedCues[k]
+					delete this.requestedCues[k]
 				}
 			}
+
+			this.setVariableValues(variableValues)
+			if (checkFeedbacks.size > 0) {
+				this.checkFeedbacks(...Array.from(checkFeedbacks))
+			}
 		}
-		if (self.goDisabled && self.goAfter < now) {
-			self.goDisabled = false
-			self.checkFeedbacks('min_go')
+
+		if (this.goDisabled && this.goAfter < now) {
+			this.goDisabled = false
+			this.checkFeedbacks('min_go')
 		}
+
+		let rc = this.runningCue
 		if (rc && rc.pctElapsed > 0) {
-			if (self.qLab3) {
-				self.sendOSC('/runningOrPausedCues', [])
+			if (this.qLab3) {
+				this.sendOSC('/runningOrPausedCues', [])
 			} else {
-				self.sendOSC('/cue/active/valuesForKeys', self.qCueRequest)
+				this.sendOSC('/cue/active/valuesForKeys', this.qCueRequest)
 			}
 		}
 	}
@@ -516,14 +453,14 @@ class instance extends instance_skel {
 		}
 
 		if (!self.useTCP) {
-			self.status(self.STATUS_OK, 'UDP Mode')
+			self.updateStatus(InstanceStatus.Ok, 'UDP Mode')
 			return
 		}
 
 		if (self.config.host) {
 			self.qSocket = new OSC.TCPSocketPort({
 				localAddress: '0.0.0.0',
-				localPort: 53000 + self.port_offset,
+				localPort: 0, // 53000 + self.port_offset,
 				address: self.config.host,
 				port: 53000,
 				metadata: true,
@@ -532,12 +469,12 @@ class instance extends instance_skel {
 
 			self.qSocket.open()
 
-			self.qSocket.on('error', function (err) {
-				self.debug('Error', err)
+			self.qSocket.on('error', (err) => {
+				self.log('debug', 'Error: ' + err)
 				self.connecting = false
 				if (!self.hasError) {
 					self.log('error', 'Error: ' + err.message)
-					self.status(self.STATUS_ERROR, "Can't connect to QLab " + err.message)
+					self.updateStatus(InstanceStatus.UnknownError, "Can't connect to QLab " + err.message)
 					self.hasError = true
 				}
 				if (err.code == 'ECONNREFUSED') {
@@ -551,13 +488,13 @@ class instance extends instance_skel {
 						clearInterval(self.pulse)
 						self.pulse = undefined
 					}
-					self.timer = setTimeout(function () {
+					self.timer = setTimeout(() => {
 						self.connect()
 					}, 5000)
 				}
 			})
 
-			self.qSocket.on('close', function () {
+			self.qSocket.on('close', () => {
 				if (!self.hasError && self.ready) {
 					self.log('error', 'TCP Connection to QLab Closed')
 				}
@@ -571,12 +508,12 @@ class instance extends instance_skel {
 					if (self.qSocket != undefined) {
 						self.qSocket.removeAllListeners()
 					}
-					self.debug('Connection closed')
+					self.log('debug', 'Connection closed')
 					self.ready = false
 					if (self.disabled) {
-						self.status(self.STATUS_UNKNOWN, 'Disabled')
+						self.updateStatus(InstanceStatus.Disconnected, 'Disabled')
 					} else {
-						self.status(self.STATUS_WARNING, 'CLOSED')
+						self.updateStatus(InstanceStatus.Disconnected, 'CLOSED')
 					}
 				}
 				if (self.timer !== undefined) {
@@ -589,25 +526,25 @@ class instance extends instance_skel {
 				}
 				if (!self.disabled) {
 					// don't restart if instance was disabled
-					self.timer = setTimeout(function () {
+					self.timer = setTimeout(() => {
 						self.connect()
 					}, 5000)
 				}
 				self.hasError = true
 			})
 
-			self.qSocket.on('ready', function () {
+			self.qSocket.on('ready', () => {
 				self.ready = true
 				self.connecting = false
 				self.hasError = false
 				self.log('info', 'Connected to QLab:' + self.config.host)
-				self.status(self.STATUS_WARNING, 'No Workspaces')
+				self.updateStatus(InstanceStatus.UnknownWarning, 'No Workspaces')
 				self.needWorkspace = true
 
 				self.prime_vars(ws)
 			})
 
-			self.qSocket.on('message', function (message) {
+			self.qSocket.on('message', (message) => {
 				// debug("received ", message, "from", self.qSocket.options.address);
 				if (message.address.match(/^\/update\//)) {
 					// debug("readUpdate");
@@ -616,11 +553,11 @@ class instance extends instance_skel {
 					// debug("readReply");
 					self.readReply(message)
 				} else {
-					self.debug(message.address, message.args)
+					self.log('debug', message.address + ' ' + JSON.stringify(message.args))
 				}
 			})
 		}
-		// self.qSocket.on("data", function(data){
+		// self.qSocket.on("data", (data) => {
 		// 	debug ("Got",data, "from",self.qSocket.options.address);
 		// });
 	}
@@ -662,11 +599,10 @@ class instance extends instance_skel {
 		var q = {}
 
 		if (Array.isArray(jCue)) {
-			var i = 0
 			var idCount = {}
 			var dupIds = false
-			while (i < jCue.length) {
-				q = new self.Cue(jCue[i], self)
+			for (let i = 0; i < jCue.length; i++) {
+				q = new Cue(jCue[i], self)
 				q.qOrder = i
 				if (ql) {
 					q.qList = ql
@@ -695,17 +631,13 @@ class instance extends instance_skel {
 					}
 				}
 				delete self.requestedCues[q.uniqueID]
-				i += 1
 			}
-			self.checkFeedbacks('q_bg')
-			self.checkFeedbacks('qid_bg')
-			self.checkFeedbacks('q_run')
-			self.checkFeedbacks('qid_run')
+			this.checkFeedbacks('q_bg', 'qid_bg', 'q_run', 'qid_run')
 			if (dupIds) {
-				self.status(self.STATUS_WARNING, 'Multiple cues\nwith the same cue_id')
+				self.updateStatus(InstanceStatus.UnknownWarning, 'Multiple cues\nwith the same cue_id')
 			}
 		} else {
-			q = new self.Cue(jCue, self)
+			q = new Cue(jCue, self)
 			if (qTypes.includes(q.qType)) {
 				self.updateQVars(q)
 				self.wsCues[q.uniqueID] = q
@@ -724,9 +656,8 @@ class instance extends instance_skel {
 						}
 					}
 				}
-				self.checkFeedbacks('q_run')
-				self.checkFeedbacks('qid_run')
-				self.updatePlaying()
+				this.checkFeedbacks('q_run', 'qid_run')
+				this.updatePlaying()
 				if ('' == self.cl || (self.cueList[self.cl] && self.cueList[self.cl].includes(q.uniqueID))) {
 					if (q.uniqueID == self.nextCue) {
 						self.updateNextCue()
@@ -757,7 +688,7 @@ class instance extends instance_skel {
 		var runningCues = []
 		var q
 
-		Object.keys(cues).forEach(function (cue) {
+		Object.keys(cues).forEach((cue) => {
 			q = cues[cue]
 			// some cuelists (for example all manual slides) may not have a pre-programmed duration
 			if (q.isRunning || q.isPaused) {
@@ -787,12 +718,10 @@ class instance extends instance_skel {
 		// 		}
 		// 	}
 		// }
-		runningCues.sort(function (a, b) {
-			return b[1] - a[1]
-		})
+		runningCues.sort((a, b) => b[1] - a[1])
 
 		if (runningCues.length == 0) {
-			self.runningCue = new self.Cue()
+			self.runningCue = new Cue()
 		} else {
 			i = 0
 			if (hasGroup) {
@@ -849,7 +778,7 @@ class instance extends instance_skel {
 				if ((self.cl == '' || cl == self.cl) && oa !== self.nextCue) {
 					// playhead changed
 					self.nextCue = oa
-					self.debug('playhead: ' + oa)
+					self.log('debug', 'playhead: ' + oa)
 					self.sendOSC('/cue_id/' + oa + '/valuesForKeys', self.qCueRequest)
 					self.requestedCues[oa] = Date.now()
 				}
@@ -872,7 +801,7 @@ class instance extends instance_skel {
 			// we delete our copy of the cue
 			self.requestedCues[uniqueID] = Date.now()
 		} else if (ma.match(/\/disconnect$/)) {
-			self.status(self.STATUS_WARNING, 'No Workspaces')
+			self.updateStatus(InstanceStatus.UnknownWarning, 'No Workspaces')
 			self.needWorkspace = true
 			self.needPasscode = false
 			self.lastRunID = 'x'
@@ -890,11 +819,11 @@ class instance extends instance_skel {
 			// ug. 8 more bytes and they could have sent the 'new' value :(
 			self.sendOSC('/settings/general/minGoTime')
 		} else if (ma.match(/\/settings\/overrides$/)) {
-			for (var o in self.choices.OVERRIDE) {
-				self.sendOSC('/overrides/' + self.choices.OVERRIDE[o].id, [], true)
+			for (var o in Choices.OVERRIDE) {
+				self.sendOSC('/overrides/' + Choices.OVERRIDE[o].id, [], true)
 			}
 		}
-		// self.debug("=====> OSC message: ",ma, message.args);
+		// self.log('debug', '=====> OSC message: ' + ma + ' ' + JSON.stringify(message.args))
 	}
 	/**
 	 * process QLab 'reply'
@@ -921,47 +850,47 @@ class instance extends instance_skel {
 			if (j.data == 'badpass') {
 				if (!self.needPasscode) {
 					self.needPasscode = true
-					self.status(self.STATUS_WARNING, 'Wrong Passcode')
+					self.updateStatus(InstanceStatus.ConnectionFailure, 'Wrong Passcode')
 					self.prime_vars(ws)
 				}
 			} else if (j.data == 'error') {
 				self.needPasscode = false
 				self.needWorkspace = true
-				self.status(self.STATUS_WARNING, 'No Workspaces')
+				self.updateStatus(InstanceStatus.UnknownWarning, 'No Workspaces')
 			} else if (j.data == 'ok') {
 				self.needPasscode = false
 				self.needWorkspace = !self.qLab3
-				self.status(self.STATUS_OK, 'Connected to ' + self.host)
+				self.updateStatus(InstanceStatus.Ok, 'Connected to ' + self.host)
 			}
 		}
 		if (ma.match(/updates$/)) {
 			// only works on QLab4
 			self.needWorkspace = false
-			self.status(self.STATUS_OK, 'Connected to QLab')
+			self.updateStatus(InstanceStatus.Ok, 'Connected to QLab')
 			if (self.pulse !== undefined) {
-				self.debug('cleared stray interval')
+				self.log('debug', 'cleared stray interval')
 				clearInterval(self.pulse)
 			}
 			self.pulse = setInterval(
-				function () {
-					self.rePulse(ws)
+				() => {
+					self.rePulse()
 				},
 				self.config.useTenths ? 100 : 250
 			)
 		} else if (ma.match(/version$/)) {
 			if (j.data != undefined) {
 				self.qLab3 = j.data.match(/^(4|5)\./) == null
-				self.setVariable('q_ver', j.data)
+				self.setVariableValues({ q_ver: j.data })
 			}
 			if (self.qLab3) {
 				// QLab3 always has a 'workspace' (it may be empty)
 				if (self.pulse !== undefined) {
-					self.debug('cleared stray interval')
+					self.log('debug', 'cleared stray interval')
 					clearInterval(self.pulse)
 				}
 				self.pulse = setInterval(
-					function () {
-						self.rePulse(ws)
+					() => {
+						self.rePulse()
 					},
 					self.config.useTenths ? 100 : 250
 				)
@@ -1036,7 +965,7 @@ class instance extends instance_skel {
 			}
 		} else if (ma.match(/minGoTime$/)) {
 			self.minGo = j.data
-			self.setVariable('min_go', (Math.round(j.data * 100) / 100).toFixed(2))
+			self.setVariableValues({ min_go: (Math.round(j.data * 100) / 100).toFixed(2) })
 		} else if (ma.match(/\/doubleGoWindowRemaining$/)) {
 			var goLeft = Math.round(j.data * 1000)
 			self.goDisabled = goLeft > 0
@@ -1047,484 +976,33 @@ class instance extends instance_skel {
 			self.overrides[o] = j.data
 			self.checkFeedbacks('override')
 		} else {
-			self.debug('=====> OSC message: ', ma, message.args)
+			self.log('debug', '=====> OSC message: ' + ma + ' ' + JSON.stringify(message.args))
 		}
 	}
+
 	// Return config fields for web config
-	config_fields() {
-		var self = this
-
-		const configs = [
-			{
-				type: 'text',
-				id: 'info',
-				width: 12,
-				label: 'Information',
-				value:
-					'Controls <a href="https://qlab.app" target="_new">QLab</a> by Figure 53.' +
-					'<br>Feedback and variables require TCP<br>which will increase network traffic.',
-			},
-			{
-				type: 'textinput',
-				id: 'host',
-				label: 'Target IP',
-				width: 6,
-				tooltip: 'The IP of the computer running QLab',
-				regex: self.REGEX_IP,
-			},
-			{
-				type: 'checkbox',
-				label: 'Use TCP?',
-				id: 'useTCP',
-				width: 20,
-				tooltip: 'Use TCP instead of UDP\nRequired for feedbacks',
-				default: false,
-			},
-			{
-				type: 'checkbox',
-				label: 'Use Tenths',
-				id: 'useTenths',
-				width: 20,
-				tooltip:
-					'Show .1 second resolution for cue remaining timer?\nOtherwise offset countdown by +1 second\nRequires TCP',
-				default: false,
-			},
-			{
-				type: 'textinput',
-				id: 'passcode',
-				label: 'OSC Passcode',
-				width: 12,
-				tooltip: 'The passcode to controll QLab.\nLeave blank if not needed.',
-			},
-			{
-				type: 'textinput',
-				id: 'workspace',
-				label: 'Workspace',
-				width: 12,
-				tooltip: "Enter the name or ID for the workspace.\n Leave blank or enter 'default' for the front Workspace",
-				default: 'default',
-			},
-		]
-
-		if (Object.keys(self.cueList).length > 0) {
-			const clist = {
-				type: 'dropdown',
-				id: 'cuelist',
-				label: 'Specific Cue List',
-				tooltip: 'Select a specific Cue List for Play Head Variables',
-				width: 12,
-				default: 'default',
-				choices: [
-					{
-						id: 'default',
-						label: 'Default Cue List',
-					},
-				],
-			}
-
-			for (let c in self.cueList) {
-				clist.choices.push({
-					id: c,
-					label: self.wsCues[c].qName,
-				})
-			}
-
-			configs.push(clist)
-		}
-
-		return configs
+	getConfigFields() {
+		return GetConfigFields(this)
 	}
+
 	// When module gets deleted
-	destroy() {
-		var self = this
-		self.resetVars(true)
-		self.disabled = true
-		if (self.timer !== undefined) {
-			clearTimeout(self.timer)
-			delete self.timer
+	async destroy() {
+		this.disabled = true
+		this.resetVars(true)
+		if (this.timer !== undefined) {
+			clearTimeout(this.timer)
+			delete this.timer
 		}
-		if (self.pulse !== undefined) {
-			clearInterval(self.pulse)
-			delete self.pulse
+		if (this.pulse !== undefined) {
+			clearInterval(this.pulse)
+			delete this.pulse
 		}
-		if (self.qSocket) {
-			self.ready = false
-			self.qSocket.close()
-			delete self.qSocket
-		}
-	}
-	// eslint-disable-next-line no-unused-vars
-	actions() {
-		this.setActions(this.Actions.setActions.call(this))
-	}
-	action(action) {
-		var self = this
-		var opt = action.options
-		var cmd
-		var arg = []
-		var ws = self.ws
-		var cl = self.cl
-		var nc = self.wsCues[self.nextCue]
-		var optTime
-		var typeTime
-		var optCue
-		var optCueId
-
-		// internal function for action (not anonymous)
-		// self is properly scoped to next outer closure
-		function setToggle(oldVal, opt) {
-			return '2' == opt ? 1 - (oldVal ? 1 : 0) : parseInt(opt)
-		}
-
-		self.parseVariables(opt?.cue, function (v) {
-			optCue = v
-		})
-
-		self.parseVariables(opt?.cueId, function (v) {
-			optCueId = v
-		})
-
-		// if this is a +/- time action, preformat seconds arg
-		if (opt?.time) {
-			self.parseVariables(opt.time, function (v) {
-				optTime = v
-			})
-			optTime = parseFloat(optTime)
-			if (optTime.isInteger) {
-				typeTime = 'i'
-			} else {
-				typeTime = 'f'
-			}
-		}
-
-		switch (action.action) {
-			case 'start':
-				cmd = '/cue/' + optCue + '/start'
-				break
-
-			case 'goto':
-				cmd = '/playhead/' + optCue
-				break
-
-			case 'copyCueID':
-				self.actions()
-				self.init_feedbacks()
-				break
-
-			case 'start_id':
-				cmd = '/cue_id/' + optCueId + '/start'
-				break
-
-			case 'goto_id':
-				cmd = '/playheadId/' + optCueId
-				break
-
-			case 'go':
-				cmd = '/go'
-				break
-
-			case 'preview':
-				cmd = '/cue/selected/preview'
-				break
-
-			case 'pause':
-				cmd = '/pause'
-				break
-
-			case 'togglePause':
-				cmd = '/cue/selected/togglePause'
-				break
-
-			case 'stop':
-				cmd = '/stop'
-				break
-
-			case 'stopSelected':
-				cmd = '/cue/selected/stop'
-				break
-
-			case 'stop_cue':
-				cmd = '/cue/' + optCue + '/stop'
-				break
-
-			case 'stop_id':
-				cmd = '/cue_id/' + optCueId + '/stop'
-				break
-
-			case 'panic':
-				cmd = '/panic'
-				break
-
-			case 'panicSelected':
-				cmd = '/cue/selected/panic'
-				break
-
-			case 'panicInTime':
-				cmd = '/panicInTime'
-				arg = {
-					type: typeTime,
-					value: optTime,
-				}
-				break
-
-			case 'panic_cue':
-				cmd = '/cue/' + optCue + '/panic'
-				break
-
-			case 'panicInTime_cue':
-				cmd = '/cue/' + optCue + '/panicInTime'
-				arg = {
-					type: typeTime,
-					value: optTime,
-				}
-				break
-
-			case 'panic_id':
-				cmd = '/cue_id/' + optCueId + '/panic'
-				break
-
-			case 'panicInTime_id':
-				cmd = '/cue_id/' + optCueId + '/panicInTime'
-				arg = {
-					type: typeTime,
-					value: optTime,
-				}
-				break
-
-			case 'reset':
-				cmd = '/reset'
-				break
-
-			case 'previous':
-				cmd = '/playhead/previous'
-				break
-
-			case 'next':
-				cmd = '/playhead/next'
-				break
-
-			case 'resume':
-				cmd = '/resume'
-				break
-
-			case 'load':
-				cmd = '/cue/selected/load'
-				break
-
-			case 'prewait_dec':
-				arg = {
-					type: typeTime,
-					value: optTime,
-				}
-				cmd = '/cue/selected/preWait/-'
-				break
-
-			case 'prewait_inc':
-				arg = {
-					type: typeTime,
-					value: optTime,
-				}
-				cmd = '/cue/selected/preWait/+'
-				break
-
-			case 'postwait_dec':
-				arg = {
-					type: typeTime,
-					value: optTime,
-				}
-				cmd = '/cue/selected/postWait/-'
-				break
-
-			case 'postwait_inc':
-				arg = {
-					type: typeTime,
-					value: optTime,
-				}
-				cmd = '/cue/selected/postWait/+'
-				break
-
-			case 'duration_dec':
-				arg = {
-					type: typeTime,
-					value: optTime,
-				}
-				cmd = '/cue/selected/duration/-'
-				break
-
-			case 'duration_inc':
-				arg = {
-					type: typeTime,
-					value: optTime,
-				}
-				cmd = '/cue/selected/duration/+'
-				break
-
-			case 'startTime_inc':
-				arg = {
-					type: typeTime,
-					value: optTime,
-				}
-				cmd = '/cue/selected/startTime/+'
-				break
-
-			case 'startTime_dec':
-				arg = {
-					type: typeTime,
-					value: optTime,
-				}
-				cmd = '/cue/selected/startTime/-'
-				break
-
-			case 'endTime_inc':
-				arg = {
-					type: typeTime,
-					value: optTime,
-				}
-				cmd = '/cue/selected/endTime/+'
-				break
-
-			case 'endTime_dec':
-				arg = {
-					type: typeTime,
-					value: optTime,
-				}
-				cmd = '/cue/selected/endTime/-'
-				break
-
-			case 'continue':
-				arg = {
-					type: 'i',
-					value: parseInt(opt.contId),
-				}
-				cmd = '/cue/selected/continueMode'
-				break
-
-			case 'arm':
-				arg = {
-					type: 'i',
-					value: setToggle(nc.isArmed, opt.armId),
-				}
-				cmd = '/cue/selected/armed'
-				break
-
-			case 'autoload':
-				arg = {
-					type: 'i',
-					value: setToggle(nc.autoLoad, opt.autoId),
-				}
-				cmd = '/cue/selected/autoLoad'
-				break
-
-			case 'flagged':
-				arg = {
-					type: 'i',
-					value: setToggle(nc.isFlagged, opt.flagId),
-				}
-				cmd = '/cue/selected/flagged'
-				break
-
-			case 'cueColor':
-				arg = {
-					type: 's',
-					value: '' + opt.colorId,
-				}
-				cmd = '/cue/selected/colorName'
-				break
-			case 'showMode':
-				arg = {
-					type: 'i',
-					value: setToggle(self.showMode, opt.onOff),
-				}
-				cmd = '/showMode'
-				break
-			case 'auditMode':
-				arg = {
-					type: 'i',
-					value: setToggle(self.auditMode, opt.onOff),
-				}
-				cmd = '/auditionWindow'
-				break
-			case 'overrideWindow':
-				arg = {
-					type: 'i',
-					value: setToggle(self.overrideWindow, opt.onOff),
-				}
-				cmd = '/overrideWindow'
-				break
-			case 'minGo':
-				arg = {
-					type: typeTime,
-					value: optTime,
-				}
-				cmd = '/settings/general/minGoTime'
-				break
-			case 'infiniteLoop':
-				arg = {
-					type: 'i',
-					value: setToggle(nc.infiniteLoop, opt.choice),
-				}
-				cmd = '/cue/selected/infiniteLoop'
-				break
-
-			case 'holdLastFrame':
-				arg = {
-					type: 'i',
-					value: setToggle(nc.holdLastFrame, opt.choice),
-				}
-				cmd = '/cue/selected/holdLastFrame'
-				break
-
-			case 'overrides':
-				arg = {
-					type: 'i',
-					value: setToggle(self.overrides[opt.which], opt.onOff),
-				}
-				cmd = '/overrides/' + opt.which
-				break
-			// switch
-		}
-
-		if (arg == null) {
-			arg = []
-		}
-
-		if (cl && self.cueListActions.includes(action.action)) {
-			cmd = '/cue_id/' + cl + cmd
-		}
-
-		if (self.useTCP && !self.ready) {
-			self.debug('Not connected to', self.config.host)
-		} else if (cmd !== undefined) {
-			self.debug('sending', cmd, arg, 'to', self.config.host)
-			// everything except 'auditionWindow' and 'overrideWindow' works on a specific workspace
-			self.sendOSC(cmd, arg, ['/auditionWindow', '/overrideWindow'].includes(cmd))
-		}
-		// QLab does not send window updates so ask for status
-		if (self.useTCP && ['/auditionWindow', '/overrideWindow'].includes(cmd)) {
-			self.sendOSC(cmd, [], true)
-			self.sendOSC('/cue/playhead/valuesForKeys', self.qCueRequest)
+		if (this.qSocket) {
+			this.ready = false
+			this.qSocket.close()
+			delete this.qSocket
 		}
 	}
 }
 
-instance.prototype.qCueRequest = [
-	{
-		type: 's',
-		value:
-			'["number","uniqueID","listName","type","isPaused","duration","actionElapsed","parent","flagged","notes",' +
-			'"autoLoad","colorName","isRunning","isLoaded","armed","isBroken","percentActionElapsed","cartPosition",' +
-			'"infiniteLoop","holdLastFrame"]',
-	},
-]
-
-instance.prototype.QSTATUS_CHAR = {
-	broken: '\u2715',
-	running: '\u23F5',
-	paused: '\u23F8',
-	loaded: '\u23FD',
-	idle: '\u00b7',
-}
-
-instance.prototype.cueListActions = ['go', 'next', 'panic', 'previous', 'reset', 'stop', 'togglePause']
-
-exports = module.exports = instance
+runEntrypoint(QLabInstance, UpgradeScripts)

@@ -2,6 +2,7 @@
 	"name": "figure53-qlab-advance",
 	"version": "2.0.0",
 	"main": "qlabfb.js",
+	"type": "module",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},

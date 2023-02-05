@@ -1,33 +1,36 @@
-function Cue(j, i) {
-	this.uniqueID = ''
-	this.qName = '[none]'
-	this.qNumber = ''
-	this.isLoaded = false
-	this.isBroken = false
-	this.isRunning = false
-	this.isPaused = false
-	this.isArmed = false
-	this.isFlagged = false
-	this.infiniteLoop = false
-	this.holdLastFrame = false
-	this.autoLoad = false
-	this.duration = 0
-	this.pctElapsed = 0
-	this.startedAt = -1
-	this.qColor = 0
-	this.qColorName = ''
-	this.qOrder = -1
-	this.qParent = ''
-	this.qList = ''
-	this.Notes = ''
-	if (j != undefined) {
-		JSONtoCue(this, j, i)
+import * as Colors from './colors.js'
+
+class Cue {
+	uniqueID = ''
+	qName = '[none]'
+	qNumber = ''
+	isLoaded = false
+	isBroken = false
+	isRunning = false
+	isPaused = false
+	isArmed = false
+	isFlagged = false
+	infiniteLoop = false
+	holdLastFrame = false
+	autoLoad = false
+	duration = 0
+	pctElapsed = 0
+	startedAt = -1
+	qColor = 0
+	qColorName = ''
+	qOrder = -1
+	qParent = ''
+	qList = ''
+	Notes = ''
+
+	constructor(j, self) {
+		if (j != undefined) {
+			JSONtoCue(this, j, self)
+		}
 	}
 }
 
-function JSONtoCue(newCue, j, i) {
-	var isExistingQ
-
+function JSONtoCue(newCue, j, self) {
 	newCue.uniqueID = j.uniqueID
 	newCue.qName = j.listName == '' ? '[none]' : j.listName
 	newCue.qNumber = j.number
@@ -48,16 +51,17 @@ function JSONtoCue(newCue, j, i) {
 	if (j.notes) {
 		newCue.Notes = j.notes.slice(0, 20)
 	}
-	newCue.qColor = i.colors.colorRGB[j.colorName]
-	isExistingQ = newCue.uniqueID in i.wsCues
+	newCue.qColor = Colors.colorRGB[j.colorName]
+
+	const isExistingQ = newCue.uniqueID in self.wsCues
 
 	if (isExistingQ) {
-		newCue.qOrder = i.wsCues[newCue.uniqueID].qOrder
+		newCue.qOrder = self.wsCues[newCue.uniqueID].qOrder
 	}
 
 	if (newCue.isRunning || newCue.isPaused) {
 		if (isExistingQ) {
-			if (0 == (newCue.startedAt = i.wsCues[newCue.uniqueID].startedAt)) {
+			if (0 == (newCue.startedAt = self.wsCues[newCue.uniqueID].startedAt)) {
 				newCue.startedAt = Date.now()
 			}
 		} else {
@@ -69,4 +73,4 @@ function JSONtoCue(newCue, j, i) {
 	}
 }
 
-module.exports = Cue
+export default Cue
