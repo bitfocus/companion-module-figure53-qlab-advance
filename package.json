@@ -1,35 +1,20 @@
 {
 	"name": "figure53-qlab-advance",
-	"legacy": [
-		"qlab-advance",
-		"qlab",
-		"figure53-qlab"
-	],
-	"version": "1.5.3",
-	"api_version": "1.0.0",
-	"keywords": [
-		"Software",
-		"Media Server"
-	],
-	"manufacturer": "Figure 53",
-	"product": "QLab with feedback",
-	"shortname": "qlabfb",
-	"description": "QLab plugin for Companion with feedback",
+	"version": "2.0.0",
 	"main": "qlabfb.js",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
-	"author": "John A Knight Jr <jjr@ayesti.com>",
-	"contributors": [
-		"Per Røine <per.roine@gmail.com>"
-	],
 	"license": "MIT",
-	"homepage": "https://github.com/bitfocus/companion-module-figure53-qlab-advance#readme",
-	"bugs": {
-		"url": "https://github.com/bitfocus/companion-module-figure53-qlab-advance/issues"
-	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/bitfocus/companion-module-figure53-qlab-advance.git"
+	},
+	"dependencies": {
+		"@companion-module/base": "~1.1.1",
+		"osc": "^2.4.3"
+	},
+	"devDependencies": {
+		"@companion-module/tools": "^1.0.0"
 	}
 }
