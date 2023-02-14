@@ -714,6 +714,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-duration-1s+'] = {
