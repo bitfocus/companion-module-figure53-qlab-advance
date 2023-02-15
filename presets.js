@@ -43,6 +43,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['cuelist-go'] = {
@@ -123,6 +124,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['cuelist-stop'] = {
@@ -146,9 +148,11 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['cuelist-stop-selected'] = {
+		type: 'button',
 		category: 'CueList',
 		name: 'Stop selected',
 		style: {
@@ -168,6 +172,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['cuelist-panic'] = {
@@ -193,6 +198,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['cuelist-reset'] = {
@@ -216,6 +222,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['cuelist-preview'] = {
@@ -239,6 +246,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['cuelist-previous-cue'] = {
@@ -264,6 +272,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['cuelist-next-cue'] = {
@@ -289,6 +298,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['cuelist-load-cue'] = {
@@ -312,6 +322,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['cuelist-show-mode'] = {
@@ -337,6 +348,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['cuelist-edit-mode'] = {
@@ -362,6 +374,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['cuelist-audition-on'] = {
@@ -388,6 +401,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['cuelist-audition-off'] = {
@@ -414,6 +428,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-prewait-1s-'] = {
@@ -439,6 +454,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-prewait-10s-'] = {
@@ -464,6 +480,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-prewait-10s+'] = {
@@ -489,6 +506,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-prewait-1s+'] = {
@@ -514,6 +532,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-postwait-1s-'] = {
@@ -539,6 +558,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-postwait-10s-'] = {
@@ -564,6 +584,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-postwait-10s+'] = {
@@ -589,6 +610,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-postwait-1s+'] = {
@@ -614,6 +636,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-duration-1s-'] = {
@@ -639,6 +662,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-duration-10s-'] = {
@@ -664,6 +688,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-duration-10s+'] = {
@@ -689,6 +714,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-duration-1s+'] = {
@@ -714,6 +740,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-starttime-1s+'] = {
@@ -739,6 +766,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-starttime-10s+'] = {
@@ -764,6 +792,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-starttime-1s-'] = {
@@ -789,6 +818,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-starttime-10s-'] = {
@@ -814,6 +844,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-endtime-1s+'] = {
@@ -839,6 +870,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-endtime-10s+'] = {
@@ -864,6 +896,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-endtime-1s-'] = {
@@ -889,6 +922,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-endtime-10s-'] = {
@@ -914,6 +948,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-continue-mode-dnc'] = {
@@ -939,6 +974,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-continue-mode-auto-continue'] = {
@@ -964,6 +1000,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-continue-mode-auto-follow'] = {
@@ -989,6 +1026,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-disarm'] = {
@@ -1014,6 +1052,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-arm'] = {
@@ -1039,6 +1078,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-autoload-enable'] = {
@@ -1064,6 +1104,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-autoload-disable'] = {
@@ -1089,6 +1130,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-flagged'] = {
@@ -1114,6 +1156,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets['edit-unflagged'] = {
@@ -1139,6 +1182,7 @@ export function compilePresetDefinitions(self) {
 				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	for (let c of Colors.colorName) {
@@ -1165,6 +1209,7 @@ export function compilePresetDefinitions(self) {
 					up: [],
 				},
 			],
+			feedbacks: [],
 		}
 	}
 
