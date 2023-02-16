@@ -28,7 +28,7 @@ export const UpgradeScripts = [
 			if (props.config.useTenths == undefined) {
 				props.config.useTenths = false
 
-				result.config = props.config
+				result.updatedConfig = props.config
 			}
 		}
 
