@@ -32,6 +32,7 @@ class QLabInstance extends InstanceBase {
 	constructor(internal) {
 		super(internal)
 
+		this.instanceOptions.disableVariableValidation = true
 		this.connecting = false
 		this.needPasscode = false
 		this.useTCP = false
@@ -170,6 +171,7 @@ class QLabInstance extends InstanceBase {
 
 		this.setVariableValues(variableValues)
 	}
+
 	updateRunning() {
 		var self = this
 		var tenths = self.config.useTenths ? 0 : 1
