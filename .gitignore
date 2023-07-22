@@ -3,3 +3,5 @@ node_modules/
 /pkg
 /pkg.tgz
 DEBUG-INSPECT
+DEBUG-PACKAGE
+DEBUG-PACKAGED

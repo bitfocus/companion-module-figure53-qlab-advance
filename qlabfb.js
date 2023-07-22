@@ -36,7 +36,7 @@ class QLabInstance extends InstanceBase {
 		this.connecting = false
 		this.needPasscode = false
 		this.useTCP = false
-		this.qLab3 = false
+		this.qVer = 4
 		this.hasError = false
 		this.disabled = true
 		this.pollCount = 0
@@ -346,6 +346,15 @@ class QLabInstance extends InstanceBase {
 			} else {
 				self.sendOSC('/connect', [])
 			}
+			if (self.timer !== undefined) {
+				clearTimeout(self.timer)
+				self.timer = undefined
+			}
+			self.timer = setTimeout(() => {
+				self.prime_vars(ws)
+			}, 5000)
+		} else {
+			// should have a workspace now
 
 			// request variable/feedback info
 			// get list of running cues
@@ -359,7 +368,9 @@ class QLabInstance extends InstanceBase {
 			])
 
 			self.sendOSC('/cueLists', [])
-			self.sendOSC('/auditionWindow', [], true)
+			if (self.qVer < 5) {
+				self.sendOSC('/auditionWindow', [], true)
+			}
 			self.sendOSC('/overrideWindow', [], true)
 			self.sendOSC('/showMode', [])
 			self.sendOSC('/settings/general/minGoTime')
@@ -370,24 +381,25 @@ class QLabInstance extends InstanceBase {
 				clearTimeout(self.timer)
 				self.timer = undefined
 			}
-			self.timer = setTimeout(() => {
-				self.prime_vars(ws)
-			}, 5000)
 		}
 	}
+
 	/**
 	 * heartbeat/poll function for 'updates' that aren't automatic
 	 */
 	rePulse() {
 		const now = Date.now()
+		const phID = (this.qVer<5) ? 'Id' : 'ID'
 
 		if (0 == this.pollCount % (this.config.useTenths ? 10 : 4)) {
-			this.sendOSC('/auditionWindow', [], true)
 			this.sendOSC('/overrideWindow', [], true)
 
-			this.sendOSC('/cue_id' + (this.cl ? '/' + this.cl : '') + '/playheadId', [])
+			this.sendOSC((this.cl ? '/cue/' + this.cl : '') + `/playhead${phID}`, [])
 
-			if (this.qLab3) {
+			if (4 == this.qVer) {
+				this.sendOSC('/auditionWindow', [], true)
+			}
+			if (3 == this.qVer) {
 				this.sendOSC('/showMode', [])
 			}
 		}
@@ -433,13 +445,14 @@ class QLabInstance extends InstanceBase {
 
 		let rc = this.runningCue
 		if (rc && rc.pctElapsed > 0) {
-			if (this.qLab3) {
+			if (3 == this.qVer) {
 				this.sendOSC('/runningOrPausedCues', [])
 			} else {
 				this.sendOSC('/cue/active/valuesForKeys', this.qCueRequest)
 			}
 		}
 	}
+
 	init_osc() {
 		var self = this
 		var ws = self.ws
@@ -547,7 +560,7 @@ class QLabInstance extends InstanceBase {
 			})
 
 			self.qSocket.on('message', (message) => {
-				// debug("received ", message, "from", self.qSocket.options.address);
+				//self.log('debug', 'received ' + JSON.stringify(message) + `from ${self.qSocket.options.address}`)
 				if (message.address.match(/^\/update\//)) {
 					// debug("readUpdate");
 					self.readUpdate(message)
@@ -643,7 +656,7 @@ class QLabInstance extends InstanceBase {
 			if (qTypes.includes(q.qType)) {
 				self.updateQVars(q)
 				self.wsCues[q.uniqueID] = q
-				if (self.qLab3) {
+				if (3 == self.qVer) {
 					// QLab3 seems to send cue lists as 'group' cues
 					if ('group' == q.qType) {
 						if (!self.cueList[q.uniqueID]) self.cueList[q.uniqueID] = []
@@ -859,35 +872,36 @@ class QLabInstance extends InstanceBase {
 				self.needPasscode = false
 				self.needWorkspace = true
 				self.updateStatus(InstanceStatus.UnknownWarning, 'No Workspaces')
-			} else if (j.data == 'ok') {
+			} else if (j.data.slice(0,2) == 'ok') {
 				self.needPasscode = false
-				self.needWorkspace = !self.qLab3
+				self.needWorkspace = false
 				self.updateStatus(InstanceStatus.Ok, 'Connected to ' + self.host)
 			}
-		}
-		if (ma.match(/updates$/)) {
-			// only works on QLab4
-			self.needWorkspace = false
-			self.updateStatus(InstanceStatus.Ok, 'Connected to QLab')
-			if (self.pulse !== undefined) {
-				self.log('debug', 'cleared stray interval')
-				clearInterval(self.pulse)
+		} else if (ma.match(/updates$/)) {
+			// only works on QLab > 3
+			if ('denied' != j.status) {
+				self.needWorkspace = false
+				self.updateStatus(InstanceStatus.Ok, 'Connected to QLab')
+				if (self.pulse !== undefined) {
+					self.log('debug', 'cleared stray interval (u)')
+					clearInterval(self.pulse)
+				}
+				self.pulse = setInterval(
+					() => {
+						self.rePulse()
+					},
+					self.config.useTenths ? 100 : 250
+				)
 			}
-			self.pulse = setInterval(
-				() => {
-					self.rePulse()
-				},
-				self.config.useTenths ? 100 : 250
-			)
 		} else if (ma.match(/version$/)) {
 			if (j.data != undefined) {
-				self.qLab3 = j.data.match(/^(4|5)\./) == null
+				self.qVer = parseInt(j.data)
 				self.setVariableValues({ q_ver: j.data })
 			}
-			if (self.qLab3) {
+			if (3 == self.qVer) {
 				// QLab3 always has a 'workspace' (it may be empty)
 				if (self.pulse !== undefined) {
-					self.log('debug', 'cleared stray interval')
+					self.log('debug', 'cleared stray interval (v)')
 					clearInterval(self.pulse)
 				}
 				self.pulse = setInterval(
@@ -897,7 +911,7 @@ class QLabInstance extends InstanceBase {
 					self.config.useTenths ? 100 : 250
 				)
 			} else {
-				self.needWorkspace = !self.qLab3
+				self.needWorkspace = self.qVer > 3
 			}
 		} else if (ma.match(/uniqueID$/)) {
 			if (j.data) {
@@ -905,7 +919,7 @@ class QLabInstance extends InstanceBase {
 				self.updateNextCue()
 				self.sendOSC('/cue/playhead/valuesForKeys', qr)
 			}
-		} else if (ma.match(/playheadId$/)) {
+		} else if (ma.match(/playheadI[dD]$/)) {
 			if (j.data) {
 				playheadId = j.data
 				uniqueID = ma.substr(14, 36)

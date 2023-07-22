@@ -239,7 +239,8 @@ export function compileActionDefinitions(self) {
 			],
 			callback: async (action, context) => {
 				const optCueId = await context.parseVariablesInString(action.options.cueId)
-				await sendCommand(action, '/playheadId/' + optCueId)
+				const phID = (self.qVer< 5 ? 'Id' : 'ID')
+				await sendCommand(action, `/playhead${phID}/` + optCueId)
 			},
 		},
 		start_id: {
