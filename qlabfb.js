@@ -75,9 +75,6 @@ class QLabInstance extends InstanceBase {
 
 		// clear 'variables'
 		if (doUpdate && this.useTCP) {
-			this.updateNextCue()
-			this.updatePlaying()
-
 			let newValues = {}
 
 			for (const [cue, cueObj] of Object.entries(this.wsCues)) {
@@ -93,9 +90,7 @@ class QLabInstance extends InstanceBase {
 			}
 
 			this.setVariableValues(newValues)
-			this.checkFeedbacks('q_bg', 'qid_bg')
 		}
-
 		// need a valid QLab reply
 		this.needWorkspace = true
 		this.needPasscode = false
@@ -114,6 +109,10 @@ class QLabInstance extends InstanceBase {
 		this.goDisabled = false
 		this.goAfter = 0
 		this.minGo = 0
+		this.checkFeedbacks()
+		this.updateQVars()
+		this.updateNextCue()
+		this.updatePlaying()
 	}
 
 	updateNextCue() {
@@ -130,6 +129,7 @@ class QLabInstance extends InstanceBase {
 		this.checkFeedbacks('playhead_bg')
 	}
 	updateQVars(q) {
+		q = q || new Cue()
 		var self = this
 		var qID = q.uniqueID
 		var qNum = q.qNumber.replace(/[^\w\.]/gi, '_')
@@ -295,7 +295,10 @@ class QLabInstance extends InstanceBase {
 				host = this.config.host
 			}
 			if (this.config.passcode !== undefined && this.config.passcode !== '') {
-				this.oscSend(host, 53000, ws + '/connect', [this.config.passcode])
+				this.oscSend(host, 53000, ws + '/connect', {
+					type: 's',
+					value: this.config.passcode,
+				})
 			}
 			this.oscSend(host, 53000, ws + node, arg)
 		} else if (this.ready) {
@@ -389,7 +392,7 @@ class QLabInstance extends InstanceBase {
 	 */
 	rePulse() {
 		const now = Date.now()
-		const phID = (this.qVer<5) ? 'Id' : 'ID'
+		const phID = this.qVer < 5 ? 'Id' : 'ID'
 
 		if (0 == this.pollCount % (this.config.useTenths ? 10 : 4)) {
 			this.sendOSC('/overrideWindow', [], true)
@@ -467,20 +470,26 @@ class QLabInstance extends InstanceBase {
 			delete self.qSocket
 		}
 
-		if (!self.useTCP) {
-			self.updateStatus(InstanceStatus.Ok, 'UDP Mode')
-			return
-		}
-
 		if (self.config.host) {
-			self.qSocket = new OSC.TCPSocketPort({
-				localAddress: '0.0.0.0',
-				localPort: 0, // 53000 + self.port_offset,
-				address: self.config.host,
-				port: 53000,
-				metadata: true,
-			})
-			self.connecting = true
+			if (self.useTCP) {
+				self.qSocket = new OSC.TCPSocketPort({
+					localAddress: '0.0.0.0',
+					localPort: 0, // 53000 + self.port_offset,
+					address: self.config.host,
+					port: 53000,
+					metadata: true,
+				})
+				self.connecting = true
+			} else {
+				self.qSocket = new OSC.UDPPort({
+					localAddress: '0.0.0.0',
+					localPort: 53001, // 53000 + self.port_offset,
+					remoteAddress: self.config.host,
+					remotePort: 53000,
+					metadata: true,
+				})
+				self.updateStatus(InstanceStatus.Ok, 'UDP Mode')
+			}
 
 			self.qSocket.open()
 
@@ -553,13 +562,20 @@ class QLabInstance extends InstanceBase {
 				self.connecting = false
 				self.hasError = false
 				self.log('info', 'Connected to QLab:' + self.config.host)
-				self.updateStatus(InstanceStatus.UnknownWarning, 'No Workspaces')
-				self.needWorkspace = true
-
-				self.prime_vars(ws)
+				if (self.useTCP) {
+					self.updateStatus(InstanceStatus.UnknownWarning, 'No Workspaces')
+					self.needWorkspace = true
+					self.prime_vars(ws)
+				} else {
+					self.needWorkspace = false
+					self.qSocket.send({
+						address: '/version',
+						args: [],
+					})
+				}
 			})
 
-			self.qSocket.on('message', (message) => {
+			self.qSocket.on('message', (message, timetag, info) => {
 				//self.log('debug', 'received ' + JSON.stringify(message) + `from ${self.qSocket.options.address}`)
 				if (message.address.match(/^\/update\//)) {
 					// debug("readUpdate");
@@ -872,7 +888,7 @@ class QLabInstance extends InstanceBase {
 				self.needPasscode = false
 				self.needWorkspace = true
 				self.updateStatus(InstanceStatus.UnknownWarning, 'No Workspaces')
-			} else if (j.data.slice(0,2) == 'ok') {
+			} else if (j.data.slice(0, 2) == 'ok') {
 				self.needPasscode = false
 				self.needWorkspace = false
 				self.updateStatus(InstanceStatus.Ok, 'Connected to ' + self.host)
@@ -911,7 +927,7 @@ class QLabInstance extends InstanceBase {
 					self.config.useTenths ? 100 : 250
 				)
 			} else {
-				self.needWorkspace = self.qVer > 3
+				self.needWorkspace = self.qVer > 3 && self.useTCP
 			}
 		} else if (ma.match(/uniqueID$/)) {
 			if (j.data) {
