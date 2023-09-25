@@ -12,7 +12,7 @@
 		"url": "git+https://github.com/bitfocus/companion-module-figure53-qlab-advance.git"
 	},
 	"dependencies": {
-		"@companion-module/base": "^1.4.1",
+		"@companion-module/base": "1.4.3",
 		"osc": "^2.4.3"
 	},
 	"devDependencies": {

@@ -45,16 +45,24 @@ class QLabInstance extends InstanceBase {
 	}
 
 	applyConfig(config) {
-		let ws = config.workspace
-		let cl = config.cuelist
+		let ws = config.workspace || 'default'
+		let cl = config.cuelist || 'default'
 
-		if (ws !== undefined && ws !== '' && ws !== 'default') {
+		if (config.cuelist == undefined) {
+			config.cuelist = cl
+		}
+
+		if (config.workspace == undefined) {
+			config.workspace = ws
+		}
+
+		if (ws !== '' && ws !== 'default') {
 			this.ws = '/workspace/' + ws
 		} else {
 			this.ws = ''
 		}
 
-		if (cl && cl !== '' && cl !== 'default') {
+		if (cl !== '' && cl !== 'default') {
 			this.cl = cl
 		} else {
 			this.cl = ''

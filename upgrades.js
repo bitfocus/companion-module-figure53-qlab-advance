@@ -60,4 +60,26 @@ export const UpgradeScripts = [
 
 		return result
 	},
+	function (context, props) {
+		// add default port # (QLab5 can configure a different port)
+
+		const result = {
+			updatedConfig: null,
+			updatedActions: [],
+			updatedFeedbacks: [],
+		}
+
+		if (props.config) {
+			if (props.config.port == undefined) {
+				props.config.port = '53000'
+				result.updatedConfig = props.config
+			}
+			if (props.config.cuelist == undefined) {
+				props.config.cuelist = 'default'
+				result.updatedConfig = props.config
+			}
+		}
+
+		return result
+	},
 ]

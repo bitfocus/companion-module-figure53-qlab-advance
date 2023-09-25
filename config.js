@@ -20,6 +20,15 @@ export function GetConfigFields(self) {
 			regex: Regex.IP,
 		},
 		{
+			type: 'textinput',
+			id: 'port',
+			label: 'Target Port',
+			width: 6,
+			tooltip: 'Port number configured on QLab\nto access the workspace',
+			default: 53000,
+			regex: Regex.PORT,
+		},
+		{
 			type: 'checkbox',
 			label: 'Use TCP?',
 			id: 'useTCP',
@@ -54,6 +63,7 @@ export function GetConfigFields(self) {
 	]
 
 	if (Object.keys(self.cueList).length > 0) {
+		const oldConfig = self.config
 		const clist = {
 			type: 'dropdown',
 			id: 'cuelist',
