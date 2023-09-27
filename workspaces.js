@@ -1,5 +1,3 @@
-import { lastIndexOf } from 'lodash-es'
-import * as Colors from './colors.js'
 
 class Workspace {
 	uniqueID = ''
