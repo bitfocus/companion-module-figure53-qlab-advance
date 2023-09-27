@@ -8,6 +8,7 @@ import { compileVariableDefinition } from './variables.js'
 import { UpgradeScripts } from './upgrades.js'
 import { GetConfigFields } from './config.js'
 import Cue from './cues.js'
+import Workspace from './workspaces.js'
 import * as Choices from './choices.js'
 
 function cueToStatusChar(cue) {
@@ -40,6 +41,7 @@ class QLabInstance extends InstanceBase {
 		this.hasError = false
 		this.disabled = true
 		this.pollCount = 0
+		this.wrongPasscode = ''
 
 		this.resetVars()
 	}
@@ -109,6 +111,7 @@ class QLabInstance extends InstanceBase {
 		this.cueOrder = []
 		this.cueByNum = {}
 		this.cueList = {}
+		this.wsList = {}
 		this.requestedCues = {}
 		this.overrides = {}
 		this.lastRunID = '-' + this.lastRunID
@@ -121,6 +124,8 @@ class QLabInstance extends InstanceBase {
 		this.updateQVars()
 		this.updateNextCue()
 		this.updatePlaying()
+		this.wrongPasscode = ''
+		this.wrongPasscodeAt = 0
 	}
 
 	updateNextCue() {
@@ -327,70 +332,71 @@ class QLabInstance extends InstanceBase {
 	// get current status of QLab cues and playhead
 	// and ask for updates
 	prime_vars(ws) {
-		var self = this
-
-		if (self.needPasscode && (self.config.passcode == undefined || self.config.passcode == '')) {
-			self.updateStatus(InstanceStatus.ConnectionFailure, 'Wrong Passcode')
-			self.log('debug', 'waiting for passcode')
-			self.sendOSC('/connect', [])
-			if (self.timer !== undefined) {
-				clearTimeout(self.timer)
-				self.timer = undefined
+		if (this.needPasscode && !this.config.passcode) {
+			this.updateStatus(InstanceStatus.ConnectionFailure, 'Need a Passcode')
+			this.log('debug', 'waiting for passcode')
+			this.sendOSC('/connect', [])
+			if (this.timer !== undefined) {
+				clearTimeout(this.timer)
+				this.timer = undefined
 			}
-			if (self.pulse !== undefined) {
-				clearInterval(self.pulse)
-				self.pulse = undefined
+			if (this.pulse !== undefined) {
+				clearInterval(this.pulse)
+				this.pulse = undefined
 			}
-			self.timer = setTimeout(() => {
-				self.prime_vars(ws)
+			this.timer = setTimeout(() => {
+				this.prime_vars(ws)
 			}, 5000)
-		} else if (self.needWorkspace && self.ready) {
-			self.sendOSC('/version', [], true) // app global, not workspace
-			if (self.config.passcode !== undefined && self.config.passcode !== '') {
-				self.log('debug', 'sending passcode to ' + self.config.host)
-				self.sendOSC('/connect', [
-					{
-						type: 's',
-						value: self.config.passcode,
-					},
-				])
+		} else if (this.needWorkspace && this.ready) {
+			this.sendOSC('/version', [], true) // app global, not workspace
+			this.sendOSC('/workspaces', [], true)
+			if (this.config.passcode) {
+				if (this.config.passcode != this.wrongPasscode || Date.now() - this.wrongPasscodeAt > 15000) {
+					this.log('debug', 'sending passcode to ' + this.config.host)
+					this.sendOSC('/connect', [
+						{
+							type: 's',
+							value: this.config.passcode,
+						},
+					])
+				}
 			} else {
-				self.sendOSC('/connect', [])
+				this.sendOSC('/connect', [])
 			}
-			if (self.timer !== undefined) {
-				clearTimeout(self.timer)
-				self.timer = undefined
+			if (this.timer !== undefined) {
+				clearTimeout(this.timer)
+				this.timer = undefined
 			}
-			self.timer = setTimeout(() => {
-				self.prime_vars(ws)
+			this.timer = setTimeout(() => {
+				this.prime_vars(ws)
 			}, 5000)
-		} else {
+		} else if (this.wrongPasscode == '') {
 			// should have a workspace now
 
 			// request variable/feedback info
 			// get list of running cues
-			self.sendOSC('/cue/playhead/uniqueID', [])
-			self.sendOSC('/updates', [])
-			self.sendOSC('/updates', [
+			this.sendOSC('/cue/playhead/uniqueID', [])
+			this.sendOSC('/updates', [])
+			this.sendOSC('/updates', [
 				{
 					type: 'i',
 					value: 1,
 				},
 			])
 
-			self.sendOSC('/cueLists', [])
-			if (self.qVer < 5) {
-				self.sendOSC('/auditionWindow', [], true)
+			this.sendOSC('/cueLists', [])
+			if (this.qVer < 5) {
+				this.sendOSC('/auditionWindow', [], true)
 			}
-			self.sendOSC('/overrideWindow', [], true)
-			self.sendOSC('/showMode', [])
-			self.sendOSC('/settings/general/minGoTime')
+			this.sendOSC('/overrideWindow', [], true)
+			this.sendOSC('/showMode', [])
+			this.sendOSC('/settings/general/minGoTime')
 			for (var o in Choices.OVERRIDE) {
-				self.sendOSC('/overrides/' + Choices.OVERRIDE[o].id, [], true)
+				this.sendOSC('/overrides/' + Choices.OVERRIDE[o].id, [], true)
 			}
-			if (self.timer !== undefined) {
-				clearTimeout(self.timer)
-				self.timer = undefined
+			if (this.timer !== undefined) {
+				clearTimeout(this.timer)
+				this.timer = undefined
 			}
 		}
 	}
@@ -868,16 +874,15 @@ class QLabInstance extends InstanceBase {
 	 * process QLab 'reply'
 	 */
 	readReply(message) {
-		var self = this
-		var ws = self.ws
+		var ws = this.ws
 		var ma = message.address
 		var j = {}
 		var i = 0
 		var q
 		var uniqueID
 		var playheadId
-		var cl = self.cl
-		var qr = self.qCueRequest
+		var cl = this.cl
+		var qr = this.qCueRequest
 
 		try {
 			j = JSON.parse(message.args[0].value)
@@ -885,78 +890,93 @@ class QLabInstance extends InstanceBase {
 			/* ingnore errors */
 		}
 
-		if (ma.match(/\/connect$/)) {
-			if (j.data == 'badpass') {
-				if (!self.needPasscode) {
-					self.needPasscode = true
-					self.updateStatus(InstanceStatus.ConnectionFailure, 'Wrong Passcode')
-					self.prime_vars(ws)
+		if (ma.match(/\/workspaces$/)) {
+			this.wsList = {}
+			if (j.data.length == 0) {
+				this.needPasscode = false
+				this.wrongPasscode = ''
+				this.needWorkspace = truethis.updateStatus(InstanceStatus.UnknownWarning, 'No Workspaces')
+			} else {
+				for (const w of j.data) {
+					ws = new Workspace(w)
+					this.wsList[ws.uniqueID] = ws
+				}
+			}
+		} else if (ma.match(/\/connect$/)) {
+			if (['badpass', 'denied'].includes(j.data)) {
+				if (!this.needPasscode) {
+					this.needPasscode = true
+					this.updateStatus(InstanceStatus.ConnectionFailure, 'Wrong Passcode')
+					this.wrongPasscode = this.config.passcode
+					this.wrongPasscodeAt = Date.now()
+					this.prime_vars(ws)
 				}
 			} else if (j.data == 'error') {
-				self.needPasscode = false
-				self.needWorkspace = true
-				self.updateStatus(InstanceStatus.UnknownWarning, 'No Workspaces')
+				this.needPasscode = false
+				this.needWorkspace = true
+				this.updateStatus(InstanceStatus.UnknownWarning, 'No Workspaces')
 			} else if (j.data.slice(0, 2) == 'ok') {
-				self.needPasscode = false
-				self.needWorkspace = false
-				self.updateStatus(InstanceStatus.Ok, 'Connected to ' + self.host)
+				this.needPasscode = false
+				this.needWorkspace = false
+				this.wrongPasscode = ''
+				this.updateStatus(InstanceStatus.Ok, 'Connected to ' + this.host)
 			}
 		} else if (ma.match(/updates$/)) {
 			// only works on QLab > 3
 			if ('denied' != j.status) {
-				self.needWorkspace = false
-				self.updateStatus(InstanceStatus.Ok, 'Connected to QLab')
-				if (self.pulse !== undefined) {
-					self.log('debug', 'cleared stray interval (u)')
-					clearInterval(self.pulse)
+				this.needWorkspace = false
+				this.updateStatus(InstanceStatus.Ok, 'Connected to QLab')
+				if (this.pulse !== undefined) {
+					this.log('debug', 'cleared stray interval (u)')
+					clearInterval(this.pulse)
 				}
-				self.pulse = setInterval(
+				this.pulse = setInterval(
 					() => {
-						self.rePulse()
+						this.rePulse()
 					},
-					self.config.useTenths ? 100 : 250
+					this.config.useTenths ? 100 : 250
 				)
 			}
 		} else if (ma.match(/version$/)) {
 			if (j.data != undefined) {
-				self.qVer = parseInt(j.data)
-				self.setVariableValues({ q_ver: j.data })
+				this.qVer = parseInt(j.data)
+				this.setVariableValues({ q_ver: j.data })
 			}
-			if (3 == self.qVer) {
+			if (3 == this.qVer) {
 				// QLab3 always has a 'workspace' (it may be empty)
-				if (self.pulse !== undefined) {
-					self.log('debug', 'cleared stray interval (v)')
-					clearInterval(self.pulse)
+				if (this.pulse !== undefined) {
+					this.log('debug', 'cleared stray interval (v)')
+					clearInterval(this.pulse)
 				}
-				self.pulse = setInterval(
+				this.pulse = setInterval(
 					() => {
-						self.rePulse()
+						this.rePulse()
 					},
-					self.config.useTenths ? 100 : 250
+					this.config.useTenths ? 100 : 250
 				)
 			} else {
-				self.needWorkspace = self.qVer > 3 && self.useTCP
+				this.needWorkspace = this.qVer > 3 && this.useTCP
 			}
 		} else if (ma.match(/uniqueID$/)) {
 			if (j.data) {
-				self.nextCue = j.data
-				self.updateNextCue()
-				self.sendOSC('/cue/playhead/valuesForKeys', qr)
+				this.nextCue = j.data
+				this.updateNextCue()
+				this.sendOSC('/cue/playhead/valuesForKeys', qr)
 			}
 		} else if (ma.match(/playheadI[dD]$/)) {
 			if (j.data) {
 				playheadId = j.data
 				uniqueID = ma.substr(14, 36)
-				delete self.requestedCues[uniqueID]
-				if ((cl == '' || uniqueID == cl) && self.nextCue != playheadId) {
+				delete this.requestedCues[uniqueID]
+				if ((cl == '' || uniqueID == cl) && this.nextCue != playheadId) {
 					// playhead changed due to cue list change in QLab
 					if (playheadId == 'none') {
-						self.nextCue = ''
+						this.nextCue = ''
 					} else {
-						self.nextCue = playheadId
+						this.nextCue = playheadId
 					}
-					self.updateNextCue()
-					//self.sendOSC("/cue/" + j.data + "/children");
+					this.updateNextCue()
+					//this.sendOSC("/cue/" + j.data + "/children");
 				}
 			}
 		} else if (ma.match(/\/cueLists$/)) {
@@ -964,59 +984,59 @@ class QLabInstance extends InstanceBase {
 				i = 0
 				while (i < j.data.length) {
 					q = j.data[i]
-					self.updateCues(q, 'l')
-					self.updateCues(q.cues, 'l', q.uniqueID)
+					this.updateCues(q, 'l')
+					this.updateCues(q.cues, 'l', q.uniqueID)
 					i++
 				}
-				self.sendOSC('/cue/active/valuesForKeys', qr)
+				this.sendOSC('/cue/active/valuesForKeys', qr)
 			}
 		} else if (ma.match(/children$/)) {
 			if (j.data) {
 				uniqueID = ma.substr(14, 36)
-				self.updateCues(j.data, 'u', uniqueID)
+				this.updateCues(j.data, 'u', uniqueID)
 			}
 		} else if (ma.match(/runningOrPausedCues$/)) {
 			if (j.data != undefined) {
 				i = 0
 				while (i < j.data.length) {
 					q = j.data[i]
-					self.sendOSC('/cue_id/' + q.uniqueID + '/valuesForKeys', qr)
+					this.sendOSC('/cue_id/' + q.uniqueID + '/valuesForKeys', qr)
 					i++
 				}
 			}
 		} else if (ma.match(/valuesForKeys$/)) {
-			self.updateCues(j.data, 'v')
+			this.updateCues(j.data, 'v')
 			uniqueID = ma.substr(14, 36)
-			delete self.requestedCues[uniqueID]
+			delete this.requestedCues[uniqueID]
 		} else if (ma.match(/showMode$/)) {
-			if (self.showMode != j.data) {
-				self.showMode = j.data
-				self.checkFeedbacks('ws_mode')
+			if (this.showMode != j.data) {
+				this.showMode = j.data
+				this.checkFeedbacks('ws_mode')
 			}
 		} else if (ma.match(/auditionWindow$/)) {
-			if (self.auditMode != j.data) {
-				self.auditMode = j.data
-				self.checkFeedbacks('ws_mode')
+			if (this.auditMode != j.data) {
+				this.auditMode = j.data
+				this.checkFeedbacks('ws_mode')
 			}
 		} else if (ma.match(/overrideWindow$/)) {
-			if (self.overrideWindow != j.data) {
-				self.overrideWindow = j.data
-				self.checkFeedbacks('override_visible')
+			if (this.overrideWindow != j.data) {
+				this.overrideWindow = j.data
+				this.checkFeedbacks('override_visible')
 			}
 		} else if (ma.match(/minGoTime$/)) {
-			self.minGo = j.data
-			self.setVariableValues({ min_go: (Math.round(j.data * 100) / 100).toFixed(2) })
+			this.minGo = j.data
+			this.setVariableValues({ min_go: (Math.round(j.data * 100) / 100).toFixed(2) })
 		} else if (ma.match(/\/doubleGoWindowRemaining$/)) {
 			var goLeft = Math.round(j.data * 1000)
-			self.goDisabled = goLeft > 0
-			self.goAfter = Date.now() + goLeft
-			self.checkFeedbacks('min_go')
+			this.goDisabled = goLeft > 0
+			this.goAfter = Date.now() + goLeft
+			this.checkFeedbacks('min_go')
 		} else if (ma.match(/^\/reply\/overrides\//)) {
 			var o = ma.split('/')[3]
-			self.overrides[o] = j.data
-			self.checkFeedbacks('override')
+			this.overrides[o] = j.data
+			this.checkFeedbacks('override')
 		} else {
-			self.log('debug', '=====> OSC message: ' + ma + ' ' + JSON.stringify(message.args))
+			this.log('debug', '=====> OSC message: ' + ma + ' ' + JSON.stringify(message.args))
 		}
 	}
 

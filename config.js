@@ -52,42 +52,48 @@ export function GetConfigFields(self) {
 			width: 12,
 			tooltip: 'The passcode to controll QLab.\nLeave blank if not needed.',
 		},
-		{
-			type: 'textinput',
-			id: 'workspace',
-			label: 'Workspace',
-			width: 12,
-			tooltip: "Enter the name or ID for the workspace.\n Leave blank or enter 'default' for the front Workspace",
-			default: 'default',
-		},
 	]
 
-	if (Object.keys(self.cueList).length > 0) {
-		const oldConfig = self.config
-		const clist = {
-			type: 'dropdown',
-			id: 'cuelist',
-			label: 'Specific Cue List',
-			tooltip: 'Select a specific Cue List for Play Head Variables',
-			width: 12,
-			default: 'default',
-			choices: [
-				{
-					id: 'default',
-					label: 'Default Cue List',
-				},
-			],
-		}
-
-		for (let c in self.cueList) {
-			clist.choices.push({
-				id: c,
-				label: self.wsCues[c].qName,
-			})
-		}
-
-		configs.push(clist)
+	const wlist = {
+		type: 'dropdown',
+		id: 'workspace',
+		label: 'Workspace',
+		width: 12,
+		tooltip: "Select a workspace\nSelect 'default' for the default Workspace",
+		default: 'default',
+		choices: [{ id: 'default', label: 'Default Workspace' }],
 	}
+
+	if (Object.keys(self.wsList).length > 0) {
+		for (let w in self.wsList) {
+			wlist.choices.push({ id: w, label: self.wsList[w].displayName })
+		}
+	}
+
+	configs.push(wlist)
+
+	const clist = {
+		type: 'dropdown',
+		id: 'cuelist',
+		label: 'Specific Cue List',
+		tooltip: 'Select a specific Cue List for Play Head control',
+		width: 12,
+		default: 'default',
+		choices: [
+			{
+				id: 'default',
+				label: 'Default Cue List',
+			},
+		],
+	}
+
+	if (Object.keys(self.cueList).length > 0) {
+		for (let c in self.cueList) {
+			clist.choices.push({ id: c, label: self.wsCues[c].qName })
+		}
+	}
+
+	configs.push(clist)
 
 	return configs
 }
