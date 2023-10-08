@@ -170,6 +170,27 @@ export function compileFeedbackDefinitions(self) {
 				}
 			},
 		},
+		ws_audit: {
+			type: 'boolean',
+			name: 'Audit Monitors',
+			description: 'Set Button when ALL Audit monitors are open',
+			options: [
+				// {
+				// 	type: 'dropdown',
+				// 	label: 'Override',
+				// 	id: 'which',
+				// 	default: 1,
+				// 	choices: Choices.ON_OFF,
+				// },
+			],
+			defaultStyle: {
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(102, 0, 0),
+			},
+			callback: (feedback, context) => {
+				return !!self.auditMonitors
+			},
+		},
 		override: {
 			type: 'boolean',
 			name: 'Master Override',
@@ -211,9 +232,7 @@ export function compileFeedbackDefinitions(self) {
 				bgcolor: combineRgb(102, 0, 0),
 			},
 			callback: (feedback, context) => {
-				const options = feedback.options
-
-				return self.overrideWindow == 1
+				return !!self.overrideWindow
 			},
 		},
 	}

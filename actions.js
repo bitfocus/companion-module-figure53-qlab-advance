@@ -17,10 +17,10 @@ export function compileActionDefinitions(self) {
 		} else if (cmd !== undefined) {
 			self.log('debug', `sending ${cmd} ${JSON.stringify(args)} to ${self.config.host}`)
 			// everything except 'auditionWindow' and 'overrideWindow' works on a specific workspace
-			self.sendOSC(cmd, args, ['/auditionWindow', '/overrideWindow'].includes(cmd))
+			self.sendOSC(cmd, args, ['/auditionWindow', '/alwaysAudition', '/overrideWindow'].includes(cmd))
 		}
 		// QLab does not send window updates so ask for status
-		if (self.useTCP && ['/auditionWindow', '/overrideWindow'].includes(cmd)) {
+		if (self.useTCP && ['/auditionWindow', '/alwaysAudition', '/overrideWindow'].includes(cmd)) {
 			self.sendOSC(cmd, [], true)
 			self.sendOSC('/cue/playhead/valuesForKeys', self.qCueRequest)
 		}
@@ -45,6 +45,14 @@ export function compileActionDefinitions(self) {
 			options: [],
 			callback: async (action, context) => {
 				await sendCommand(action, '/go')
+			},
+		},
+		audition_go: {
+			name: 'Audition GO',
+			description: 'QLab 5 ONLY',
+			options: [],
+			callback: async (action, context) => {
+				await sendCommand(action, '/auditionGo')
 			},
 		},
 		stop: {
@@ -226,6 +234,40 @@ export function compileActionDefinitions(self) {
 				await sendCommand(action, '/cue/' + optCue + '/panicInTime', timeArg)
 			},
 		},
+		audition_go_cue: {
+			name: 'Audition Cue',
+			description: 'QLab5 ONLY',
+			options: [
+				{
+					type: 'textinput',
+					label: 'Cue',
+					id: 'cue',
+					default: '1',
+					useVariables: true,
+				},
+			],
+			callback: async (action, context) => {
+				const optCue = await context.parseVariablesInString(action.options.cue)
+				await sendCommand(action, '/cue/' + optCue + '/audition')
+			},
+		},
+		audition_go_id: {
+			name: 'Audition Cue ID',
+			description: 'QLab5 ONLY',
+			options: [
+				{
+					type: 'textinput',
+					label: 'Cue',
+					id: 'cueId',
+					default: '1',
+					useVariables: true,
+				},
+			],
+			callback: async (action, context) => {
+				const optCueId = await context.parseVariablesInString(action.options.cueId)
+				await sendCommand(action, '/cue_id/' + optCueId + '/audition')
+			},
+		},
 		goto_id: {
 			name: 'Goto (Cue ID)',
 			options: [
@@ -239,7 +281,7 @@ export function compileActionDefinitions(self) {
 			],
 			callback: async (action, context) => {
 				const optCueId = await context.parseVariablesInString(action.options.cueId)
-				const phID = (self.qVer< 5 ? 'Id' : 'ID')
+				const phID = self.qVer < 5 ? 'Id' : 'ID'
 				await sendCommand(action, `/playhead${phID}/` + optCueId)
 			},
 		},
@@ -334,7 +376,8 @@ export function compileActionDefinitions(self) {
 			},
 		},
 		auditMode: {
-			name: 'Audition Window',
+			name: 'Audition',
+			description: `QLab 5 sets 'Always Audition' mode\nOtherwise Show/Hide 'Audition Window'`,
 			options: [
 				{
 					type: 'dropdown',
@@ -345,9 +388,29 @@ export function compileActionDefinitions(self) {
 				},
 			],
 			callback: async (action, context) => {
-				await sendCommand(action, '/auditionWindow', {
+				const act = self.qVer < 5 ? '/auditionWindow' : '/alwaysAudition'
+				await sendCommand(action, act, {
 					type: 'i',
 					value: setToggle(self.auditMode, action.options.onOff),
+				})
+			},
+		},
+		auditWindows: {
+			name: 'Audition Monitors',
+			description: 'QLab 5 only, open/close ALL audition monitors',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Mode',
+					id: 'onOff',
+					default: 1,
+					choices: Choices.TOGGLE,
+				},
+			],
+			callback: async (action, context) => {
+				await sendCommand(action, '/auditionMonitors', {
+					type: 'i',
+					value: setToggle(self.auditMonitors, action.options.onOff),
 				})
 			},
 		},
