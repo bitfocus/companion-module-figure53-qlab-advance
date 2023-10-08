@@ -10,6 +10,7 @@ class Cue {
 	isPaused = false
 	isArmed = false
 	isFlagged = false
+	isAuditioning = false
 	infiniteLoop = false
 	holdLastFrame = false
 	autoLoad = false
@@ -37,6 +38,7 @@ function JSONtoCue(newCue, j, self) {
 	newCue.qColorName = j.colorName
 	newCue.qType = j.type.toLowerCase()
 	newCue.isRunning = j.isRunning
+	newCue.isAuditioning = j.isAuditioning
 	newCue.isLoaded = j.isLoaded
 	newCue.isBroken = j.isBroken
 	newCue.isPaused = j.isPaused
