@@ -5,6 +5,10 @@ export function compileVariableDefinition() {
 			variableId: 'q_ver',
 		},
 		{
+			name: 'Default (first) workspace ID',
+			variableId: 'ws_id',
+		},
+		{
 			name: 'Double Go Minimum Time',
 			variableId: 'min_go',
 		},
@@ -33,6 +37,10 @@ export function compileVariableDefinition() {
 			variableId: 'n_stat',
 		},
 		{
+			name: 'Playhead Continue Mode',
+			variableId: 'n_cont',
+		},
+		{
 			name: 'Running Cue UniqueID',
 			variableId: 'r_id',
 		},
@@ -43,6 +51,10 @@ export function compileVariableDefinition() {
 		{
 			name: 'Running Cue Number',
 			variableId: 'r_num',
+		},
+		{
+			name: 'Running Cue Notes',
+			variableId: 'r_notes',
 		},
 		{
 			name: 'Running Cue Status',

@@ -103,10 +103,25 @@ export function compileFeedbackDefinitions(self) {
 				return rq && rq.isRunning
 			},
 		},
+		any_run: {
+			type: 'boolean',
+			name: 'Indicate if any Cue is running',
+			description: 'Indicate on button when any cue is running',
+			options: [
+			],
+			defaultStyle: {
+				bgcolor: combineRgb(0, 102, 0),
+				color: combineRgb(255, 255, 255),
+			},
+			callback: (feedback, context) => {
+				const rq = self.runningCue
+				return rq && rq.isRunning
+			},
+		},
 		min_go: {
 			type: 'boolean',
 			name: 'Indicate Go button Status',
-			description: 'Indicate on Button the QLab Go button Status',
+			description: 'Indicate on Button when the Minimum Go Time is active',
 			options: [
 				{
 					type: 'dropdown',

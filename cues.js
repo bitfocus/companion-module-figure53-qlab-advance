@@ -11,6 +11,7 @@ class Cue {
 	isArmed = false
 	isFlagged = false
 	isAuditioning = false
+	continueMode = 0
 	infiniteLoop = false
 	holdLastFrame = false
 	autoLoad = false
@@ -45,6 +46,7 @@ function JSONtoCue(newCue, j, self) {
 	newCue.isFlagged = j.flagged
 	newCue.isArmed = j.armed
 	newCue.autoLoad = j.autoLoad
+	newCue.continueMode = j.continueMode
 	newCue.infiniteLoop = j.infiniteLoop
 	newCue.holdLastFrame = j.holdLastFrame
 	newCue.duration = j.duration

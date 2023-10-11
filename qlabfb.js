@@ -32,13 +32,27 @@ function pad0(num, len = 2) {
 	return (zeros + num).slice(-len)
 }
 
+var crc16b = function (data) {
+	const POLY = 0x8408
+	const XOROUT = 0
+	let crc = 0 // INIT
+
+	for (let i = 0; i < data.length; i++) {
+		crc = crc ^ data[i]
+		for (let j = 0; j < 8; j++) {
+			crc = crc & 1 ? (crc >> 1) ^ POLY : crc >> 1
+		}
+	}
+	return (crc ^ XOROUT) & 0xffff
+}
+
 class QLabInstance extends InstanceBase {
 	qCueRequest = [
 		{
 			type: 's',
 			value:
 				'["number","uniqueID","listName","type","isPaused","duration","actionElapsed","parent","flagged","notes",' +
-				'"autoLoad","colorName","isRunning","isAuditioning","isLoaded","armed","isBroken","percentActionElapsed","cartPosition",' +
+				'"autoLoad","colorName","isRunning","isAuditioning","isLoaded","armed","isBroken","continueMode","percentActionElapsed","cartPosition",' +
 				'"infiniteLoop","holdLastFrame"]',
 		},
 	]
@@ -151,6 +165,7 @@ class QLabInstance extends InstanceBase {
 			n_type: nc.qType,
 			n_notes: nc.Notes,
 			n_stat: cueToStatusChar(nc),
+			n_cont: ['NoC','Con','Fol'][nc.continueMode]
 		})
 		this.checkFeedbacks('playhead_bg')
 	}
@@ -248,6 +263,7 @@ class QLabInstance extends InstanceBase {
 			r_id: rc.uniqueID,
 			r_name: rc.qName,
 			r_num: rc.qNumber,
+			r_notes: rc.Notes,
 
 			r_stat: cueToStatusChar(rc),
 
@@ -263,7 +279,7 @@ class QLabInstance extends InstanceBase {
 			e_time: eft,
 		})
 
-		this.checkFeedbacks('run_bg')
+		this.checkFeedbacks('run_bg', 'any_run')
 	}
 	async configUpdated(config) {
 		this.config = config
@@ -713,7 +729,7 @@ class QLabInstance extends InstanceBase {
 						}
 					}
 				}
-				this.checkFeedbacks('q_run', 'qid_run')
+				this.checkFeedbacks('q_run', 'qid_run', 'any_run')
 				this.updatePlaying()
 				if ('' == this.cl || (this.cueList[this.cl] && this.cueList[this.cl].includes(q.uniqueID))) {
 					if (q.uniqueID == this.nextCue) {
@@ -729,10 +745,11 @@ class QLabInstance extends InstanceBase {
 	 */
 	updatePlaying() {
 		function qState(q) {
-			let ret = q.uniqueID + ':'
-			ret += q.isBroken ? '0' : q.isRunning ? '1' : q.isPaused ? '2' : q.isLoaded ? '3' : q.isAuditioning ? '4' : 5
-			ret += ':' + q.duration + ':' + q.pctElapsed
-			return ret
+			return crc16b(JSON.stringify(q))
+			// let ret = q.uniqueID + ':'
+			// ret += q.isBroken ? '0' : q.isRunning ? '1' : q.isPaused ? '2' : q.isLoaded ? '3' : q.isAuditioning ? '4' : 5
+			// ret += ':' + q.duration + ':' + q.pctElapsed
+			// return ret
 		}
 
 		let hasGroup = false
@@ -761,6 +778,7 @@ class QLabInstance extends InstanceBase {
 
 		if (runningCues.length == 0) {
 			this.runningCue = new Cue()
+			this.checkFeedbacks('any_run')
 		} else {
 			let i = 0
 			if (hasGroup) {
@@ -848,7 +866,7 @@ class QLabInstance extends InstanceBase {
 					this.sendOSC('/overrides/' + Choices.OVERRIDE[o].id, [], true)
 				}
 				break
-			case 'dashboard':  // lighting, ignore for now
+			case 'dashboard': // lighting, ignore for now
 				break
 			default:
 				if (ms.length == 3 && 'workspace' == ms[1]) {
@@ -905,6 +923,7 @@ class QLabInstance extends InstanceBase {
 						ws = new Workspace(w)
 						this.wsList[ws.uniqueID] = ws
 					}
+					this.setVariableValues({ ws_id: Object.keys(this.wsList)[0] })
 				}
 				break
 			case 'connect':
@@ -940,7 +959,7 @@ class QLabInstance extends InstanceBase {
 						() => {
 							this.rePulse()
 						},
-						this.config.useTenths ? 100 : 250
+						this.config.useTenths ? 100 : 250,
 					)
 				}
 				break
@@ -959,7 +978,7 @@ class QLabInstance extends InstanceBase {
 						() => {
 							this.rePulse()
 						},
-						this.config.useTenths ? 100 : 250
+						this.config.useTenths ? 100 : 250,
 					)
 				} else {
 					this.needWorkspace = this.qVer > 3 && this.useTCP
