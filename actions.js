@@ -150,6 +150,7 @@ export function compileActionDefinitions(self) {
 		},
 		audition_preview: {
 			name: 'Audition Preview',
+			description: 'QLab5 ONLY',
 			options: [],
 			callback: async (action, context) => {
 				await sendCommand(action, '/cue/selected/auditionPreview')
