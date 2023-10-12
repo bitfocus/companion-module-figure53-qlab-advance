@@ -148,6 +148,13 @@ export function compileActionDefinitions(self) {
 				await sendCommand(action, '/cue/selected/preview')
 			},
 		},
+		audition_preview: {
+			name: 'Audition Preview',
+			options: [],
+			callback: async (action, context) => {
+				await sendCommand(action, '/cue/selected/auditionPreview')
+			},
+		},
 		goto: {
 			name: 'Go To (cue)',
 			options: [
