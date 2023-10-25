@@ -784,7 +784,7 @@ export function compileActionDefinitions(self) {
 					label: 'OSC Address',
 					id: 'node',
 					default: '',
-					useVariables: true
+					useVariables: true,
 				},
 				{
 					type: 'dropdown',
@@ -831,20 +831,26 @@ export function compileActionDefinitions(self) {
 			],
 			callback: async (action, context) => {
 				let arg
-				const argT = action.option.argType === 'n' ? '' : action.optoin.argType
+				const argT = action.options.argType === 'n' ? '' : action.options.argType
 				switch (argT) {
 					case 's':
-						arg = await context.parseVariablesInString(action.options.argS)
+						arg = { type: argT, value: await context.parseVariablesInString(action.options.argS) }
 						break
 					case 'i':
-						arg = parseInt(await context.parseVariablesInString(action.options.argI))
+						arg = {
+							type: argT,
+							value: parseInt(await context.parseVariablesInString(action.options.argI)),
+						}
 						break
 					case 'f':
-						arg = parseFloat(await context.parseVariablesInString(action.options.argF))
+						arg = {
+							type: argT,
+							value: parseFloat(await context.parseVariablesInString(action.options.argF)),
+						}
 						break
 				}
 				const cmd = await context.parseVariablesInString(action.options.node)
-				await sendCommand(action, cmd, { type: argT, value: arg, })
+				await sendCommand(action, cmd, arg)
 			},
 		},
 		copyCueID: {
