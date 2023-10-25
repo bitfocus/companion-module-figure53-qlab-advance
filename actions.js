@@ -776,19 +776,26 @@ export function compileActionDefinitions(self) {
 			},
 		},
 		manual: {
-			name: 'Send a manual OSC command',
+			name: 'Send custom OSC command',
 			description: 'Please consider filing a feature request',
 			options: [
+				{
+					type: 'textinput',
+					label: 'OSC Address',
+					id: 'node',
+					default: '',
+					useVariables: true
+				},
 				{
 					type: 'dropdown',
 					label: 'Argument Type',
 					id: 'argType',
-					default: 'N',
+					default: 'n',
 					choices: [
-						{ id: 'N', label: 'None' },
-						{ id: 'S', label: 'String' },
-						{ id: 'I', label: 'Integer' },
-						{ id: 'F', label: 'Float' },
+						{ id: 'n', label: 'None' },
+						{ id: 's', label: 'String' },
+						{ id: 'i', label: 'Integer' },
+						{ id: 'f', label: 'Float' },
 					],
 				},
 				{
@@ -798,7 +805,7 @@ export function compileActionDefinitions(self) {
 					default: '',
 					useVariables: true,
 					isVisible: (option, data) => {
-						return option.argType === 'S'
+						return option.argType === 's'
 					},
 				},
 				{
@@ -808,7 +815,7 @@ export function compileActionDefinitions(self) {
 					default: 0,
 					useVariables: true,
 					isVisible: (option, data) => {
-						return option.argType === 'I'
+						return option.argType === 'i'
 					},
 				},
 				{
@@ -818,10 +825,27 @@ export function compileActionDefinitions(self) {
 					default: 0.0,
 					useVariables: true,
 					isVisible: (option, data) => {
-						return option.argType === 'F'
+						return option.argType === 'f'
 					},
 				},
 			],
+			callback: async (action, context) => {
+				let arg
+				const argT = action.option.argType === 'n' ? '' : action.optoin.argType
+				switch (argT) {
+					case 's':
+						arg = await context.parseVariablesInString(action.options.argS)
+						break
+					case 'i':
+						arg = parseInt(await context.parseVariablesInString(action.options.argI))
+						break
+					case 'f':
+						arg = parseFloat(await context.parseVariablesInString(action.options.argF))
+						break
+				}
+				const cmd = await context.parseVariablesInString(action.options.node)
+				await sendCommand(action, cmd, { type: argT, value: arg, })
+			},
 		},
 		copyCueID: {
 			name: 'Copy Unique Cue ID',
