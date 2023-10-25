@@ -51,7 +51,7 @@ class QLabInstance extends InstanceBase {
 		{
 			type: 's',
 			value:
-				'["number","uniqueID","listName","type","isPaused","duration","actionElapsed","parent","flagged","notes",' +
+				'["number","uniqueID","listName","type","mode","isPaused","duration","actionElapsed","parent","flagged","notes",' +
 				'"autoLoad","colorName","isRunning","isAuditioning","isLoaded","armed","isBroken","continueMode","percentActionElapsed","cartPosition",' +
 				'"infiniteLoop","holdLastFrame"]',
 		},
@@ -102,6 +102,7 @@ class QLabInstance extends InstanceBase {
 		}
 
 		this.useTCP = config.useTCP
+		this.exposeVariables = config.exposeVariables || false
 	}
 
 	resetVars(doUpdate) {
@@ -165,7 +166,7 @@ class QLabInstance extends InstanceBase {
 			n_type: nc.qType,
 			n_notes: nc.Notes,
 			n_stat: cueToStatusChar(nc),
-			n_cont: ['NoC','Con','Fol'][nc.continueMode]
+			n_cont: ['NoC', 'Con', 'Fol'][nc.continueMode],
 		})
 		this.checkFeedbacks('playhead_bg')
 	}
@@ -183,6 +184,8 @@ class QLabInstance extends InstanceBase {
 		let oqOrder = -1
 
 		let variableValues = {}
+		let variableDefs = []
+		let oldVariables = []
 
 		// unset old variable?
 		if (qID in this.wsCues) {
@@ -192,25 +195,45 @@ class QLabInstance extends InstanceBase {
 			oqColor = this.wsCues[qID].qColor
 			oqOrder = this.wsCues[qID].qOrder
 			if (oqNum != '' && oqNum != q.qNumber) {
-				variableValues['q_' + oqNum + '_name'] = undefined
+				// cue number changed
+				let vId = `q_${oqNum}_name`
+				variableValues[vId] = undefined
+				oldVariables.push(vId)
 				this.cueColors[oqNum] = 0
 				delete this.cueByNum[oqNum]
 				oqName = ''
 			}
 		}
 		// set new value
-		if (q.qName != oqName || qColor != oqColor) {
+		if ((q.uniqueID != '' && q.qName != oqName) || qColor != oqColor) {
 			if (qNum != '') {
-				variableValues['q_' + qNum + '_name'] = q.qName
+				let vId = `q_${qNum}_name`
+				variableValues[vId] = q.qName
+				variableDefs.push({
+					variableId: vId,
+					name: `Name of cue number '${qNum}'`,
+				})
 				this.cueColors[qNum] = q.qColor
 				this.cueByNum[qNum] = qID
 			}
-			variableValues['id_' + qID + '_name'] = q.qName
+			let vId = `id_${qID}_name`
+			variableValues[vId] = q.qName
+			variableDefs.push({ variableId: vId, name: `Name of cue ID ${qID}` })
 
 			this.checkFeedbacks('q_bg', 'qid_bg')
 		}
 
-		this.setVariableValues(variableValues)
+		if (this.exposeVariables) {
+			if (variableDefs.length) {
+				//remove old qNum's
+				this.variableDefs.filter((variableId) => {
+					return !oldVariables.includes(variableId)
+				})
+				this.variableDefs = [...this.variableDefs, ...variableDefs]
+				this.setVariableDefinitions(this.variableDefs)
+			}
+			this.setVariableValues(variableValues)
+		}
 	}
 
 	updateRunning() {
@@ -315,7 +338,8 @@ class QLabInstance extends InstanceBase {
 	}
 	init_variables() {
 		if (this.useTCP) {
-			this.setVariableDefinitions(compileVariableDefinition(this))
+			this.variableDefs = compileVariableDefinition(this)
+			this.setVariableDefinitions(this.variableDefs)
 			this.updateRunning()
 			this.updateNextCue()
 		} else {
@@ -374,7 +398,10 @@ class QLabInstance extends InstanceBase {
 			this.sendOSC('/version', [], true) // app global, not workspace
 			this.sendOSC('/workspaces', [], true)
 			if (this.config.passcode) {
-				if (this.config.passcode != this.wrongPasscode || Date.now() - this.wrongPasscodeAt > 15000) {
+				if (
+					this.config.passcode != this.wrongPasscode ||
+					Date.now() - this.wrongPasscodeAt > 15000
+				) {
 					this.log('debug', 'sending passcode to ' + this.config.host)
 					this.sendOSC('/connect', [
 						{
@@ -731,7 +758,10 @@ class QLabInstance extends InstanceBase {
 				}
 				this.checkFeedbacks('q_run', 'qid_run', 'any_run')
 				this.updatePlaying()
-				if ('' == this.cl || (this.cueList[this.cl] && this.cueList[this.cl].includes(q.uniqueID))) {
+				if (
+					'' == this.cl ||
+					(this.cueList[this.cl] && this.cueList[this.cl].includes(q.uniqueID))
+				) {
 					if (q.uniqueID == this.nextCue) {
 						this.updateNextCue()
 					}
@@ -764,7 +794,10 @@ class QLabInstance extends InstanceBase {
 			const q = cues[cue]
 			// some cuelists (for example all manual slides) may not have a pre-programmed duration
 			if (q.isRunning || q.isPaused) {
-				if (('' == cl && 'cue list' != q.qType) || (this.cueList[cl] && this.cueList[cl].includes(cue))) {
+				if (
+					('' == cl && 'cue list' != q.qType) ||
+					(this.cueList[cl] && this.cueList[cl].includes(cue))
+				) {
 					runningCues.push([cue, q.startedAt])
 					// if group does not have a duration, ignore
 					// it is probably a playlist, not simultaneous playback

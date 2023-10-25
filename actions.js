@@ -17,7 +17,11 @@ export function compileActionDefinitions(self) {
 		} else if (cmd !== undefined) {
 			self.log('debug', `sending ${cmd} ${JSON.stringify(args)} to ${self.config.host}`)
 			// everything except 'auditionWindow' and 'overrideWindow' works on a specific workspace
-			self.sendOSC(cmd, args, ['/auditionWindow', '/alwaysAudition', '/overrideWindow'].includes(cmd))
+			self.sendOSC(
+				cmd,
+				args,
+				['/auditionWindow', '/alwaysAudition', '/overrideWindow'].includes(cmd),
+			)
 		}
 		// QLab does not send window updates so ask for status
 		if (self.useTCP && ['/auditionWindow', '/alwaysAudition', '/overrideWindow'].includes(cmd)) {
@@ -770,6 +774,54 @@ export function compileActionDefinitions(self) {
 					value: setToggle(nc.holdLastFrame, action.options.choice),
 				})
 			},
+		},
+		manual: {
+			name: 'Send a manual OSC command',
+			description: 'Please consider filing a feature request',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Argument Type',
+					id: 'argType',
+					default: 'N',
+					choices: [
+						{ id: 'N', label: 'None' },
+						{ id: 'S', label: 'String' },
+						{ id: 'I', label: 'Integer' },
+						{ id: 'F', label: 'Float' },
+					],
+				},
+				{
+					type: 'textinput',
+					label: 'String',
+					id: 'argS',
+					default: '',
+					useVariables: true,
+					isVisible: (option, data) => {
+						return option.argType === 'S'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Integer',
+					id: 'argI',
+					default: 0,
+					useVariables: true,
+					isVisible: (option, data) => {
+						return option.argType === 'I'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Float',
+					id: 'argF',
+					default: 0.0,
+					useVariables: true,
+					isVisible: (option, data) => {
+						return option.argType === 'F'
+					},
+				},
+			],
 		},
 		copyCueID: {
 			name: 'Copy Unique Cue ID',

@@ -79,6 +79,7 @@ https://github.com/sponsors/istnv
 | **Set/Unset Autoload**        | Set / Unset the Autoload property of the selected cue.                                                                                                                                                                                                   |
 | **Set Continue Mode**         | Sets the continue mode of the selected cue.                                                                                                                                                                                                              |
 | **Set Cue Color**             | Sets the color of the selected cue.                                                                                                                                                                                                                      |
+| **Custom OSC Command**        | Send a custom OSC command to QLab. Useful for commands not yet implemented.<br/>If you use this, consider submitting a feature request to have the command added as a built-in action                                                                        |
 | **Copy Unique Cue ID**        | Copies the Unique ID of the cue at the Playhead to actions and feedbacks.                                                                                                                                                                                |
 
 The next action or feedback inserted will have the Unique ID already filled in.

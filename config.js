@@ -32,25 +32,44 @@ export function GetConfigFields(self) {
 			type: 'checkbox',
 			label: 'Use TCP?',
 			id: 'useTCP',
-			width: 20,
-			tooltip: 'Use TCP instead of UDP\nRequired for feedbacks',
+			width: 6,
+			tooltip: 'Use TCP instead of UDP\nRequired for feedbacks and variables',
+			default: true,
+		},
+		{
+			type: 'checkbox',
+			label: 'Use Tenths?',
+			id: 'useTenths',
+			width: 6,
+			isVisible: (options, data) => {
+				return !!options.useTCP
+			},
+			tooltip:
+				'Show .1 second resolution for cue remaining timer?\nOtherwise offset countdown by +1 second\nRequires TCP',
 			default: false,
 		},
 		{
 			type: 'checkbox',
-			label: 'Use Tenths',
-			id: 'useTenths',
-			width: 20,
+			label: 'Expose cue name variables?',
+			id: 'exposeVariables',
+			width: 6,
+			isVisible: (options, data) => {
+				return !!options.useTCP
+			},
 			tooltip:
-				'Show .1 second resolution for cue remaining timer?\nOtherwise offset countdown by +1 second\nRequires TCP',
+				'Variables for the name of each cue number and cue ID are normally hidden\n' +
+				'in the Variable List. Enabling this will allow them to be searched in the\n' +
+				'list but may also cause excessive clutter',
 			default: false,
 		},
 		{
 			type: 'textinput',
 			id: 'passcode',
 			label: 'OSC Passcode',
-			width: 12,
-			tooltip: 'The passcode to controll QLab.\nLeave blank if not needed.',
+			width: 6,
+			tooltip:
+				'The passcode to controll QLab.\nLeave blank if not needed\n'
+				+'This is almost always required for QLab5',
 		},
 	]
 
