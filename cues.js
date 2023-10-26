@@ -4,6 +4,8 @@ class Cue {
 	uniqueID = ''
 	qName = '[none]'
 	qNumber = ''
+	qType = null
+	qMode = null
 	isLoaded = false
 	isBroken = false
 	isRunning = false
@@ -38,6 +40,7 @@ function JSONtoCue(newCue, j, self) {
 	newCue.qNumber = j.number
 	newCue.qColorName = j.colorName
 	newCue.qType = j.type.toLowerCase()
+	newCue.qMode = j.mode,
 	newCue.isRunning = j.isRunning
 	newCue.isAuditioning = j.isAuditioning
 	newCue.isLoaded = j.isLoaded
@@ -55,7 +58,7 @@ function JSONtoCue(newCue, j, self) {
 	if (j.notes) {
 		newCue.Notes = j.notes.slice(0, 20)
 	}
-	newCue.qColor = Colors.colorRGB[j.colorName]
+	newCue.qColor = Colors.colorRGB[j.colorName.toLowerCase().replaceAll(' ','')]
 
 	const isExistingQ = newCue.uniqueID in self.wsCues
 

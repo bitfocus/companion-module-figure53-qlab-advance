@@ -17,7 +17,11 @@ export function compileActionDefinitions(self) {
 		} else if (cmd !== undefined) {
 			self.log('debug', `sending ${cmd} ${JSON.stringify(args)} to ${self.config.host}`)
 			// everything except 'auditionWindow' and 'overrideWindow' works on a specific workspace
-			self.sendOSC(cmd, args, ['/auditionWindow', '/alwaysAudition', '/overrideWindow'].includes(cmd))
+			self.sendOSC(
+				cmd,
+				args,
+				['/auditionWindow', '/alwaysAudition', '/overrideWindow'].includes(cmd),
+			)
 		}
 		// QLab does not send window updates so ask for status
 		if (self.useTCP && ['/auditionWindow', '/alwaysAudition', '/overrideWindow'].includes(cmd)) {
@@ -769,6 +773,84 @@ export function compileActionDefinitions(self) {
 					type: 'i',
 					value: setToggle(nc.holdLastFrame, action.options.choice),
 				})
+			},
+		},
+		manual: {
+			name: 'Send custom OSC command',
+			description: 'Please consider filing a feature request',
+			options: [
+				{
+					type: 'textinput',
+					label: 'OSC Address',
+					id: 'node',
+					default: '',
+					useVariables: true,
+				},
+				{
+					type: 'dropdown',
+					label: 'Argument Type',
+					id: 'argType',
+					default: 'n',
+					choices: [
+						{ id: 'n', label: 'None' },
+						{ id: 's', label: 'String' },
+						{ id: 'i', label: 'Integer' },
+						{ id: 'f', label: 'Float' },
+					],
+				},
+				{
+					type: 'textinput',
+					label: 'String',
+					id: 'argS',
+					default: '',
+					useVariables: true,
+					isVisible: (option, data) => {
+						return option.argType === 's'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Integer',
+					id: 'argI',
+					default: 0,
+					useVariables: true,
+					isVisible: (option, data) => {
+						return option.argType === 'i'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Float',
+					id: 'argF',
+					default: 0.0,
+					useVariables: true,
+					isVisible: (option, data) => {
+						return option.argType === 'f'
+					},
+				},
+			],
+			callback: async (action, context) => {
+				let arg
+				const argT = action.options.argType === 'n' ? '' : action.options.argType
+				switch (argT) {
+					case 's':
+						arg = { type: argT, value: await context.parseVariablesInString(action.options.argS) }
+						break
+					case 'i':
+						arg = {
+							type: argT,
+							value: parseInt(await context.parseVariablesInString(action.options.argI)),
+						}
+						break
+					case 'f':
+						arg = {
+							type: argT,
+							value: parseFloat(await context.parseVariablesInString(action.options.argF)),
+						}
+						break
+				}
+				const cmd = await context.parseVariablesInString(action.options.node)
+				await sendCommand(action, cmd, arg)
 			},
 		},
 		copyCueID: {
