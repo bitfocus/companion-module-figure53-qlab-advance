@@ -23,8 +23,8 @@ function cueToStatusChar(cue) {
 /**
  * Returns the passed integer left-padded with '0's
  * Will truncate result length is greater than 'len'
- * @param {Number} num: number to pad
- * @param {Number} len: optional length of result, defaults to 2
+ * @param {Number} num - number to pad
+ * @param {Number} [len=2] - optional length of result, defaults to 2
  * @since 2.3.0
  */
 function pad0(num, len = 2) {
@@ -144,6 +144,7 @@ class QLabInstance extends InstanceBase {
 		this.overrides = {}
 		this.lastRunID = '-' + this.lastRunID
 		this.showMode = false
+		this.liveFadePreview = false
 		this.audition = false
 		this.goDisabled = false
 		this.goAfter = 0
@@ -346,6 +347,15 @@ class QLabInstance extends InstanceBase {
 			this.setVariableDefinitions([])
 		}
 	}
+	/**
+	 * Sends an OSC command
+	 * @param {string} node - OSC Node/Address
+	 * @param {Object[]} [arg] - optional arguments
+	 * @param {string} arg.type - type ('s','i','f')
+	 * @param {any} arg.value - value
+	 * @param {boolean} [bare=false] - if true, do not add workspace id prefix to command
+	 * @since 2.0.0
+	 */
 	sendOSC(node, arg, bare) {
 		const ws = bare ? '' : this.ws
 
@@ -376,8 +386,11 @@ class QLabInstance extends InstanceBase {
 			this.init_osc()
 		}
 	}
-	// get current status of QLab cues and playhead
-	// and ask for updates
+	/**
+	 * Get current status of QLab cues and playhead
+	 * query for workspace/application settings
+	 * @param {string} ws - specific workspace ID
+	 */
 	prime_vars(ws) {
 		if (this.needPasscode && !this.config.passcode) {
 			this.updateStatus(InstanceStatus.ConnectionFailure, 'Need a Passcode')
@@ -422,6 +435,7 @@ class QLabInstance extends InstanceBase {
 			}, 5000)
 		} else if (this.wrongPasscode == '') {
 			// should have a workspace now
+			this.ws = ws
 
 			// request variable/feedback info
 			// get list of running cues
@@ -443,6 +457,7 @@ class QLabInstance extends InstanceBase {
 			}
 			this.sendOSC('/overrideWindow', [], true)
 			this.sendOSC('/showMode', [])
+			this.sendOSC('/liveFadePreview', [], true)
 			this.sendOSC('/settings/general/minGoTime')
 			for (const o in Choices.OVERRIDE) {
 				this.sendOSC('/overrides/' + Choices.OVERRIDE[o].id, [], true)
@@ -553,6 +568,7 @@ class QLabInstance extends InstanceBase {
 			} else {
 				this.qSocket = new OSC.UDPPort({
 					localAddress: '0.0.0.0',
+					// QLab only sends UDP responses to port 53001
 					localPort: 53001, // 53000 + this.port_offset,
 					remoteAddress: this.config.host,
 					remotePort: 53000,
@@ -1082,6 +1098,11 @@ class QLabInstance extends InstanceBase {
 					this.checkFeedbacks('ws_mode')
 				}
 				break
+			case 'liveFadePreview':
+				if (this.liveFadePreview != j.data) {
+					this.liveFadePreview = j.data
+					this.checkFeedbacks('liveFadePreview')
+				}
 			case 'auditionWindow': // pre q5
 			case 'alwaysAudition': // q5
 				if (this.auditMode != j.data) {

@@ -4,6 +4,23 @@ export const CONTINUE_MODE = [
 	{ label: 'Auto Follow', id: '2' },
 ]
 
+export const GROUP_MODE = [
+	'List', // 0
+	'Start first and enter', // 1
+	'Start first', // 2
+	'Timeline', // 3
+	'Start random', // 4
+	'Cart', // 5
+	'Playlist', // 6
+]
+
+export const SCOPE = [
+	{ id: 'D', label: 'Default/ALL' },
+	{ id: 'S', label: 'Selected' },
+	{ id: 'N', label: 'Cue Number' },
+	{ id: 'I', label: 'Cue ID' },
+]
+
 export const TOGGLE = [
 	{ id: 1, label: 'On' },
 	{ id: 0, label: 'Off' },
