@@ -107,8 +107,7 @@ export function compileFeedbackDefinitions(self) {
 			type: 'boolean',
 			name: 'Indicate if any Cue is running',
 			description: 'Indicate on button when any cue is running',
-			options: [
-			],
+			options: [],
 			defaultStyle: {
 				bgcolor: combineRgb(0, 102, 0),
 				color: combineRgb(255, 255, 255),
@@ -183,6 +182,27 @@ export function compileFeedbackDefinitions(self) {
 				} else {
 					return false
 				}
+			},
+		},
+		liveFadePreview: {
+			type: 'boolean',
+			name: 'Live Fade Preview',
+			description: 'Set Button when Live Fade Preview is active ',
+			options: [
+				// {
+				// 	type: 'dropdown',
+				// 	label: 'Override',
+				// 	id: 'which',
+				// 	default: 1,
+				// 	choices: Choices.ON_OFF,
+				// },
+			],
+			defaultStyle: {
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 102),
+			},
+			callback: (feedback, context) => {
+				return !!self.liveFadePreview
 			},
 		},
 		ws_audit: {

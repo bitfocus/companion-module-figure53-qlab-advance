@@ -16,7 +16,7 @@ class Workspace {
 			Object.assign(this, j)
 		}
 		const n = this.displayName
-		this.displayName = n.substring(0,n.lastIndexOf('.'))
+		this.displayName = `${n}.`.split('.')[0]
 	}
 }
 

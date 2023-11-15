@@ -1,5 +1,8 @@
 import { Regex } from '@companion-module/base'
 
+const REGEX_IP_OR_HOST = '/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)+([A-Za-z]|[A-Za-z][A-Za-z0-9\-]*[A-Za-z0-9])$/gm'
+
+
 export function GetConfigFields(self) {
 	const configs = [
 		{
@@ -14,10 +17,10 @@ export function GetConfigFields(self) {
 		{
 			type: 'textinput',
 			id: 'host',
-			label: 'Target IP',
+			label: 'Target Host/IP',
 			width: 6,
-			tooltip: 'The IP of the computer running QLab',
-			regex: Regex.IP,
+			tooltip: 'The Hostname or IP of the computer running QLab',
+			regex: REGEX_IP_OR_HOST,
 		},
 		{
 			type: 'textinput',

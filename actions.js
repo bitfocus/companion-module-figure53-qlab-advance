@@ -5,6 +5,15 @@ const cueListActions = ['go', 'next', 'panic', 'previous', 'reset', 'stop', 'tog
 
 // actions for QLab module
 export function compileActionDefinitions(self) {
+
+	/**
+	 *
+	 * @param {Object} action - action object from callback
+	 * @param {string} cmd - OSC command address to send to QLab
+	 * @param {Object[]} args - optional OSC arguments to command
+	 * @param {string} args.type - OSC argument type 's','i','f', etc.
+	 * @param {object} args.value - OSC argument value, should match type
+	 */
 	const sendCommand = async (action, cmd, args) => {
 		args = args ?? []
 
@@ -29,6 +38,12 @@ export function compileActionDefinitions(self) {
 			self.sendOSC('/cue/playhead/valuesForKeys', self.qCueRequest)
 		}
 	}
+	/**
+	 * Format time argument for OSC
+	 * @param {Object} action - action object from callback, must have a 'time' option
+	 * @param {Object} context - context object from callback
+	 * @returns {OSCArgument} OSC formatted argument for tim
+	 */
 	const getTimeArg = async (action, context) => {
 		let optTime = await context.parseVariablesInString(action.options.time)
 		optTime = parseFloat(optTime)
@@ -39,10 +54,18 @@ export function compileActionDefinitions(self) {
 		}
 	}
 
+	/**
+	 * Calculate toggle value or forced on/off
+	 * @param {*} oldVal - Flag is on or off
+	 * @param {*} opt - Desired value
+	 * @returns {Integer}
+	 */
 	const setToggle = (oldVal, opt) => {
-		return '2' == opt ? 1 - (oldVal ? 1 : 0) : parseInt(opt)
+		const o = parsetInt(opt)
+		return 2 === o ? 1 - parseInt(oldVal) : o
 	}
 
+	// build list of actions
 	return {
 		go: {
 			name: 'GO',
@@ -64,6 +87,150 @@ export function compileActionDefinitions(self) {
 			options: [],
 			callback: async (action, context) => {
 				await sendCommand(action, '/stop')
+			},
+		},
+		new_Go: {
+			name: 'Go (Cue)',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Scope',
+					id: 'scope',
+					default: 'D',
+					choices: Choices.SCOPE,
+				},
+				{
+					type: 'textinput',
+					label: 'Cue Number',
+					id: 'q_num',
+					default: self.nextCue.q_num,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'N'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Cue ID',
+					id: 'q_id',
+					default: self.nextCue.q_id,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'I'
+					},
+				},
+			],
+			callback: async (action, context) => {
+				const scope = action.options.scope
+				let cmd = '/go'
+				let pfx = ''
+				switch (scope) {
+					case 'S':
+						pfx = '/cue/selected'
+						break
+					case 'N':
+						pfx = `/cue/${action.options.q_num}`
+						break
+					case 'I':
+						pfx = `/cue_id/${action.options.q_id}`
+				}
+				await sendCommand(action, cmd)
+			},
+		},
+		new_auditGo: {
+			name: 'Audition Cue(s)',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Scope',
+					id: 'scope',
+					default: 'D',
+					choices: Choices.SCOPE,
+				},
+				{
+					type: 'textinput',
+					label: 'Cue Number',
+					id: 'q_num',
+					default: self.nextCue.q_num,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'N'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Cue ID',
+					id: 'q_id',
+					default: self.nextCue.q_id,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'I'
+					},
+				},
+			],
+			callback: async (action, context) => {
+				const scope = action.options.scope
+				let cmd = '/auditionGo'
+				let pfx = ''
+				switch (scope) {
+					case 'S':
+						pfx = '/cue/selected'
+						break
+					case 'N':
+						pfx = `/cue/${action.options.q_num}`
+						break
+					case 'I':
+						pfx = `/cue_id/${action.options.q_id}`
+				}
+				await sendCommand(action, cmd)
+			},
+		},
+		new_stop: {
+			name: 'Stop Cue(s)',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Scope',
+					id: 'scope',
+					default: 'D',
+					choices: Choices.SCOPE,
+				},
+				{
+					type: 'textinput',
+					label: 'Cue Number',
+					id: 'q_num',
+					default: self.nextCue.q_num,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'N'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Cue ID',
+					id: 'q_id',
+					default: self.nextCue.q_id,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'I'
+					},
+				},
+			],
+			callback: async (action, context) => {
+				const scope = action.options.scope
+				let cmd = '/stop'
+				let pfx = ''
+				switch (scope) {
+					case 'S':
+						pfx = '/cue/selected'
+						break
+					case 'N':
+						pfx = `/cue/${action.options.q_num}`
+						break
+					case 'I':
+						pfx = `/cue_id/${action.options.q_id}`
+				}
+				await sendCommand(action, cmd)
 			},
 		},
 		previous: {
@@ -367,6 +534,24 @@ export function compileActionDefinitions(self) {
 				const optCueId = await context.parseVariablesInString(action.options.cueId)
 				const timeArg = await getTimeArg(action, context)
 				await sendCommand(action, '/cue_id/' + optCueId + '/panicInTime', timeArg)
+			},
+		},
+		liveFadePreview: {
+			name: 'Live Fade Preview mode',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Mode',
+					id: 'onOff',
+					default: 1,
+					choices: Choices.TOGGLE,
+				},
+			],
+			callback: async (action, context) => {
+				await sendCommand(action, '/liveFadePreview', {
+					type: 'i',
+					value: setToggle(self.liveFadePreview, action.options.onOff),
+				})
 			},
 		},
 		showMode: {
@@ -830,7 +1015,7 @@ export function compileActionDefinitions(self) {
 				},
 			],
 			callback: async (action, context) => {
-				let arg
+				let arg = []
 				const argT = action.options.argType === 'n' ? '' : action.options.argType
 				switch (argT) {
 					case 's':
