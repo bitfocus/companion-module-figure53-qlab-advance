@@ -51,9 +51,9 @@ class QLabInstance extends InstanceBase {
 		{
 			type: 's',
 			value:
-				'["number","uniqueID","listName","type","mode","isPaused","duration","actionElapsed","parent","flagged","notes",' +
-				'"autoLoad","colorName","isRunning","isAuditioning","isLoaded","armed","isBroken","continueMode","percentActionElapsed","cartPosition",' +
-				'"infiniteLoop","holdLastFrame"]',
+				'["number","uniqueID","listName","type","mode","isPaused","duration","actionElapsed","parent",' +
+				'"flagged","notes","autoLoad","colorName","isRunning","isAuditioning","isLoaded","armed",' +
+				'"isBroken","continueMode","percentActionElapsed","cartPosition","infiniteLoop","holdLastFrame"]',
 		},
 	]
 
@@ -69,8 +69,17 @@ class QLabInstance extends InstanceBase {
 		this.disabled = true
 		this.pollCount = 0
 		this.wrongPasscode = ''
+		this.loggedErrors = []
 
 		this.resetVars()
+	}
+
+	logError(e) {
+		if (!this.loggedErrors.includes(e)) {
+			this.log('info',`Address "${e}" returned an error`)
+			this.loggedErrors.push(e)
+			this.setVariableValues({'errs': this.loggedErrors.length})
+		}
 	}
 
 	applyConfig(config) {
@@ -155,6 +164,7 @@ class QLabInstance extends InstanceBase {
 		this.updatePlaying()
 		this.wrongPasscode = ''
 		this.wrongPasscodeAt = 0
+		this.loggedErrors = []
 	}
 
 	updateNextCue() {
@@ -316,6 +326,7 @@ class QLabInstance extends InstanceBase {
 		this.init_variables()
 		this.init_feedbacks()
 	}
+
 	async init(config) {
 		this.config = config
 
@@ -348,7 +359,7 @@ class QLabInstance extends InstanceBase {
 		}
 	}
 	/**
-	 * Sends an OSC command
+	 * Sends an OSC command to QLab
 	 * @param {string} node - OSC Node/Address
 	 * @param {Object[]} [arg] - optional arguments
 	 * @param {string} arg.type - type ('s','i','f')
@@ -957,6 +968,12 @@ class QLabInstance extends InstanceBase {
 			/* ingnore errors */
 		}
 
+		if ('error' == j.status) {
+			this.logError(j.address)
+			return
+			// qlab 5.3+ returns an error when asked '/cue/active/valuesForKeys'
+			// if no cue is active.
+		}
 		switch (
 			mn.slice(-1)[0] // last segment of address
 		) {
@@ -1065,7 +1082,8 @@ class QLabInstance extends InstanceBase {
 						this.updateCues(q, 'l')
 						this.updateCues(q.cues, 'l', q.uniqueID)
 					}
-					this.sendOSC('/cue/active/valuesForKeys', qr)
+					// QLab 5.3+ returns error if no que is active/playing
+					// this.sendOSC('/cue/active/valuesForKeys', qr)
 				}
 				break
 			case 'children':

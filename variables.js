@@ -100,5 +100,9 @@ export function compileVariableDefinition() {
 			name: 'Running Cue Elapsed Time, Second',
 			variableId: 'e_ss',
 		},
+		{
+			name: 'Number of miscellaneous QLab Errors',
+			variableId: 'errs',
+		}
 	]
 }
