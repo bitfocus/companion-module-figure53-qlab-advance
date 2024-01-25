@@ -243,8 +243,8 @@ class QLabInstance extends InstanceBase {
 				this.variableDefs = [...this.variableDefs, ...variableDefs]
 				this.setVariableDefinitions(this.variableDefs)
 			}
-			this.setVariableValues(variableValues)
 		}
+		this.setVariableValues(variableValues)
 	}
 
 	updateRunning() {
