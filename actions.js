@@ -61,7 +61,7 @@ export function compileActionDefinitions(self) {
 	 * @returns {Integer}
 	 */
 	const setToggle = (oldVal, opt) => {
-		const o = parsetInt(opt)
+		const o = parseInt(+opt)
 		return 2 === o ? 1 - parseInt(oldVal) : o
 	}
 
@@ -90,7 +90,8 @@ export function compileActionDefinitions(self) {
 			},
 		},
 		new_Go: {
-			name: 'Go (Cue)',
+			name: 'Go Cue(s)',
+			description: 'GO with options',
 			options: [
 				{
 					type: 'dropdown',
@@ -139,6 +140,7 @@ export function compileActionDefinitions(self) {
 		},
 		new_auditGo: {
 			name: 'Audition Cue(s)',
+			description: 'QLab5 only',
 			options: [
 				{
 					type: 'dropdown',

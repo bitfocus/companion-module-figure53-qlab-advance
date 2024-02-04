@@ -1110,12 +1110,6 @@ class QLabInstance extends InstanceBase {
 					this.checkFeedbacks('ws_mode')
 				}
 				break
-			case 'showMode':
-				if (this.showMode != j.data) {
-					this.showMode = j.data
-					this.checkFeedbacks('ws_mode')
-				}
-				break
 			case 'liveFadePreview':
 				if (this.liveFadePreview != j.data) {
 					this.liveFadePreview = j.data
