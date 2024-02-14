@@ -62,7 +62,7 @@ export function compileActionDefinitions(self) {
 	 */
 	const setToggle = (oldVal, opt) => {
 		const o = parseInt(+opt)
-		return 2 === o ? 1 - parseInt(oldVal) : o
+		return 2 === o ? 1 - parseInt(+oldVal) : o
 	}
 
 	// build list of actions
