@@ -15,8 +15,14 @@ export const GROUP_MODE = [
 ]
 
 export const SCOPE = [
-	{ id: 'D', label: 'Default/ALL' },
+	{ id: 'D', label: 'Playhead' },
 	{ id: 'S', label: 'Selected' },
+	{ id: 'N', label: 'Cue Number' },
+	{ id: 'I', label: 'Cue ID' },
+]
+
+export const FB_SCOPE = [
+	{ id: 'D', label: 'Playhead/Next' },
 	{ id: 'N', label: 'Cue Number' },
 	{ id: 'I', label: 'Cue ID' },
 ]

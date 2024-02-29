@@ -57,6 +57,82 @@ export function compileFeedbackDefinitions(self) {
 				return { bgcolor: bg || 0 }
 			},
 		},
+		q_armed: {
+			type: 'boolean',
+			name: 'Cue is armed',
+			description: 'Indicate on button when the specified cue is armed',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Scope',
+					id: 'scope',
+					default: 'D',
+					choices: Choices.FB_SCOPE,
+				},
+				{
+					type: 'textinput',
+					label: 'Cue Number',
+					id: 'q_num',
+					default: self.nextCue.q_num,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'N'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Cue ID',
+					id: 'q_id',
+					default: self.nextCue.q_id,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'I'
+					},
+				},
+			],
+			defaultStyle: {
+				bgcolor: combineRgb(0, 102, 0),
+				color: combineRgb(255, 255, 255),
+			},
+			callback: async (feedback, context) => {
+				const opt = feedback.options
+				let cue
+				switch (opt.scope) {
+					case 'D':
+						cue = self.nextCue
+						break
+					case 'N':
+						cue = self.cueByNum[opt.q_num?.replace(/[^\w\.]/gi, '_')]
+						break
+					case 'I':
+						cue = opt.q_id
+				}
+				return self.wsCues[cue]?.isArmed
+			},
+		},
+		qid_armed: {
+			type: 'boolean',
+			name: 'Indicate Cue ID is running',
+			description: 'Indicate on button when cue ID is running',
+			options: [
+				{
+					type: 'textinput',
+					label: 'Cue ID',
+					id: 'cueID',
+					default: self.nextCue,
+				},
+			],
+			defaultStyle: {
+				bgcolor: combineRgb(204, 0, 204),
+				color: combineRgb(255, 255, 255),
+			},
+			callback: (feedback, context) => {
+				const opt = feedback.options
+				// const rqID = self.cueByNum[opt.cue.replace(/[^\w\.]/gi,'_')];
+				const rq = self.wsCues[opt.cueID]
+				return rq && rq.isRunning
+			},
+		},
 		q_run: {
 			type: 'boolean',
 			name: 'Indicate Cue is running',
@@ -103,6 +179,7 @@ export function compileFeedbackDefinitions(self) {
 				return rq && rq.isRunning
 			},
 		},
+
 		any_run: {
 			type: 'boolean',
 			name: 'Indicate if any Cue is running',

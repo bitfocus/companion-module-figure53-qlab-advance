@@ -76,9 +76,9 @@ class QLabInstance extends InstanceBase {
 
 	logError(e) {
 		if (!this.loggedErrors.includes(e)) {
-			this.log('info',`Address "${e}" returned an error`)
+			this.log('info', `Address "${e}" returned an error`)
 			this.loggedErrors.push(e)
-			this.setVariableValues({'errs': this.loggedErrors.length})
+			this.setVariableValues({ 'errs': this.loggedErrors.length })
 		}
 	}
 
@@ -165,6 +165,7 @@ class QLabInstance extends InstanceBase {
 		this.wrongPasscode = ''
 		this.wrongPasscodeAt = 0
 		this.loggedErrors = []
+		this.selectedCues = []
 	}
 
 	updateNextCue() {
@@ -495,6 +496,7 @@ class QLabInstance extends InstanceBase {
 			if (5 == this.qVer) {
 				this.sendOSC('/alwaysAudition', [], true)
 				this.sendOSC('/auditionMonitors', [], true)
+				this.sendOSC('/selectedCues', [], true)
 			}
 			if (4 == this.qVer) {
 				this.sendOSC('/auditionWindow', [], true)
@@ -759,7 +761,7 @@ class QLabInstance extends InstanceBase {
 				}
 				delete this.requestedCues[q.uniqueID]
 			}
-			this.checkFeedbacks('q_bg', 'qid_bg', 'q_run', 'qid_run')
+			this.checkFeedbacks('q_bg', 'qid_bg', 'q_run', 'qid_run', 'q_armed')
 			if (dupIds) {
 				this.updateStatus(InstanceStatus.UnknownWarning, 'Multiple cues\nwith the same cue_id')
 			}
@@ -866,6 +868,44 @@ class QLabInstance extends InstanceBase {
 		if (qState(this.runningCue) != lastRun) {
 			this.updateRunning(true)
 		}
+	}
+	updateSelectedCues(c) {
+		let newHash = crc16b(JSON.stringify(c))
+		if (this.lastSel == newHash) {
+			return // no changes since last run
+		}
+		let newSel = []
+		// collect all unique IDs
+		const subq = (q) => {
+			newSel.push(q.uniqueID)
+			q.cues.forEach(subq)
+		}
+		c.forEach(subq)
+
+		// let sel = newSel.filter((qId) => {
+		// 	return !!this.wsCues[qId]
+		// })
+
+		// newSel = sel
+
+		// set 'isSelected'
+		for (const id of newSel) {
+			if (!this.wsCues[id]) {
+				this.wsCues[id] = new Cue()
+			}
+			this.sendOSC(`/cue_id/${id}/valuesForKeys`, this.qCueRequest)
+			this.requestedCues[id] = Date.now()
+			this.wsCues[id].isSelected = true
+		}
+
+		// remove anything not 'selected' anymore
+		for (const id of this.selectedCues) {
+			if (!newSel.includes(id)) {
+				if (this.wsCues[id]) this.wsCues[id].isSelected = false
+			}
+		}
+		this.selectedCues = newSel
+		this.lastSel = newHash
 	}
 	/**
 	 * process QLab 'update'
@@ -1057,11 +1097,16 @@ class QLabInstance extends InstanceBase {
 					this.sendOSC('/cue/playhead/valuesForKeys', qr)
 				}
 				break
+			case 'selectedCues': // selected cues
+				if (j.data) {
+					this.updateSelectedCues(j.data)
+				}
+				break
 			case 'playheadId': // pre q5
 			case 'playheadID': // q5
 				if (j.data) {
 					const playheadId = j.data
-					const uniqueID = ma.substr(14, 36)
+					const uniqueID = j.data // ma.substr(14, 36)
 					delete this.requestedCues[uniqueID]
 					if ((cl == '' || uniqueID == cl) && this.nextCue != playheadId) {
 						// playhead changed due to cue list change in QLab
@@ -1071,7 +1116,7 @@ class QLabInstance extends InstanceBase {
 							this.nextCue = playheadId
 						}
 						this.updateNextCue()
-						this.sendOSC('/cue/' + j.data + '/children')
+						this.sendOSC('/cue_id/' + j.data + '/children')
 					}
 				}
 				break
@@ -1144,6 +1189,15 @@ class QLabInstance extends InstanceBase {
 				this.goAfter = Date.now() + goLeft
 				this.checkFeedbacks('min_go')
 				break
+			case 'armed':
+				let cue_id = j.address.split('/')[4]
+				if ('cue' == j.address.split('/')[3]) {
+					cue_id = this.cueByNum[cue_id]
+				}
+				this.wsCues[cue_id].isArmed = j.data
+				this.checkFeedbacks('q_armed')
+				break
+
 			default:
 				if ('overrides' == mn[1]) {
 					this.overrides[mn[2]] = j.data
