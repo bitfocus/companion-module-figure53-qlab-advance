@@ -5,7 +5,6 @@ const cueListActions = ['go', 'next', 'panic', 'previous', 'reset', 'stop', 'tog
 
 // actions for QLab module
 export function compileActionDefinitions(self) {
-
 	/**
 	 *
 	 * @param {Object} action - action object from callback
@@ -16,6 +15,7 @@ export function compileActionDefinitions(self) {
 	 */
 	const sendCommand = async (action, cmd, args) => {
 		args = args ?? []
+		let global = ['/auditionWindow', '/alwaysAudition', '/overrideWindow'].includes(cmd)
 
 		if (self.cl && cueListActions.includes(action.actionId)) {
 			cmd = '/cue_id/' + self.cl + cmd
@@ -26,14 +26,10 @@ export function compileActionDefinitions(self) {
 		} else if (cmd !== undefined) {
 			self.log('debug', `sending ${cmd} ${JSON.stringify(args)} to ${self.config.host}`)
 			// everything except 'auditionWindow' and 'overrideWindow' works on a specific workspace
-			self.sendOSC(
-				cmd,
-				args,
-				['/auditionWindow', '/alwaysAudition', '/overrideWindow'].includes(cmd),
-			)
+			self.sendOSC(cmd, args, global)
 		}
 		// QLab does not send window updates so ask for status
-		if (self.useTCP && ['/auditionWindow', '/alwaysAudition', '/overrideWindow'].includes(cmd)) {
+		if (self.useTCP && global) {
 			self.sendOSC(cmd, [], true)
 			self.sendOSC('/cue/playhead/valuesForKeys', self.qCueRequest)
 		}
@@ -135,7 +131,7 @@ export function compileActionDefinitions(self) {
 					case 'I':
 						pfx = `/cue_id/${action.options.q_id}`
 				}
-				await sendCommand(action, cmd)
+				await sendCommand(action, pfx + cmd)
 			},
 		},
 		new_auditGo: {
@@ -184,7 +180,7 @@ export function compileActionDefinitions(self) {
 					case 'I':
 						pfx = `/cue_id/${action.options.q_id}`
 				}
-				await sendCommand(action, cmd)
+				await sendCommand(action, pfx + cmd)
 			},
 		},
 		new_stop: {
@@ -232,7 +228,7 @@ export function compileActionDefinitions(self) {
 					case 'I':
 						pfx = `/cue_id/${action.options.q_id}`
 				}
-				await sendCommand(action, cmd)
+				await sendCommand(action, pfx + cmd)
 			},
 		},
 		previous: {
@@ -867,8 +863,86 @@ export function compileActionDefinitions(self) {
 					type: 'i',
 					value: setToggle(nc.isArmed, action.options.armId),
 				})
+				// request immediate feedback
+				await sendCommand(action, '/cue_id/selected/armed', [])
 			},
 		},
+		new_arm: {
+			name: 'Arm Cue(s)',
+			description: 'Arm with options',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Scope',
+					id: 'scope',
+					default: 'D',
+					choices: Choices.SCOPE,
+				},
+				{
+					type: 'dropdown',
+					label: 'Arm',
+					id: 'arm_tog',
+					default: 1,
+					choices: Choices.TOGGLE,
+				},
+				{
+					type: 'textinput',
+					label: 'Cue Number',
+					id: 'q_num',
+					default: self.nextCue.q_num,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'N'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Cue ID',
+					id: 'q_id',
+					default: self.nextCue.q_id,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'I'
+					},
+				},
+			],
+			callback: async (action, context) => {
+				const opt = action.options
+				const scope = opt.scope
+				let cmd = '/armed'
+				let req = opt.arm_tog
+				let pfx = ''
+				let newVal = -1
+				let err = ''
+
+				switch (scope) {
+					case 'S':
+						pfx = '/cue/selected'
+						newVal = setToggle(self.wsCues[self.selectedCues[0]].isArmed, req)
+						break
+					case 'N':
+						pfx = `/cue/${opt.q_num}`
+						newVal = setToggle(
+							self.wsCues[self.cueByNum[opt.q_num?.replace(/[^\w\.]/gi, '_')]].isArmed,
+							req,
+						)
+						break
+					case 'I':
+						pfx = `/cue_id/${opt.q_id}`
+						newVal = setToggle(self.wsCues[opt.q_id].isArmed, req)
+						break
+					default:
+						pfx = '/cue/playhead'
+						newVal = setToggle(self.wsCues[self.nextCue].isArmed, req)
+				}
+				await sendCommand(action, pfx + cmd, {
+					type: 'i',
+					value: newVal,
+				})
+				await sendCommand(action, pfx + cmd, [])
+			},
+		},
+
 		autoload: {
 			name: 'Autoload Cue',
 			options: [

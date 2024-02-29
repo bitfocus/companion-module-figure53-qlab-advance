@@ -13,6 +13,7 @@ class Cue {
 	isArmed = false
 	isFlagged = false
 	isAuditioning = false
+	isSelected = false
 	continueMode = 0
 	infiniteLoop = false
 	holdLastFrame = false

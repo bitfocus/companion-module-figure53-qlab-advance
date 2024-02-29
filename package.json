@@ -1,6 +1,6 @@
 {
 	"name": "figure53-qlab-advance",
-	"version": "2.5.3",
+	"version": "2.6.0",
 	"main": "qlabfb.js",
 	"type": "module",
 	"scripts": {
