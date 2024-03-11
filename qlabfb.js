@@ -725,6 +725,7 @@ class QLabInstance extends InstanceBase {
 			'memo',
 			'script',
 		]
+		const fb2check = ['q_run', 'qid_run', 'any_run', 'q_armed','qid_armed', 'q_bg', 'qid_bg']
 		let q = {}
 
 		if (Array.isArray(jCue)) {
@@ -735,6 +736,9 @@ class QLabInstance extends InstanceBase {
 				q.qOrder = i
 				if (ql) {
 					q.qList = ql
+					if (!this.cueList[ql]) {
+						this.cueList[ql] = []
+					}
 				}
 				if (stat == 'u') {
 					if (!this.cueList[ql].includes(q.uniqueID)) {
@@ -761,7 +765,7 @@ class QLabInstance extends InstanceBase {
 				}
 				delete this.requestedCues[q.uniqueID]
 			}
-			this.checkFeedbacks('q_bg', 'qid_bg', 'q_run', 'qid_run', 'q_armed')
+			this.checkFeedbacks(...fb2check)
 			if (dupIds) {
 				this.updateStatus(InstanceStatus.UnknownWarning, 'Multiple cues\nwith the same cue_id')
 			}
@@ -785,7 +789,7 @@ class QLabInstance extends InstanceBase {
 						}
 					}
 				}
-				this.checkFeedbacks('q_run', 'qid_run', 'any_run')
+				this.checkFeedbacks(...fb2check)
 				this.updatePlaying()
 				if (
 					'' == this.cl ||

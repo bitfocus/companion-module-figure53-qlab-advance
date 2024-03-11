@@ -914,6 +914,7 @@ export function compileActionDefinitions(self) {
 				let pfx = ''
 				let newVal = -1
 				let err = ''
+				let cue_id = context.parseVariablesInString(opt.q_id)
 
 				switch (scope) {
 					case 'S':
@@ -921,15 +922,17 @@ export function compileActionDefinitions(self) {
 						newVal = setToggle(self.wsCues[self.selectedCues[0]].isArmed, req)
 						break
 					case 'N':
-						pfx = `/cue/${opt.q_num}`
+						let qnum = await context.parseVariablesInString(opt.q_num.trim())
+						pfx = `/cue/${qnum}`
 						newVal = setToggle(
-							self.wsCues[self.cueByNum[opt.q_num?.replace(/[^\w\.]/gi, '_')]].isArmed,
+							self.wsCues[self.cueByNum[qnum.replace(/[^\w\.]/gi, '_')]]?.isArmed,
 							req,
 						)
 						break
 					case 'I':
-						pfx = `/cue_id/${opt.q_id}`
-						newVal = setToggle(self.wsCues[opt.q_id].isArmed, req)
+						let qid = await context.parseVariablesInString(opt.q_id.trim())
+						pfx = `/cue_id/${qid}`
+						newVal = setToggle(self.wsCues[qid].isArmed, req)
 						break
 					default:
 						pfx = '/cue/playhead'
