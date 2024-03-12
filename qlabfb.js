@@ -729,8 +729,8 @@ class QLabInstance extends InstanceBase {
 		if (Array.isArray(jCue)) {
 			const idCount = {}
 			const dupIds = false
-			for (let i = 0; i < jCue.length; i++) {
-				q = new Cue(jCue[i], this)
+			jCue.forEach((j, i) => {
+				q = new Cue(j, this)
 				q.qOrder = i
 				if (ql) {
 					q.qList = ql
@@ -761,8 +761,12 @@ class QLabInstance extends InstanceBase {
 						}
 					}
 				}
+				if (j.cues.length) {
+					// next level cues
+					this.updateCues(j.cues)
+				}
 				delete this.requestedCues[q.uniqueID]
-			}
+			})
 			this.checkFeedbacks(...this.fb2check)
 			if (dupIds) {
 				this.updateStatus(InstanceStatus.UnknownWarning, 'Multiple cues\nwith the same cue_id')
@@ -1011,10 +1015,12 @@ class QLabInstance extends InstanceBase {
 		}
 
 		if ('error' == j.status) {
-			this.logError(j.address)
-			return
 			// qlab 5.3+ returns an error when asked '/cue/active/valuesForKeys'
 			// if no cue is active.
+			if (!(mn.slice(-1) == 'valuesForKeys')) {
+				this.logError(j.address)
+			}
+			return
 		}
 		switch (
 			mn.slice(-1)[0] // last segment of address
@@ -1129,8 +1135,7 @@ class QLabInstance extends InstanceBase {
 						this.updateCues(q, 'l')
 						this.updateCues(q.cues, 'l', q.uniqueID)
 					}
-					// QLab 5.3+ returns error if no que is active/playing
-					// this.sendOSC('/cue/active/valuesForKeys', qr)
+					this.sendOSC('/cue/active/valuesForKeys', qr)
 				}
 				break
 			case 'children':
