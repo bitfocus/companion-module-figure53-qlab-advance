@@ -56,6 +56,7 @@ class QLabInstance extends InstanceBase {
 				'"isBroken","continueMode","percentActionElapsed","cartPosition","infiniteLoop","holdLastFrame"]',
 		},
 	]
+	fb2check = ['q_run', 'qid_run', 'any_run', 'q_armed','qid_armed', 'q_bg', 'qid_bg']
 
 	constructor(internal) {
 		super(internal)
@@ -232,7 +233,7 @@ class QLabInstance extends InstanceBase {
 			variableValues[vId] = q.qName
 			variableDefs.push({ variableId: vId, name: `Name of cue ID ${qID}` })
 
-			this.checkFeedbacks('q_bg', 'qid_bg')
+			this.checkFeedbacks(this.fb2check)
 		}
 
 		if (this.exposeVariables) {
@@ -509,8 +510,7 @@ class QLabInstance extends InstanceBase {
 
 		if (Object.keys(this.requestedCues).length > 0) {
 			let variableValues = {}
-			const checkFeedbacks = new Set()
-
+			const checkFeedbacks = []
 			const timeOut = now - 500
 			for (let k in this.requestedCues) {
 				if (this.requestedCues[k] < timeOut) {
@@ -527,8 +527,7 @@ class QLabInstance extends InstanceBase {
 							variableValues['q_' + qNum + '_name'] = undefined
 						}
 						variableValues['id_' + cueObj.uniqueID + '_name'] = undefined
-						checkFeedbacks.add('q_bg')
-						checkFeedbacks.add('qid_bg')
+						checkFeedbacks.push(...this.fb2check)
 					}
 					delete this.requestedCues[k]
 				}
@@ -536,7 +535,7 @@ class QLabInstance extends InstanceBase {
 
 			this.setVariableValues(variableValues)
 			if (checkFeedbacks.size > 0) {
-				this.checkFeedbacks(...Array.from(checkFeedbacks))
+				this.checkFeedbacks(...checkFeedbacks)
 			}
 		}
 
@@ -725,7 +724,6 @@ class QLabInstance extends InstanceBase {
 			'memo',
 			'script',
 		]
-		const fb2check = ['q_run', 'qid_run', 'any_run', 'q_armed','qid_armed', 'q_bg', 'qid_bg']
 		let q = {}
 
 		if (Array.isArray(jCue)) {
@@ -765,7 +763,7 @@ class QLabInstance extends InstanceBase {
 				}
 				delete this.requestedCues[q.uniqueID]
 			}
-			this.checkFeedbacks(...fb2check)
+			this.checkFeedbacks(...this.fb2check)
 			if (dupIds) {
 				this.updateStatus(InstanceStatus.UnknownWarning, 'Multiple cues\nwith the same cue_id')
 			}
@@ -789,7 +787,7 @@ class QLabInstance extends InstanceBase {
 						}
 					}
 				}
-				this.checkFeedbacks(...fb2check)
+				this.checkFeedbacks(...this.fb2check)
 				this.updatePlaying()
 				if (
 					'' == this.cl ||
