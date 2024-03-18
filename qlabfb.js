@@ -761,7 +761,7 @@ class QLabInstance extends InstanceBase {
 						}
 					}
 				}
-				if (j.cues.length) {
+				if (j.cues && j.cues.length) {
 					// next level cues
 					this.updateCues(j.cues)
 				}
@@ -821,26 +821,26 @@ class QLabInstance extends InstanceBase {
 		let hasDuration = false
 		const cl = this.cl
 		const cues = this.wsCues
+		const junk = Object.keys(cues).length
 		const lastRun = qState(this.runningCue)
 		let runningCues = []
 
-		for (const cue in cues) {
-			//		Object.keys(cues).forEach((cue) => {
-			const q = cues[cue]
+		Object.keys(cues).forEach((qid) => {
+			const q = cues[qid]
 			// some cuelists (for example all manual slides) may not have a pre-programmed duration
 			if (q.isRunning || q.isPaused) {
 				if (
 					('' == cl && 'cue list' != q.qType) ||
-					(this.cueList[cl] && this.cueList[cl].includes(cue))
+					(this.cueList[cl] && this.cueList[cl].includes(qid))
 				) {
-					runningCues.push([cue, q.startedAt])
+					runningCues.push([qid, q.startedAt])
 					// if group does not have a duration, ignore
 					// it is probably a playlist, not simultaneous playback
 					hasGroup = hasGroup || (q.qType == 'group' && q.duration > 0)
 					hasDuration = hasDuration || q.duration > 0
 				}
 			}
-		} //)
+		} )
 
 		runningCues.sort((a, b) => b[1] - a[1])
 
