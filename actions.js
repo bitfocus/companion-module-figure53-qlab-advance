@@ -87,7 +87,7 @@ export function compileActionDefinitions(self) {
 		},
 		new_Go: {
 			name: 'Go Cue(s)',
-			description: 'GO with options',
+			description: 'GO with optional cue selection',
 			options: [
 				{
 					type: 'dropdown',
@@ -118,25 +118,29 @@ export function compileActionDefinitions(self) {
 				},
 			],
 			callback: async (action, context) => {
-				const scope = action.options.scope
+				const opt = action.options
+				const scope = opt.scope
 				let cmd = '/go'
 				let pfx = ''
+
 				switch (scope) {
 					case 'S':
 						pfx = '/cue/selected'
 						break
 					case 'N':
-						pfx = `/cue/${action.options.q_num}`
+						let qnum = await context.parseVariablesInString(opt.q_num.trim())
+						pfx = `/cue/${qnum}`
 						break
 					case 'I':
-						pfx = `/cue_id/${action.options.q_id}`
+						let qid = await context.parseVariablesInString(opt.q_id.trim())
+						pfx = `/cue_id/${qid}`
 				}
 				await sendCommand(action, pfx + cmd)
 			},
 		},
 		new_auditGo: {
 			name: 'Audition Cue(s)',
-			description: 'QLab5 only',
+			description: 'Audition with optional cue selection. QLab5 only',
 			options: [
 				{
 					type: 'dropdown',
@@ -167,24 +171,29 @@ export function compileActionDefinitions(self) {
 				},
 			],
 			callback: async (action, context) => {
-				const scope = action.options.scope
+				const opt = action.options
+				const scope = opt.scope
 				let cmd = '/auditionGo'
 				let pfx = ''
+
 				switch (scope) {
 					case 'S':
 						pfx = '/cue/selected'
 						break
 					case 'N':
-						pfx = `/cue/${action.options.q_num}`
+						let qnum = await context.parseVariablesInString(opt.q_num.trim())
+						pfx = `/cue/${qnum}`
 						break
 					case 'I':
-						pfx = `/cue_id/${action.options.q_id}`
+						let qid = await context.parseVariablesInString(opt.q_id.trim())
+						pfx = `/cue_id/${qid}`
 				}
 				await sendCommand(action, pfx + cmd)
 			},
 		},
 		new_stop: {
 			name: 'Stop Cue(s)',
+			description: 'Stop with optional cue selection',
 			options: [
 				{
 					type: 'dropdown',
@@ -215,18 +224,22 @@ export function compileActionDefinitions(self) {
 				},
 			],
 			callback: async (action, context) => {
-				const scope = action.options.scope
+				const opt = action.options
+				const scope = opt.scope
 				let cmd = '/stop'
 				let pfx = ''
+
 				switch (scope) {
 					case 'S':
 						pfx = '/cue/selected'
 						break
 					case 'N':
-						pfx = `/cue/${action.options.q_num}`
+						let qnum = await context.parseVariablesInString(opt.q_num.trim())
+						pfx = `/cue/${qnum}`
 						break
 					case 'I':
-						pfx = `/cue_id/${action.options.q_id}`
+						let qid = await context.parseVariablesInString(opt.q_id.trim())
+						pfx = `/cue_id/${qid}`
 				}
 				await sendCommand(action, pfx + cmd)
 			},
@@ -869,7 +882,7 @@ export function compileActionDefinitions(self) {
 		},
 		new_arm: {
 			name: 'Arm Cue(s)',
-			description: 'Arm with options',
+			description: 'Arm with optional cue selection',
 			options: [
 				{
 					type: 'dropdown',
@@ -913,8 +926,6 @@ export function compileActionDefinitions(self) {
 				let req = opt.arm_tog
 				let pfx = ''
 				let newVal = -1
-				let err = ''
-				let cue_id = context.parseVariablesInString(opt.q_id)
 
 				switch (scope) {
 					case 'S':
@@ -945,7 +956,6 @@ export function compileActionDefinitions(self) {
 				await sendCommand(action, pfx + cmd, [])
 			},
 		},
-
 		autoload: {
 			name: 'Autoload Cue',
 			options: [
