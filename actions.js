@@ -894,7 +894,7 @@ export function compileActionDefinitions(self) {
 				{
 					type: 'dropdown',
 					label: 'Arm',
-					id: 'arm_tog',
+					id: 'tog',
 					default: 1,
 					choices: Choices.TOGGLE,
 				},
@@ -923,7 +923,7 @@ export function compileActionDefinitions(self) {
 				const opt = action.options
 				const scope = opt.scope
 				let cmd = '/armed'
-				let req = opt.arm_tog
+				let req = opt.tog
 				let pfx = ''
 				let newVal = -1
 
@@ -935,10 +935,7 @@ export function compileActionDefinitions(self) {
 					case 'N':
 						let qnum = await context.parseVariablesInString(opt.q_num.trim())
 						pfx = `/cue/${qnum}`
-						newVal = setToggle(
-							self.wsCues[self.cueByNum[qnum.replace(/[^\w\.]/gi, '_')]]?.isArmed,
-							req,
-						)
+						newVal = setToggle(self.wsCues[self.cueByNum[qnum.replace(/[^\w\.]/gi, '_')]]?.isArmed, req)
 						break
 					case 'I':
 						let qid = await context.parseVariablesInString(opt.q_id.trim())
@@ -956,6 +953,80 @@ export function compileActionDefinitions(self) {
 				await sendCommand(action, pfx + cmd, [])
 			},
 		},
+		new_flag: {
+			name: 'Flag Cue(s)',
+			description: 'Flag with optional cue selection',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Scope',
+					id: 'scope',
+					default: 'D',
+					choices: Choices.SCOPE,
+				},
+				{
+					type: 'dropdown',
+					label: 'Flag',
+					id: 'tog',
+					default: 1,
+					choices: Choices.TOGGLE,
+				},
+				{
+					type: 'textinput',
+					label: 'Cue Number',
+					id: 'q_num',
+					default: self.nextCue.q_num,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'N'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Cue ID',
+					id: 'q_id',
+					default: self.nextCue.q_id,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'I'
+					},
+				},
+			],
+			callback: async (action, context) => {
+				const opt = action.options
+				const scope = opt.scope
+				let cmd = '/flagged'
+				let req = opt.tog
+				let pfx = ''
+				let newVal = -1
+
+				switch (scope) {
+					case 'S':
+						pfx = '/cue/selected'
+						newVal = setToggle(self.wsCues[self.selectedCues[0]].isFlagged, req)
+						break
+					case 'N':
+						let qnum = await context.parseVariablesInString(opt.q_num.trim())
+						pfx = `/cue/${qnum}`
+						newVal = setToggle(self.wsCues[self.cueByNum[qnum.replace(/[^\w\.]/gi, '_')]]?.isFlagged, req)
+						break
+					case 'I':
+						let qid = await context.parseVariablesInString(opt.q_id.trim())
+						pfx = `/cue_id/${qid}`
+						newVal = setToggle(self.wsCues[qid].isFlagged, req)
+						break
+					default:
+						pfx = '/cue/playhead'
+						newVal = setToggle(self.wsCues[self.nextCue].isFlagged, req)
+				}
+				await sendCommand(action, pfx + cmd, {
+					type: 'i',
+					value: newVal,
+				})
+				await sendCommand(action, pfx + cmd, [])
+			},
+		},
+
 		autoload: {
 			name: 'Autoload Cue',
 			options: [
