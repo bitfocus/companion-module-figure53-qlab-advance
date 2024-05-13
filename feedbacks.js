@@ -59,8 +59,8 @@ export function compileFeedbackDefinitions(self) {
 		},
 		q_armed: {
 			type: 'boolean',
-			name: 'Cue is armed',
-			description: 'Indicate on button when the specified cue is armed',
+			name: 'Cue is Armed',
+			description: 'Indicate on button when the specified cue is Armed',
 			options: [
 				{
 					type: 'dropdown',
@@ -110,27 +110,57 @@ export function compileFeedbackDefinitions(self) {
 				return self.wsCues[cue]?.isArmed
 			},
 		},
-		qid_armed: {
+		q_flagged: {
 			type: 'boolean',
-			name: 'Indicate Cue ID is running',
-			description: 'Indicate on button when cue ID is running',
+			name: 'Cue is Flagged',
+			description: 'Indicate on button when the specified cue is Flagged',
 			options: [
+				{
+					type: 'dropdown',
+					label: 'Scope',
+					id: 'scope',
+					default: 'D',
+					choices: Choices.FB_SCOPE,
+				},
+				{
+					type: 'textinput',
+					label: 'Cue Number',
+					id: 'q_num',
+					default: self.nextCue.q_num,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'N'
+					},
+				},
 				{
 					type: 'textinput',
 					label: 'Cue ID',
-					id: 'cueID',
-					default: self.nextCue,
+					id: 'q_id',
+					default: self.nextCue.q_id,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'I'
+					},
 				},
 			],
 			defaultStyle: {
-				bgcolor: combineRgb(204, 0, 204),
+				bgcolor: combineRgb(0, 102, 0),
 				color: combineRgb(255, 255, 255),
 			},
-			callback: (feedback, context) => {
+			callback: async (feedback, context) => {
 				const opt = feedback.options
-				// const rqID = self.cueByNum[opt.cue.replace(/[^\w\.]/gi,'_')];
-				const rq = self.wsCues[opt.cueID]
-				return rq && rq.isRunning
+				let cue
+				switch (opt.scope) {
+					case 'D':
+						cue = self.nextCue
+						break
+					case 'N':
+						cue = self.cueByNum[opt.q_num?.replace(/[^\w\.]/gi, '_')]
+						break
+					case 'I':
+						cue = opt.q_id
+				}
+				return self.wsCues[cue]?.isflagged
 			},
 		},
 		q_run: {

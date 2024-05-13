@@ -56,7 +56,7 @@ class QLabInstance extends InstanceBase {
 				'"isBroken","continueMode","percentActionElapsed","cartPosition","infiniteLoop","holdLastFrame"]',
 		},
 	]
-	fb2check = ['q_run', 'qid_run', 'any_run', 'q_armed','qid_armed', 'q_bg', 'qid_bg']
+	fb2check = ['q_run', 'qid_run', 'any_run', 'q_armed', 'q_bg', 'qid_bg', 'q_flagged']
 
 	constructor(internal) {
 		super(internal)
@@ -79,7 +79,7 @@ class QLabInstance extends InstanceBase {
 		if (!this.loggedErrors.includes(e)) {
 			this.log('info', `Address "${e}" returned an error`)
 			this.loggedErrors.push(e)
-			this.setVariableValues({ 'errs': this.loggedErrors.length })
+			this.setVariableValues({ errs: this.loggedErrors.length })
 		}
 	}
 
@@ -424,10 +424,7 @@ class QLabInstance extends InstanceBase {
 			this.sendOSC('/version', [], true) // app global, not workspace
 			this.sendOSC('/workspaces', [], true)
 			if (this.config.passcode) {
-				if (
-					this.config.passcode != this.wrongPasscode ||
-					Date.now() - this.wrongPasscodeAt > 15000
-				) {
+				if (this.config.passcode != this.wrongPasscode || Date.now() - this.wrongPasscodeAt > 15000) {
 					this.log('debug', 'sending passcode to ' + this.config.host)
 					this.sendOSC('/connect', [
 						{
@@ -793,10 +790,7 @@ class QLabInstance extends InstanceBase {
 				}
 				this.checkFeedbacks(...this.fb2check)
 				this.updatePlaying()
-				if (
-					'' == this.cl ||
-					(this.cueList[this.cl] && this.cueList[this.cl].includes(q.uniqueID))
-				) {
+				if ('' == this.cl || (this.cueList[this.cl] && this.cueList[this.cl].includes(q.uniqueID))) {
 					if (q.uniqueID == this.nextCue) {
 						this.updateNextCue()
 					}
@@ -829,10 +823,7 @@ class QLabInstance extends InstanceBase {
 			const q = cues[qid]
 			// some cuelists (for example all manual slides) may not have a pre-programmed duration
 			if (q.isRunning || q.isPaused) {
-				if (
-					('' == cl && 'cue list' != q.qType) ||
-					(this.cueList[cl] && this.cueList[cl].includes(qid))
-				) {
+				if (('' == cl && 'cue list' != q.qType) || (this.cueList[cl] && this.cueList[cl].includes(qid))) {
 					runningCues.push([qid, q.startedAt])
 					// if group does not have a duration, ignore
 					// it is probably a playlist, not simultaneous playback
@@ -840,7 +831,7 @@ class QLabInstance extends InstanceBase {
 					hasDuration = hasDuration || q.duration > 0
 				}
 			}
-		} )
+		})
 
 		runningCues.sort((a, b) => b[1] - a[1])
 
@@ -1004,6 +995,7 @@ class QLabInstance extends InstanceBase {
 		const ma = message.address
 		const mn = ma.split('/').slice(1)
 		let j = {}
+		let q_id
 		const i = 0
 		const cl = this.cl
 		const qr = this.qCueRequest
@@ -1073,7 +1065,7 @@ class QLabInstance extends InstanceBase {
 						() => {
 							this.rePulse()
 						},
-						this.config.useTenths ? 100 : 250,
+						this.config.useTenths ? 100 : 250
 					)
 				}
 				break
@@ -1092,7 +1084,7 @@ class QLabInstance extends InstanceBase {
 						() => {
 							this.rePulse()
 						},
-						this.config.useTenths ? 100 : 250,
+						this.config.useTenths ? 100 : 250
 					)
 				} else {
 					this.needWorkspace = this.qVer > 3 && this.useTCP
@@ -1197,12 +1189,20 @@ class QLabInstance extends InstanceBase {
 				this.checkFeedbacks('min_go')
 				break
 			case 'armed':
-				let cue_id = j.address.split('/')[4]
+				cue_id = j.address.split('/')[4]
 				if ('cue' == j.address.split('/')[3]) {
 					cue_id = this.cueByNum[cue_id]
 				}
 				this.wsCues[cue_id].isArmed = j.data
 				this.checkFeedbacks('q_armed')
+				break
+			case 'flagged':
+				cue_id = j.address.split('/')[4]
+				if ('cue' == j.address.split('/')[3]) {
+					cue_id = this.cueByNum[cue_id]
+				}
+				this.wsCues[cue_id].isFlagged = j.data
+				this.checkFeedbacks('q_flagged')
 				break
 
 			default:
