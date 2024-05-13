@@ -1009,7 +1009,7 @@ class QLabInstance extends InstanceBase {
 		if ('error' == j.status) {
 			// qlab 5.3+ returns an error when asked '/cue/active/valuesForKeys'
 			// if no cue is active.
-			if (!(mn.slice(-1) == 'valuesForKeys')) {
+			if (!['valuesForKeys','uniqueID'].includes(mn.slice(-1)[0])) {
 				this.logError(j.address)
 			}
 			return
@@ -1114,9 +1114,9 @@ class QLabInstance extends InstanceBase {
 							this.nextCue = ''
 						} else {
 							this.nextCue = playheadId
+							this.sendOSC('/cue_id/' + j.data + '/children')
 						}
 						this.updateNextCue()
-						this.sendOSC('/cue_id/' + j.data + '/children')
 					}
 				}
 				break
