@@ -1,7 +1,8 @@
 import { Regex } from '@companion-module/base'
 
-const REGEX_IP_OR_HOST = '/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)+([A-Za-z]|[A-Za-z][A-Za-z0-9\-]*[A-Za-z0-9])$/gm'
-
+const REGEX_IP_OR_HOST =
+	'/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$' +
+	'|^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]).)+([A-Za-z]|[A-Za-z][A-Za-z0-9-]*[A-Za-z0-9])$/'
 
 export function GetConfigFields(self) {
 	const configs = [
@@ -71,8 +72,7 @@ export function GetConfigFields(self) {
 			label: 'OSC Passcode',
 			width: 6,
 			tooltip:
-				'The passcode to controll QLab.\nLeave blank if not needed\n'
-				+'This is almost always required for QLab5',
+				'The passcode to controll QLab.\nLeave blank if not needed\n' + 'This is almost always required for QLab5',
 		},
 	]
 
