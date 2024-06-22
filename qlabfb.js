@@ -671,11 +671,12 @@ class QLabInstance extends InstanceBase {
 			})
 
 			this.qSocket.on('message', (message, timetag, info) => {
-				//this.log('debug', 'received ' + JSON.stringify(message) + `from ${this.qSocket.options.address}`)
-				if (message.address.match(/^\/update\//)) {
+        const node = message.address.split('/')
+				this.log('debug', 'received ' + JSON.stringify(message) + `from ${this.qSocket.options.address}`)
+				if ('update' == node[1]) {
 					// debug("readUpdate");
 					this.readUpdate(message)
-				} else if (message.address.match(/^\/reply\//)) {
+				} else if ('reply' == node[1]) {
 					// debug("readReply");
 					this.readReply(message)
 				} else {
@@ -1014,6 +1015,16 @@ class QLabInstance extends InstanceBase {
 			}
 			return
 		}
+    if ('denied' == j.status) {
+      // qLab 5+ returns 'denied' for most requests
+      // if passcode is not correct
+      this.needPasscode = true
+      this.wrongPasscode = this.config.passcode
+      this.wrongPasscodeAt = Date.now()
+      this.updateStatus(InstanceStatus.BadConfig,'Passcode denied')
+      return
+
+    }
 		switch (
 			mn.slice(-1)[0] // last segment of address
 		) {
@@ -1189,19 +1200,19 @@ class QLabInstance extends InstanceBase {
 				this.checkFeedbacks('min_go')
 				break
 			case 'armed':
-				cue_id = j.address.split('/')[4]
+				q_id = j.address.split('/')[4]
 				if ('cue' == j.address.split('/')[3]) {
-					cue_id = this.cueByNum[cue_id]
+					q_id = this.cueByNum[q_id]
 				}
-				this.wsCues[cue_id].isArmed = j.data
+				this.wsCues[q_id].isArmed = j.data
 				this.checkFeedbacks('q_armed')
 				break
 			case 'flagged':
-				cue_id = j.address.split('/')[4]
+				q_id = j.address.split('/')[4]
 				if ('cue' == j.address.split('/')[3]) {
-					cue_id = this.cueByNum[cue_id]
+					q_id = this.cueByNum[q_id]
 				}
-				this.wsCues[cue_id].isFlagged = j.data
+				this.wsCues[q_id].isFlagged = j.data
 				this.checkFeedbacks('q_flagged')
 				break
 
