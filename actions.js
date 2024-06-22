@@ -872,6 +872,9 @@ export function compileActionDefinitions(self) {
 			],
 			callback: async (action, context) => {
 				const nc = self.wsCues[self.nextCue]
+				if (!nc) {
+					return
+				}
 				await sendCommand(action, '/cue/selected/armed', {
 					type: 'i',
 					value: setToggle(nc.isArmed, action.options.armId),
@@ -927,24 +930,28 @@ export function compileActionDefinitions(self) {
 				let pfx = ''
 				let newVal = -1
 
-				switch (scope) {
-					case 'S':
-						pfx = '/cue/selected'
-						newVal = setToggle(self.wsCues[self.selectedCues[0]].isArmed, req)
-						break
-					case 'N':
-						let qnum = await context.parseVariablesInString(opt.q_num.trim())
-						pfx = `/cue/${qnum}`
-						newVal = setToggle(self.wsCues[self.cueByNum[qnum.replace(/[^\w\.]/gi, '_')]]?.isArmed, req)
-						break
-					case 'I':
-						let qid = await context.parseVariablesInString(opt.q_id.trim())
-						pfx = `/cue_id/${qid}`
-						newVal = setToggle(self.wsCues[qid].isArmed, req)
-						break
-					default:
-						pfx = '/cue/playhead'
-						newVal = setToggle(self.wsCues[self.nextCue].isArmed, req)
+				try {
+					switch (scope) {
+						case 'S':
+							pfx = '/cue/selected'
+							newVal = setToggle(self.wsCues[self.selectedCues[0]].isArmed, req)
+							break
+						case 'N':
+							let qnum = await context.parseVariablesInString(opt.q_num.trim())
+							pfx = `/cue/${qnum}`
+							newVal = setToggle(self.wsCues[self.cueByNum[qnum.replace(/[^\w\.]/gi, '_')]]?.isArmed, req)
+							break
+						case 'I':
+							let qid = await context.parseVariablesInString(opt.q_id.trim())
+							pfx = `/cue_id/${qid}`
+							newVal = setToggle(self.wsCues[qid].isArmed, req)
+							break
+						default:
+							pfx = '/cue/playhead'
+							newVal = setToggle(self.wsCues[self.nextCue].isArmed, req)
+					}
+				} catch {
+					return // bad cue number, id, no playhead, no selection
 				}
 				await sendCommand(action, pfx + cmd, {
 					type: 'i',
@@ -1000,24 +1007,28 @@ export function compileActionDefinitions(self) {
 				let pfx = ''
 				let newVal = -1
 
-				switch (scope) {
-					case 'S':
-						pfx = '/cue/selected'
-						newVal = setToggle(self.wsCues[self.selectedCues[0]].isFlagged, req)
-						break
-					case 'N':
-						let qnum = await context.parseVariablesInString(opt.q_num.trim())
-						pfx = `/cue/${qnum}`
-						newVal = setToggle(self.wsCues[self.cueByNum[qnum.replace(/[^\w\.]/gi, '_')]]?.isFlagged, req)
-						break
-					case 'I':
-						let qid = await context.parseVariablesInString(opt.q_id.trim())
-						pfx = `/cue_id/${qid}`
-						newVal = setToggle(self.wsCues[qid].isFlagged, req)
-						break
-					default:
-						pfx = '/cue/playhead'
-						newVal = setToggle(self.wsCues[self.nextCue].isFlagged, req)
+				try {
+					switch (scope) {
+						case 'S':
+							pfx = '/cue/selected'
+							newVal = setToggle(self.wsCues[self.selectedCues[0]].isFlagged, req)
+							break
+						case 'N':
+							let qnum = await context.parseVariablesInString(opt.q_num.trim())
+							pfx = `/cue/${qnum}`
+							newVal = setToggle(self.wsCues[self.cueByNum[qnum.replace(/[^\w\.]/gi, '_')]]?.isFlagged, req)
+							break
+						case 'I':
+							let qid = await context.parseVariablesInString(opt.q_id.trim())
+							pfx = `/cue_id/${qid}`
+							newVal = setToggle(self.wsCues[qid].isFlagged, req)
+							break
+						default:
+							pfx = '/cue/playhead'
+							newVal = setToggle(self.wsCues[self.nextCue].isFlagged, req)
+					}
+				} catch {
+					return // bad cue number, id, no playhead, no selection
 				}
 				await sendCommand(action, pfx + cmd, {
 					type: 'i',
@@ -1040,6 +1051,9 @@ export function compileActionDefinitions(self) {
 			],
 			callback: async (action, context) => {
 				const nc = self.wsCues[self.nextCue]
+				if (!!nc) {
+					return
+				}
 				await sendCommand(action, '/cue/selected/autoLoad', {
 					type: 'i',
 					value: setToggle(nc.autoLoad, action.options.autoId),
@@ -1059,6 +1073,9 @@ export function compileActionDefinitions(self) {
 			],
 			callback: async (action, context) => {
 				const nc = self.wsCues[self.nextCue]
+				if (!!nc) {
+					return
+				}
 				await sendCommand(action, '/cue/selected/flagged', {
 					type: 'i',
 					value: setToggle(nc.isFlagged, action.options.flagId),
@@ -1095,6 +1112,9 @@ export function compileActionDefinitions(self) {
 			],
 			callback: async (action, context) => {
 				const nc = self.wsCues[self.nextCue]
+				if (!!nc) {
+					return
+				}
 				await sendCommand(action, '/cue/selected/infiniteLoop', {
 					type: 'i',
 					value: setToggle(nc.infiniteLoop, action.options.choice),
@@ -1114,6 +1134,9 @@ export function compileActionDefinitions(self) {
 			],
 			callback: async (action, context) => {
 				const nc = self.wsCues[self.nextCue]
+				if (!!nc) {
+					return
+				}
 				await sendCommand(action, '/cue/selected/holdLastFrame', {
 					type: 'i',
 					value: setToggle(nc.holdLastFrame, action.options.choice),
