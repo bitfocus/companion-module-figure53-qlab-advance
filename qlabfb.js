@@ -56,7 +56,7 @@ class QLabInstance extends InstanceBase {
 				'"isBroken","continueMode","percentActionElapsed","cartPosition","infiniteLoop","holdLastFrame"]',
 		},
 	]
-	fb2check = ['q_run', 'qid_run', 'any_run', 'q_armed', 'q_bg', 'qid_bg', 'q_flagged']
+	fb2check = ['q_run', 'qid_run', 'any_run', 'q_armed', 'q_bg', 'qid_bg', 'q_flagged', 'q_paused']
 
 	constructor(internal) {
 		super(internal)
@@ -489,7 +489,7 @@ class QLabInstance extends InstanceBase {
 		if (0 == this.pollCount % (this.config.useTenths ? 10 : 4)) {
 			this.sendOSC('/overrideWindow', [], true)
 
-			this.sendOSC((this.cl ? '/cue/' + this.cl : '') + `/playhead${phID}`, [])
+			this.sendOSC((this.cl ? '/cue_id/' + this.cl : '') + `/playhead${phID}`, [])
 
 			if (5 == this.qVer) {
 				this.sendOSC('/alwaysAudition', [], true)
@@ -672,7 +672,7 @@ class QLabInstance extends InstanceBase {
 
 			this.qSocket.on('message', (message, timetag, info) => {
         const node = message.address.split('/')
-				this.log('debug', 'received ' + JSON.stringify(message) + `from ${this.qSocket.options.address}`)
+				//this.log('debug', 'received ' + JSON.stringify(message) + `from ${this.qSocket.options.address}`)
 				if ('update' == node[1]) {
 					// debug("readUpdate");
 					this.readUpdate(message)
@@ -920,7 +920,7 @@ class QLabInstance extends InstanceBase {
 
 		switch (ms.slice(-1)[0]) {
 			case 'playbackPosition':
-				const cl = ms[3]
+				const cl = ms[4]
 				if (message.args.length > 0) {
 					const oa = message.args[0].value
 					if (this.cl) {
@@ -1098,6 +1098,7 @@ class QLabInstance extends InstanceBase {
 						this.config.useTenths ? 100 : 250
 					)
 				} else {
+          this.init_presets();
 					this.needWorkspace = this.qVer > 3 && this.useTCP
 				}
 				break

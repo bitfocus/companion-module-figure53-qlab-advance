@@ -14,6 +14,11 @@ export const GROUP_MODE = [
 	'Playlist', // 6
 ]
 
+export const TIME_MODE = [
+	{ id: 'S', label: 'Set Time' },
+	{ id: 'I', label: 'Increase by' },
+	{ id: 'D', label: 'Decrease by' },
+]
 export const SCOPE = [
 	{ id: 'D', label: 'Playhead' },
 	{ id: 'S', label: 'Selected' },
@@ -23,6 +28,7 @@ export const SCOPE = [
 
 export const FB_SCOPE = [
 	{ id: 'D', label: 'Playhead/Next' },
+  { id: 'R', label: 'Running Cue'},
 	{ id: 'N', label: 'Cue Number' },
 	{ id: 'I', label: 'Cue ID' },
 ]
@@ -39,19 +45,19 @@ export const ON_OFF = [
 ]
 
 export const OVERRIDE = [
-	{ id: 'midiInputEnabled', label: 'Midi Input [4, 5]' },
-	{ id: 'midiOutputEnabled', label: 'Midi Output [4, 5]' },
-	{ id: 'mscInputEnabled', label: 'MSC Input [4, 5]' },
-	{ id: 'mscOutputEnabled', label: 'MSC Output [4, 5]' },
-	{ id: 'sysexInputEnabled', label: 'SysEx Input [4, 5]' },
-	{ id: 'sysexOutputEnabled', label: 'SysEx Output [4, 5]' },
-	{ id: 'oscOutputEnabled', label: 'OSC Output [4]' },
-	{ id: 'timecodeInputEnabled', label: 'Timecode Input [4, 5]' },
-	{ id: 'timecodeOutputEnabled', label: 'Timecode Output [4, 5]' },
-	{ id: 'artNetEnabled', label: 'Art-Net Enabled [4]' },
-	{ id: 'dmxOutputEnabled', label: 'DMX Output [5]' },
-	{ id: 'networkExternalInputEnabled', label: 'External Network Input [5]' },
-	{ id: 'networkExternalOutputEnabled', label: 'External Network Output [5]' },
-	{ id: 'networkLocalInputEnabled', label: 'Local Network Input [5]' },
-	{ id: 'networkLocalOutputEnabled', label: 'Local Network Output [5]' },
+	{ id: 'midiInputEnabled', label: 'Midi Input [4, 5]', preset: '' },
+	{ id: 'midiOutputEnabled', label: 'Midi Output [4, 5]', preset: '45' },
+	{ id: 'mscInputEnabled', label: 'MSC Input [4, 5]', preset: '' },
+	{ id: 'mscOutputEnabled', label: 'MSC Output [4, 5]', preset: '45' },
+	{ id: 'sysexInputEnabled', label: 'SysEx Input [4, 5]', preset: '' },
+	{ id: 'sysexOutputEnabled', label: 'SysEx Output [4, 5]', preset: '45' },
+	{ id: 'oscOutputEnabled', label: 'OSC Output [4]', preset: '4' },
+	{ id: 'timecodeInputEnabled', label: 'Timecode Input [4, 5]', preset: '' },
+	{ id: 'timecodeOutputEnabled', label: 'Timecode Output [4, 5]', preset: '45' },
+	{ id: 'artNetEnabled', label: 'Art-Net Enabled [4]', preset: '' },
+	{ id: 'dmxOutputEnabled', label: 'DMX Output [5]', preset: '5' },
+	{ id: 'networkExternalInputEnabled', label: 'External Network Input [5]', preset: '' },
+	{ id: 'networkExternalOutputEnabled', label: 'External Network Output [5]', preset: '5' },
+	{ id: 'networkLocalInputEnabled', label: 'Local Network Input [5]', preset: '' },
+	{ id: 'networkLocalOutputEnabled', label: 'Local Network Output [5]', preset: '5' },
 ]

@@ -1,6 +1,7 @@
 import { combineRgb } from '@companion-module/base'
 import Icons from './icons.js'
 import * as Colors from './colors.js'
+import * as Choices from './choices.js'
 
 // determine text color for a background color
 function textColor(pbin) {
@@ -431,6 +432,83 @@ export function compilePresetDefinitions(self) {
 		feedbacks: [],
 	}
 
+	// Workspace Overrides
+
+	let dSteps = []
+	let eSteps = []
+	const ver = self.qVer
+	for (let o of Choices.OVERRIDE) {
+		if (o.preset.includes(`${ver}`)) {
+			dSteps.push({
+				actionId: 'overrides',
+				options: {
+					which: o.id,
+					onOff: '0',
+				},
+			})
+			eSteps.push({
+				actionId: 'overrides',
+				options: {
+					which: o.id,
+					onOff: '1',
+				},
+			})
+		}
+	}
+
+	presets['ws-disable'] = {
+		type: 'button',
+		category: 'Workspace',
+		name: 'Disable a Workspace',
+		style: {
+			bgcolor: combineRgb(192, 0, 0),
+			text: 'Disable Workspace',
+			tooltip: 'Turn output overrides ON (for a Backup System).\nPrevents transmitting control commands twice.',
+			size: 13,
+			color: combineRgb(250, 250, 250),
+		},
+		steps: [
+			{
+				down: [
+					...dSteps,
+					{
+						actionId: 'overrideWindow',
+						options: {
+							onOff: '0',
+						},
+					},
+				],
+				up: [],
+			},
+		],
+	}
+	presets['ws-enable'] = {
+		type: 'button',
+		category: 'Workspace',
+		name: 'Enable a Workspace',
+		style: {
+			bgcolor: combineRgb(0, 192, 0),
+			text: 'Enable Workspace',
+			tooltip: 'Turn output overrides OFF (for a Primary System).\nAllows transmitting control commands.',
+			size: 13,
+			color: combineRgb(250, 250, 250),
+		},
+		steps: [
+			{
+				down: [
+					...eSteps,
+					{
+						actionId: 'overrideWindow',
+						options: {
+							onOff: '0',
+						},
+					},
+				],
+				up: [],
+			},
+		],
+	}
+	// Editing presets
 	presets['edit-prewait-1s-'] = {
 		type: 'button',
 		category: 'Edit',
