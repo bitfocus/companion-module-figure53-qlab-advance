@@ -1,5 +1,6 @@
 import * as Colors from './colors.js'
 import * as Choices from './choices.js'
+import { Regex } from '@companion-module/base'
 
 const cueListActions = ['go', 'next', 'panic', 'previous', 'reset', 'stop', 'togglePause']
 
@@ -244,6 +245,120 @@ export function compileActionDefinitions(self) {
 				await sendCommand(action, pfx + cmd)
 			},
 		},
+		new_loadAt: {
+			name: 'Load Cue(s) At',
+			description: 'Load to Time with optional cue selection',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Mode',
+					id: 'mode',
+					default: 'S',
+					choices: Choices.TIME_MODE,
+				},
+				{
+					type: 'dropdown',
+					label: 'Scope',
+					id: 'scope',
+					default: 'D',
+					choices: Choices.SCOPE,
+				},
+				{
+					type: 'textinput',
+					label: 'Cue Number',
+					id: 'q_num',
+					default: self.nextCue.q_num,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'N'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Cue ID',
+					id: 'q_id',
+					default: self.nextCue.q_id,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'I'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Hour',
+					id: 'hh',
+					length: 2,
+					default: 0,
+					useVariables: true,
+					regex: Regex.NUMBER,
+					isVisible: (options, data) => {
+						return options.mode === 'S'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Minute',
+					id: 'mm',
+					length: 2,
+					default: 0,
+					useVariables: true,
+					regex: Regex.NUMBER,
+					isVisible: (options, data) => {
+						return options.mode === 'S'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Seconds',
+					id: 'ss',
+					default: 0,
+					useVariables: true,
+					regex: Regex.FLOAT,
+				},
+			],
+			callback: async (action, context) => {
+				const opt = action.options
+				const scope = opt.scope
+				let cmd = '/loadAt'
+				let pfx = ''
+				let sfx = opt.mode == 'D' ? '/-' : opt.mode == 'I' ? '/+' : ''
+
+				switch (scope) {
+					case 'S':
+						pfx = '/cue/selected'
+						break
+					case 'N':
+						let qnum = await context.parseVariablesInString(opt.q_num.trim())
+						pfx = `/cue/${qnum}`
+						break
+					case 'I':
+						let qid = await context.parseVariablesInString(opt.q_id.trim())
+						pfx = `/cue_id/${qid}`
+				}
+
+				let s = parseFloat(await context.parseVariablesInString(opt.ss))
+				let args = []
+
+				if (opt.mode === 'S') {
+					let h = parseInt(await context.parseVariablesInString(opt.hh))
+					let m = parseInt(await context.parseVariablesInString(opt.mm))
+					if (Math.abs(h) + Math.abs(m) > 0) {
+						args.push({ type: 'i', value: h })
+						args.push({ type: 'i', value: m })
+					}
+				}
+				args.push({ type: 'f', value: s })
+
+				await sendCommand(action, pfx + cmd + sfx, args)
+			},
+		},
+    add_slice: {
+      name: 'Add Slice',
+      options: [],
+      callback: async (action, context) => {
+        await sendCommand(action, '/cue/selected/addSliceMarker')
+      }
+    },
 		previous: {
 			name: 'Previous Cue',
 			options: [],

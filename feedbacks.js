@@ -2,6 +2,23 @@ import { combineRgb } from '@companion-module/base'
 import * as Choices from './choices.js'
 
 export function compileFeedbackDefinitions(self) {
+	function getScope(opt) {
+		let cue
+		switch (opt.scope) {
+			case 'D':
+				cue = self.nextCue
+				break
+      case 'R':
+        cue = self.runningCue.uniqueID
+        break;
+			case 'N':
+				cue = self.cueByNum[opt.q_num?.replace(/[^\w\.]/gi, '_')]
+				break
+			case 'I':
+				cue = opt.q_id
+		}
+		return cue
+	}
 	return {
 		playhead_bg: {
 			type: 'advanced',
@@ -96,17 +113,8 @@ export function compileFeedbackDefinitions(self) {
 			},
 			callback: async (feedback, context) => {
 				const opt = feedback.options
-				let cue
-				switch (opt.scope) {
-					case 'D':
-						cue = self.nextCue
-						break
-					case 'N':
-						cue = self.cueByNum[opt.q_num?.replace(/[^\w\.]/gi, '_')]
-						break
-					case 'I':
-						cue = opt.q_id
-				}
+				let cue = getScope(opt)
+
 				return self.wsCues[cue]?.isArmed
 			},
 		},
@@ -149,20 +157,55 @@ export function compileFeedbackDefinitions(self) {
 			},
 			callback: async (feedback, context) => {
 				const opt = feedback.options
-				let cue
-				switch (opt.scope) {
-					case 'D':
-						cue = self.nextCue
-						break
-					case 'N':
-						cue = self.cueByNum[opt.q_num?.replace(/[^\w\.]/gi, '_')]
-						break
-					case 'I':
-						cue = opt.q_id
-				}
+				let cue = getScope(opt)
 				return self.wsCues[cue]?.isflagged
 			},
 		},
+		q_paused: {
+			type: 'boolean',
+			name: 'Cue is Paused',
+			description: 'Indicate on button when the specified cue is Paused',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Scope',
+					id: 'scope',
+					default: 'R',
+					choices: Choices.FB_SCOPE,
+				},
+				{
+					type: 'textinput',
+					label: 'Cue Number',
+					id: 'q_num',
+					default: self.nextCue.q_num,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'N'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Cue ID',
+					id: 'q_id',
+					default: self.nextCue.q_id,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'I'
+					},
+				},
+			],
+			defaultStyle: {
+				bgcolor: combineRgb(102, 0, 102),
+				color: combineRgb(255, 255, 255),
+			},
+			callback: async (feedback, context) => {
+				const opt = feedback.options
+				let cue = getScope(opt)
+
+				return self.wsCues[cue]?.isPaused
+			},
+		},
+
 		q_run: {
 			type: 'boolean',
 			name: 'Indicate Cue is running',
