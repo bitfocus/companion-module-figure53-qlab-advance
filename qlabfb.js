@@ -253,7 +253,7 @@ class QLabInstance extends InstanceBase {
 		const tenths = this.config.useTenths ? 0 : 1
 		const rc = this.runningCue
 
-		const tElapsed = rc.duration * rc.pctElapsed
+		const tElapsed = rc.elapsed // rc.duration * rc.pctElapsed
 
 		const ehh = pad0(Math.floor(tElapsed / 3600))
 		const emm = pad0(Math.floor(tElapsed / 60) % 60)
@@ -269,7 +269,7 @@ class QLabInstance extends InstanceBase {
 		}
 		eft = eft + ess
 
-		let tLeft = rc.duration * (1 - rc.pctElapsed)
+		let tLeft = rc.duration - tElapsed // * (1 - rc.pctElapsed)
 		if (tLeft > 0) {
 			tLeft += tenths
 		}
@@ -542,7 +542,7 @@ class QLabInstance extends InstanceBase {
 		}
 
 		let rc = this.runningCue
-		if (rc && rc.pctElapsed > 0) {
+		if (rc && rc.elapsed > 0) {
 			if (3 == this.qVer) {
 				this.sendOSC('/runningOrPausedCues', [])
 			} else {
