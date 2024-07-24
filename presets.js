@@ -21,32 +21,6 @@ function textColor(pbin) {
 export function compilePresetDefinitions(self) {
 	const presets = {}
 
-	presets['cuelist-pause'] = {
-		type: 'button',
-		category: 'CueList',
-		name: 'Pause',
-		style: {
-			text: '',
-			png64: Icons.ICON_PAUSE_INACTIVE,
-			pngalignment: 'center:center',
-			size: '18',
-			color: combineRgb(255, 255, 255),
-			bgcolor: 0,
-		},
-		steps: [
-			{
-				down: [
-					{
-						actionId: 'pause',
-						options: {},
-					},
-				],
-				up: [],
-			},
-		],
-		feedbacks: [],
-	}
-
 	presets['cuelist-go'] = {
 		type: 'button',
 		category: 'CueList',
@@ -102,6 +76,69 @@ export function compilePresetDefinitions(self) {
 				},
 			},
 		],
+	}
+
+	presets['cuelist-pause-resume'] = {
+		type: 'button',
+		category: 'CueList',
+		name: 'Pause Toggle',
+		style: {
+			text: '',
+			png64: Icons.ICON_PAUSE_INACTIVE,
+			pngalignment: 'center:center',
+			size: '18',
+			color: combineRgb(255, 255, 255),
+			bgcolor: 0,
+		},
+		steps: [
+			{
+				down: [
+					{
+						actionId: 'new_togglePause',
+						options: {
+							scope: 'R',
+						},
+					},
+				],
+				up: [],
+			},
+		],
+		feedbacks: [
+			{
+				feedbackId: 'q_paused',
+				options: {
+					scope: 'R',
+				},
+				style: {
+					bgcolor: combineRgb(102, 0, 102),
+					color: combineRgb(255, 255, 255),
+				},
+			},
+		],
+	}
+
+	presets['cuelist-pause'] = {
+		type: 'button',
+		category: 'CueList',
+		name: 'Pause',
+		style: {
+			text: 'Pause',
+			size: '18',
+			color: combineRgb(255, 255, 255),
+			bgcolor: 0,
+		},
+		steps: [
+			{
+				down: [
+					{
+						actionId: 'pause',
+						options: {},
+					},
+				],
+				up: [],
+			},
+		],
+		feedbacks: [],
 	}
 
 	presets['cuelist-resume'] = {
