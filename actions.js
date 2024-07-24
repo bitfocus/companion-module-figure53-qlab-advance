@@ -352,13 +352,13 @@ export function compileActionDefinitions(self) {
 				await sendCommand(action, pfx + cmd + sfx, args)
 			},
 		},
-    add_slice: {
-      name: 'Add Slice',
-      options: [],
-      callback: async (action, context) => {
-        await sendCommand(action, '/cue/selected/addSliceMarker')
-      }
-    },
+		add_slice: {
+			name: 'Add Slice',
+			options: [],
+			callback: async (action, context) => {
+				await sendCommand(action, '/cue/selected/addSliceMarker')
+			},
+		},
 		previous: {
 			name: 'Previous Cue',
 			options: [],
@@ -392,6 +392,66 @@ export function compileActionDefinitions(self) {
 			options: [],
 			callback: async (action, context) => {
 				await sendCommand(action, '/cue/selected/togglePause')
+			},
+		},
+		new_togglePause: {
+			name: 'Pause/Resume toggle with optional Cue selection',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Scope',
+					id: 'scope',
+					default: 'D',
+					choices: Choices.FB_SCOPE,
+				},
+				{
+					type: 'textinput',
+					label: 'Cue Number',
+					id: 'q_num',
+					default: self.nextCue.q_num,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'N'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Cue ID',
+					id: 'q_id',
+					default: self.nextCue.q_id,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'I'
+					},
+				},
+			],
+			callback: async (action, context) => {
+				const opt = action.options
+				const scope = opt.scope
+				let cmd = ''
+				let pfx = ''
+
+				switch (scope) {
+          case 'D':
+            pfx = '/cue/playhead/'
+            cmd =  self.nextCue.isPaused ? 'resume' : 'pause'
+            break
+					case 'R':
+            let rc = self.runningCue
+            cmd = self.runningCue.isPaused ? 'resume' : 'pause'
+						pfx = `/cue_id/${rc.uniqueID}/`
+						break
+					case 'N':
+						let qnum = await context.parseVariablesInString(opt.q_num.trim())
+						pfx = `/cue/${qnum}/`
+            cmd = self.wsCues[self.cueByNum[qnum]].isPaused ? 'resume' : 'pause'
+						break
+					case 'I':
+						let qid = await context.parseVariablesInString(opt.q_id.trim())
+						pfx = `/cue_id/${qid}/`
+            cmd = self.wsCues[qid].isPaused ? 'resume' : 'pause'
+				}
+				await sendCommand(action, pfx + cmd)
 			},
 		},
 		stopSelected: {
