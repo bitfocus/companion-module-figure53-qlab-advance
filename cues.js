@@ -20,6 +20,7 @@ class Cue {
 	autoLoad = false
 	duration = 0
 	pctElapsed = 0
+  elapsed = 0
 	startedAt = -1
 	qColor = 0
 	qColorName = ''
@@ -56,6 +57,7 @@ function JSONtoCue(newCue, j, self) {
 	newCue.duration = j.duration
 	newCue.qParent = j.parent
 	newCue.pctElapsed = j.percentActionElapsed
+  newCue.elapsed = j.actionElapsed
 	if (j.notes) {
 		newCue.Notes = j.notes.slice(0, 20)
 	}
