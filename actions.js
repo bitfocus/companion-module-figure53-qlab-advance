@@ -439,7 +439,7 @@ export function compileActionDefinitions(self) {
 					case 'R':
             let rc = self.runningCue
             cmd = self.runningCue.isPaused ? 'resume' : 'pause'
-						pfx = `/cue_id/${rc.uniqueID}/`
+						pfx = `/cue/active/`
 						break
 					case 'N':
 						let qnum = await context.parseVariablesInString(opt.q_num.trim())
