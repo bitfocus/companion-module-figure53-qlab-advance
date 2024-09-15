@@ -1264,7 +1264,7 @@ export function compilePresetDefinitions(self) {
 					{
 						actionId: 'flagged',
 						options: {
-							flaggId: '1',
+							flagId: '1',
 						},
 					},
 				],
@@ -1290,7 +1290,7 @@ export function compilePresetDefinitions(self) {
 					{
 						actionId: 'flagged',
 						options: {
-							flaggId: '0',
+							flagId: '0',
 						},
 					},
 				],
