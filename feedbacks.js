@@ -158,7 +158,7 @@ export function compileFeedbackDefinitions(self) {
 			callback: async (feedback, context) => {
 				const opt = feedback.options
 				let cue = getScope(opt)
-				return self.wsCues[cue]?.isflagged
+				return self.wsCues[cue]?.isFlagged
 			},
 		},
 		q_paused: {

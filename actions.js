@@ -1248,7 +1248,7 @@ export function compileActionDefinitions(self) {
 			],
 			callback: async (action, context) => {
 				const nc = self.wsCues[self.nextCue]
-				if (!!nc) {
+				if (!nc) {
 					return
 				}
 				await sendCommand(action, '/cue/selected/flagged', {
