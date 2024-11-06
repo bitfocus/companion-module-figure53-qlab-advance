@@ -373,7 +373,7 @@ class QLabInstance extends InstanceBase {
 		const ws = bare ? '' : this.ws
 
 		if (!this.useTCP) {
-			const host = ''
+			let host = ''
 			if (this.config.host !== undefined && this.config.host !== '') {
 				host = this.config.host
 			}
