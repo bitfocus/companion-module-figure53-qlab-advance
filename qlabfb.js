@@ -57,6 +57,39 @@ class QLabInstance extends InstanceBase {
 		},
 	]
 	fb2check = ['q_run', 'qid_run', 'any_run', 'q_armed', 'q_bg', 'qid_bg', 'q_flagged', 'q_paused']
+	otherVars = {
+		name: { desc: 'Name', id: 'qName' },
+		elapsed: { desc: 'Elapsed time of', id: 'elapsed' },
+	}
+	qTypes = [
+		'audio',
+		'mic',
+		'video',
+		'camera',
+		'text',
+		'light',
+		'fade',
+		'network',
+		'midi',
+		'midi file',
+		'timecode',
+		'group',
+		'start',
+		'stop',
+		'pause',
+		'load',
+		'reset',
+		'devamp',
+		'goto',
+		'target',
+		'cart',
+		'cue list',
+		'arm',
+		'disarm',
+		'wait',
+		'memo',
+		'script',
+	]
 
 	constructor(internal) {
 		super(internal)
@@ -64,6 +97,7 @@ class QLabInstance extends InstanceBase {
 		this.instanceOptions.disableVariableValidation = true
 		this.connecting = false
 		this.needPasscode = false
+		this.passcodeOK = false
 		this.useTCP = false
 		this.qVer = 4
 		this.hasError = false
@@ -71,12 +105,13 @@ class QLabInstance extends InstanceBase {
 		this.pollCount = 0
 		this.wrongPasscode = ''
 		this.loggedErrors = []
+		this.debugLevel = process.env.DEVELOPER ? 2 : 0
 
 		this.resetVars()
 	}
 
 	logError(e) {
-		if (!this.loggedErrors.includes(e)) {
+		if (e != '/showMode' && !this.loggedErrors.includes(e)) {
 			this.log('info', `Address "${e}" returned an error`)
 			this.loggedErrors.push(e)
 			this.setVariableValues({ errs: this.loggedErrors.length })
@@ -123,25 +158,30 @@ class QLabInstance extends InstanceBase {
 
 		// clear 'variables'
 		if (doUpdate && this.useTCP) {
-			let newValues = {}
+      this.init_variables()
+			// let newValues = {}
 
-			for (const [cue, cueObj] of Object.entries(this.wsCues)) {
-				let qNum = cueObj.qNumber.replace(/[^\w\.]/gi, '_')
-				let qName = cueObj.qName
-				let qID = cueObj.uniqueID
-				if (qName && qNum) {
-					delete this.cueColors[qNum]
-					newValues['q_' + qNum + '_name'] = undefined
-				}
+			// for (const [cue, cueObj] of Object.entries(this.wsCues)) {
+			// 	let qNum = cueObj.qNumber.replace(/[^\w\.]/gi, '_')
+			// 	let qName = cueObj.qName
+			// 	let qID = cueObj.uniqueID
+			// 	if (qNum && (qName || cueObj.elapsed)) {
+			// 		delete this.cueColors[qNum]
+			// 		for (const [varName, info] of Object.entries(this.otherVars)) {
+			// 			newValues[`q_${qNum}_${varName}`] = undefined
+			// 		}
+			// 	}
+			// 	for (const [varName, info] of Object.entries(this.otherVars)) {
+			// 		newValues[`id_${qID}_${varName}`] = undefined
+			// 	}
+			// }
 
-				newValues['id_' + qID + '_name'] = undefined
-			}
-
-			this.setVariableValues(newValues)
+			// this.setVariableValues(newValues)
 		}
 		// need a valid QLab reply
 		this.needWorkspace = true
 		this.needPasscode = false
+		this.passcodeOK = false
 
 		// list of cues and info for this QLab workspace
 		this.wsCues = {}
@@ -190,11 +230,13 @@ class QLabInstance extends InstanceBase {
 		const qNum = q.qNumber.replace(/[^\w\.]/gi, '_')
 		const qType = q.qType
 		const qColor = q.qColor
+		const qElapsed = q.elapsed
 		let oqNum = null
 		let oqName = null
 		let oqType = null
 		let oqColor = 0
 		let oqOrder = -1
+		let oqElapsed = 0
 
 		let variableValues = {}
 		let variableDefs = []
@@ -218,21 +260,23 @@ class QLabInstance extends InstanceBase {
 			}
 		}
 		// set new value
-		if ((q.uniqueID != '' && q.qName != oqName) || qColor != oqColor) {
-			if (qNum != '') {
-				let vId = `q_${qNum}_name`
-				variableValues[vId] = q.qName
-				variableDefs.push({
-					variableId: vId,
-					name: `Name of cue number '${qNum}'`,
-				})
-				this.cueColors[qNum] = q.qColor
-				this.cueByNum[qNum] = qID
-			}
-			let vId = `id_${qID}_name`
-			variableValues[vId] = q.qName
-			variableDefs.push({ variableId: vId, name: `Name of cue ID ${qID}` })
+		if ((q.uniqueID != '' && q.qName != oqName) || qColor != oqColor || qElapsed != oqElapsed) {
+			for (const [varName, info] of Object.entries(this.otherVars)) {
+				if (qNum != '') {
+					let vId = `q_${qNum}_${varName}`
+					variableValues[vId] = q[info.id] || 0 // .qName
+					variableDefs.push({
+						variableId: vId,
+						name: `${info.desc} of cue number '${qNum}'`,
+					})
+					this.cueColors[qNum] = q.qColor
+					this.cueByNum[qNum] = qID
+				}
 
+				let vId = `id_${qID}_${varName}`
+				variableValues[vId] = q[info.id] || 0 // .qName
+				variableDefs.push({ variableId: vId, name: `${info.desc} of cue ID '${qID}'` })
+			}
 			this.checkFeedbacks(this.fb2check)
 		}
 
@@ -369,7 +413,7 @@ class QLabInstance extends InstanceBase {
 	 * @param {boolean} [bare=false] - if true, do not add workspace id prefix to command
 	 * @since 2.0.0
 	 */
-	sendOSC(node, arg, bare) {
+	sendOSC(node, arg = [], bare) {
 		const ws = bare ? '' : this.ws
 
 		if (!this.useTCP) {
@@ -385,6 +429,7 @@ class QLabInstance extends InstanceBase {
 			}
 			this.oscSend(host, 53000, ws + node, arg)
 		} else if (this.ready) {
+			this.debugLevel > 0 && this.log('debug', `OSC>> ${ws + node}` + JSON.stringify(arg))
 			this.qSocket.send({
 				address: ws + node,
 				args: arg,
@@ -405,10 +450,12 @@ class QLabInstance extends InstanceBase {
 	 * @param {string} ws - specific workspace ID
 	 */
 	prime_vars(ws) {
-		if (this.needPasscode && !this.config.passcode) {
+		if (this.needPasscode && this.config.passcode == '' && this.wrongPasscodeAt == 0) {
 			this.updateStatus(InstanceStatus.ConnectionFailure, 'Need a Passcode')
-			this.log('debug', 'waiting for passcode')
-			this.sendOSC('/connect', [])
+			this.log('debug', 'Workspace needs a passcode')
+			this.wrongPasscode = null
+			this.wrongPasscodeAt = Date.now()
+			//this.sendOSC('/connect', [])
 			if (this.timer !== undefined) {
 				clearTimeout(this.timer)
 				this.timer = undefined
@@ -423,8 +470,8 @@ class QLabInstance extends InstanceBase {
 		} else if (this.needWorkspace && this.ready) {
 			this.sendOSC('/version', [], true) // app global, not workspace
 			this.sendOSC('/workspaces', [], true)
-			if (this.config.passcode) {
-				if (this.config.passcode != this.wrongPasscode || Date.now() - this.wrongPasscodeAt > 15000) {
+			if (this.config.passcode != '') {
+				if (this.config.passcode != this.wrongPasscode) {
 					this.log('debug', 'sending passcode to ' + this.config.host)
 					this.sendOSC('/connect', [
 						{
@@ -432,18 +479,28 @@ class QLabInstance extends InstanceBase {
 							value: this.config.passcode,
 						},
 					])
+					this.sendOSC('/showMode', [])
+					this.passcodeOK = false
+					this.wrongPasscode = ''
+					this.needPasscode = true
+					this.wrongPasscodeAt = Date.now()
 				}
-			} else {
+			} else if (this.wrongPasscodeAt == 0) {
+				this.passcodeOK = true
 				this.sendOSC('/connect', [])
 			}
 			if (this.timer !== undefined) {
 				clearTimeout(this.timer)
 				this.timer = undefined
 			}
+			if (this.pulse !== undefined) {
+				clearInterval(this.pulse)
+				this.pulse = undefined
+			}
 			this.timer = setTimeout(() => {
 				this.prime_vars(ws)
 			}, 5000)
-		} else if (this.wrongPasscode == '') {
+		} else if (this.wrongPasscode == '' && this.passcodeOK) {
 			// should have a workspace now
 			this.ws = ws
 
@@ -459,6 +516,8 @@ class QLabInstance extends InstanceBase {
 			])
 
 			this.sendOSC('/cueLists', [])
+			this.sendOSC('/selectedCues', [], true)
+
 			if (this.qVer < 5) {
 				this.sendOSC('/auditionWindow', [], true)
 			} else {
@@ -494,7 +553,6 @@ class QLabInstance extends InstanceBase {
 			if (5 == this.qVer) {
 				this.sendOSC('/alwaysAudition', [], true)
 				this.sendOSC('/auditionMonitors', [], true)
-				this.sendOSC('/selectedCues', [], true)
 			}
 			if (4 == this.qVer) {
 				this.sendOSC('/auditionWindow', [], true)
@@ -521,9 +579,13 @@ class QLabInstance extends InstanceBase {
 						const qName = cueObj.qName
 						if (qNum && qName) {
 							delete this.cueColors[qNum]
-							variableValues['q_' + qNum + '_name'] = undefined
+							for (const [varName, info] of Object.entries(this.otherVars)) {
+								variableValues[`q_${qNum}_${varName}`] = undefined
+							}
 						}
-						variableValues['id_' + cueObj.uniqueID + '_name'] = undefined
+						for (const [varName, info] of Object.entries(this.otherVars)) {
+							variableValues[`id_${cueObj.uniqueID}_${varName}`] = undefined
+						}
 						checkFeedbacks.push(...this.fb2check)
 					}
 					delete this.requestedCues[k]
@@ -589,7 +651,7 @@ class QLabInstance extends InstanceBase {
 			this.qSocket.open()
 
 			this.qSocket.on('error', (err) => {
-				this.log('debug', 'Error: ' + err)
+				this.debugLevel > 0 && this.log('debug', 'Error: ' + err)
 				this.connecting = false
 				if (!this.hasError) {
 					this.log('error', 'Error: ' + err.message)
@@ -656,10 +718,15 @@ class QLabInstance extends InstanceBase {
 				this.ready = true
 				this.connecting = false
 				this.hasError = false
-				this.log('info', 'Connected to QLab:' + this.config.host)
+				this.log('info', 'Connecting to QLab:' + this.config.host)
 				if (this.useTCP) {
 					this.updateStatus(InstanceStatus.UnknownWarning, 'No Workspaces')
 					this.needWorkspace = true
+					// check for passcode
+					this.qSocket.send({
+						address: '/connect',
+						args: [],
+					})
 					this.prime_vars(ws)
 				} else {
 					this.needWorkspace = false
@@ -671,8 +738,9 @@ class QLabInstance extends InstanceBase {
 			})
 
 			this.qSocket.on('message', (message, timetag, info) => {
-        const node = message.address.split('/')
-				//this.log('debug', 'received ' + JSON.stringify(message) + `from ${this.qSocket.options.address}`)
+				const node = message.address.split('/')
+				this.debugLevel > 0 &&
+					this.log('debug', 'received ' + JSON.stringify(message) + `from ${this.qSocket.options.address}`)
 				if ('update' == node[1]) {
 					// debug("readUpdate");
 					this.readUpdate(message)
@@ -680,7 +748,7 @@ class QLabInstance extends InstanceBase {
 					// debug("readReply");
 					this.readReply(message)
 				} else {
-					this.log('debug', message.address + ' ' + JSON.stringify(message.args))
+					this.log('debug', `Unknown response: ${message.address}  ` + JSON.stringify(message.args))
 				}
 			})
 		}
@@ -693,35 +761,6 @@ class QLabInstance extends InstanceBase {
 	 */
 	updateCues(jCue, stat, ql) {
 		// list of useful cue types we're interested in
-		const qTypes = [
-			'audio',
-			'mic',
-			'video',
-			'camera',
-			'text',
-			'light',
-			'fade',
-			'network',
-			'midi',
-			'midi file',
-			'timecode',
-			'group',
-			'start',
-			'stop',
-			'pause',
-			'load',
-			'reset',
-			'devamp',
-			'goto',
-			'target',
-			'cart',
-			'cue list',
-			'arm',
-			'disarm',
-			'wait',
-			'memo',
-			'script',
-		]
 		let q = {}
 
 		if (Array.isArray(jCue)) {
@@ -748,7 +787,7 @@ class QLabInstance extends InstanceBase {
 						idCount[q.uniqueID] = 1
 					}
 
-					if (qTypes.includes(q.qType)) {
+					if (this.qTypes.includes(q.qType)) {
 						this.updateQVars(q)
 						this.wsCues[q.uniqueID] = q
 					}
@@ -771,7 +810,7 @@ class QLabInstance extends InstanceBase {
 			}
 		} else {
 			q = new Cue(jCue, this)
-			if (qTypes.includes(q.qType)) {
+			if (this.qTypes.includes(q.qType)) {
 				this.updateQVars(q)
 				this.wsCues[q.uniqueID] = q
 				if (3 == this.qVer) {
@@ -904,6 +943,7 @@ class QLabInstance extends InstanceBase {
 		}
 		this.selectedCues = newSel
 		this.lastSel = newHash
+		this.checkFeedbacks('q_selected')
 	}
 	/**
 	 * process QLab 'update'
@@ -934,9 +974,10 @@ class QLabInstance extends InstanceBase {
 					if ((this.cl == '' || cl == this.cl) && oa !== this.nextCue) {
 						// playhead changed
 						this.nextCue = oa
-						this.log('debug', 'playhead: ' + oa)
+						this.debugLevel > 0 && this.log('debug', 'playhead: ' + oa)
 						this.sendOSC('/cue_id/' + oa + '/valuesForKeys', this.qCueRequest)
 						this.requestedCues[oa] = Date.now()
+						this.sendOSC('/selectedCues', [], true)
 					}
 					break
 				}
@@ -1010,21 +1051,21 @@ class QLabInstance extends InstanceBase {
 		if ('error' == j.status) {
 			// qlab 5.3+ returns an error when asked '/cue/active/valuesForKeys'
 			// if no cue is active.
-			if (!['valuesForKeys','uniqueID'].includes(mn.slice(-1)[0])) {
+			if (!['valuesForKeys', 'uniqueID'].includes(mn.slice(-1)[0])) {
 				this.logError(j.address)
 			}
 			return
 		}
-    if ('denied' == j.status) {
-      // qLab 5+ returns 'denied' for most requests
-      // if passcode is not correct
-      this.needPasscode = true
-      this.wrongPasscode = this.config.passcode
-      this.wrongPasscodeAt = Date.now()
-      this.updateStatus(InstanceStatus.BadConfig,'Passcode denied')
-      return
-
-    }
+		if ('denied' == j.status) {
+			// qLab 5+ returns 'denied' for most requests
+			// if passcode is not correct
+			this.needPasscode = true
+			this.wrongPasscode = this.config.passcode
+			this.wrongPasscodeAt = Date.now()
+			this.updateStatus(InstanceStatus.ConnectionFailure, 'Passcode denied')
+			this.log('debug', 'Passcode denied')
+			return
+		}
 		switch (
 			mn.slice(-1)[0] // last segment of address
 		) {
@@ -1033,7 +1074,9 @@ class QLabInstance extends InstanceBase {
 				if (j.data.length == 0) {
 					this.needPasscode = false
 					this.wrongPasscode = ''
+					this.wrongPasscodeAt = 0
 					this.needWorkspace = true
+					this.passcodeOK = false
 					this.updateStatus(InstanceStatus.UnknownWarning, 'No Workspaces')
 				} else {
 					for (const w of j.data) {
@@ -1041,6 +1084,7 @@ class QLabInstance extends InstanceBase {
 						this.wsList[ws.uniqueID] = ws
 					}
 					this.setVariableValues({ ws_id: Object.keys(this.wsList)[0] })
+					this.needWorkspace = false
 				}
 				break
 			case 'connect':
@@ -1048,20 +1092,22 @@ class QLabInstance extends InstanceBase {
 					if (!this.needPasscode) {
 						this.needPasscode = true
 						this.updateStatus(InstanceStatus.ConnectionFailure, 'Wrong Passcode')
+						this.log('debug', 'Wrong passcode')
 						this.wrongPasscode = this.config.passcode
 						this.wrongPasscodeAt = Date.now()
-						this.prime_vars(ws)
 					}
 				} else if (j.data == 'error') {
 					this.needPasscode = false
 					this.needWorkspace = true
 					this.updateStatus(InstanceStatus.UnknownWarning, 'No Workspaces')
-				} else if (j.data.slice(0, 2) == 'ok') {
+				} else if (j.data == 'ok:') {
 					this.needPasscode = false
 					this.needWorkspace = false
 					this.wrongPasscode = ''
+					this.wrongPasscodeAt = 0
 					this.updateStatus(InstanceStatus.Ok, 'Connected to ' + this.host)
 				}
+
 				break
 			case 'updates':
 				// only works on QLab > 3
@@ -1098,7 +1144,7 @@ class QLabInstance extends InstanceBase {
 						this.config.useTenths ? 100 : 250
 					)
 				} else {
-          this.init_presets();
+					this.init_presets()
 					this.needWorkspace = this.qVer > 3 && this.useTCP
 				}
 				break
@@ -1161,9 +1207,12 @@ class QLabInstance extends InstanceBase {
 				delete this.requestedCues[j.data.uniqueID]
 				break
 			case 'showMode':
-				if (this.showMode != j.data) {
-					this.showMode = j.data
-					this.checkFeedbacks('ws_mode')
+				if (j.status != 'denied') {
+					this.passcodeOK = true
+					if (this.showMode != j.data) {
+						this.showMode = j.data
+						this.checkFeedbacks('ws_mode')
+					}
 				}
 				break
 			case 'liveFadePreview':
