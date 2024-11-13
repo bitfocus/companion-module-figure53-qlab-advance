@@ -352,6 +352,59 @@ export function compileActionDefinitions(self) {
 				await sendCommand(action, pfx + cmd + sfx, args)
 			},
 		},
+		select: {
+			name: 'Select Cue',
+			description: 'Sets the Selection to a Cue(id)',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Scope',
+					id: 'scope',
+					default: 'N',
+					choices: [
+						{ id: 'N', label: 'Cue Number' },
+						{ id: 'I', label: 'Cue ID' },
+					],
+				},
+				{
+					type: 'textinput',
+					label: 'Cue Number',
+					id: 'q_num',
+					default: self.nextCue.q_num,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'N'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Cue ID',
+					id: 'q_id',
+					default: self.nextCue.q_id,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'I'
+					},
+				},
+			],
+			callback: async (action, context) => {
+				const opt = action.options
+				const scope = opt.scope
+				let cmd = '/select'
+				let sfx = ''
+
+				switch (scope) {
+					case 'N':
+						let qnum = await context.parseVariablesInString(opt.q_num.trim())
+						sfx = `/${qnum}`
+						break
+					case 'I':
+						let qid = await context.parseVariablesInString(opt.q_id.trim())
+						sfx = `_id/${qid}`
+				}
+				await sendCommand(action, cmd + sfx)
+			},
+		},
 		add_slice: {
 			name: 'Add Slice',
 			options: [],
@@ -432,24 +485,24 @@ export function compileActionDefinitions(self) {
 				let pfx = ''
 
 				switch (scope) {
-          case 'D':
-            pfx = '/cue/playhead/'
-            cmd =  self.nextCue.isPaused ? 'resume' : 'pause'
-            break
+					case 'D':
+						pfx = '/cue/playhead/'
+						cmd = self.nextCue.isPaused ? 'resume' : 'pause'
+						break
 					case 'R':
-            let rc = self.runningCue
-            cmd = self.runningCue.isPaused ? 'resume' : 'pause'
+						let rc = self.runningCue
+						cmd = self.runningCue.isPaused ? 'resume' : 'pause'
 						pfx = `/cue/active/`
 						break
 					case 'N':
 						let qnum = await context.parseVariablesInString(opt.q_num.trim())
 						pfx = `/cue/${qnum}/`
-            cmd = self.wsCues[self.cueByNum[qnum]].isPaused ? 'resume' : 'pause'
+						cmd = self.wsCues[self.cueByNum[qnum]].isPaused ? 'resume' : 'pause'
 						break
 					case 'I':
 						let qid = await context.parseVariablesInString(opt.q_id.trim())
 						pfx = `/cue_id/${qid}/`
-            cmd = self.wsCues[qid].isPaused ? 'resume' : 'pause'
+						cmd = self.wsCues[qid].isPaused ? 'resume' : 'pause'
 				}
 				await sendCommand(action, pfx + cmd)
 			},
@@ -857,6 +910,285 @@ export function compileActionDefinitions(self) {
 				await sendCommand(action, '/settings/general/minGoTime', timeArg)
 			},
 		},
+
+		//
+		// cue adjust actions
+
+		cue_name: {
+			name: 'Set Cue Name',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Scope',
+					id: 'scope',
+					default: 'D',
+					choices: Choices.SCOPE,
+				},
+				{
+					type: 'textinput',
+					label: 'Cue Number',
+					id: 'q_num',
+					default: self.nextCue.q_num,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'N'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Cue ID',
+					id: 'q_id',
+					default: self.nextCue.q_id,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'I'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Name',
+					id: 'q_name',
+					ueVariables: true,
+				},
+			],
+			callback: async (action, context) => {
+				const opt = action.options
+				const scope = opt.scope
+				let cmd = '/name'
+				let q_name = await context.parseVariablesInString(opt.q_name.trim())
+				let pfx = ''
+
+				switch (scope) {
+					case 'S':
+						pfx = '/cue/selected'
+						break
+					case 'N':
+						let qnum = await context.parseVariablesInString(opt.q_num.trim())
+						pfx = `/cue/${qnum}`
+						break
+					case 'I':
+						let qid = await context.parseVariablesInString(opt.q_id.trim())
+						pfx = `/cue_id/${qid}`
+				}
+				await sendCommand(action, pfx + cmd, { type: 's', value: q_name })
+			},
+		},
+
+		new_prewait: {
+			name: 'Prewait Adjust',
+			description: 'Set/Adjust Prewait time for cue',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Mode',
+					id: 'mode',
+					default: 'S',
+					choices: Choices.TIME_MODE,
+				},
+				{
+					type: 'dropdown',
+					label: 'Scope',
+					id: 'scope',
+					default: 'D',
+					choices: Choices.SCOPE,
+				},
+				{
+					type: 'textinput',
+					label: 'Cue Number',
+					id: 'q_num',
+					default: self.nextCue.q_num,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'N'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Cue ID',
+					id: 'q_id',
+					default: self.nextCue.q_id,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'I'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Hour',
+					id: 'hh',
+					length: 2,
+					default: 0,
+					useVariables: true,
+					regex: Regex.NUMBER,
+					isVisible: (options, data) => {
+						return options.mode === 'S'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Minute',
+					id: 'mm',
+					length: 2,
+					default: 0,
+					useVariables: true,
+					regex: Regex.NUMBER,
+					isVisible: (options, data) => {
+						return options.mode === 'S'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Seconds',
+					id: 'ss',
+					default: 0,
+					useVariables: true,
+					regex: Regex.FLOAT,
+				},
+			],
+			callback: async (action, context) => {
+				const opt = action.options
+				const scope = opt.scope
+				let cmd = '/preWait'
+				let pfx = ''
+				let sfx = opt.mode == 'D' ? '/-' : opt.mode == 'I' ? '/+' : ''
+
+				switch (scope) {
+					case 'S':
+						pfx = '/cue/selected'
+						break
+					case 'N':
+						let qnum = await context.parseVariablesInString(opt.q_num.trim())
+						pfx = `/cue/${qnum}`
+						break
+					case 'I':
+						let qid = await context.parseVariablesInString(opt.q_id.trim())
+						pfx = `/cue_id/${qid}`
+				}
+
+				let s = parseFloat(await context.parseVariablesInString(opt.ss))
+				let args = []
+
+				if (opt.mode === 'S') {
+					let h = parseInt(await context.parseVariablesInString(opt.hh))
+					let m = parseInt(await context.parseVariablesInString(opt.mm))
+					if (Math.abs(h) + Math.abs(m) > 0) {
+						args.push({ type: 'i', value: h })
+						args.push({ type: 'i', value: m })
+					}
+				}
+				args.push({ type: 'f', value: s })
+
+				await sendCommand(action, pfx + cmd + sfx, args)
+			},
+		},
+		new_duration: {
+			name: 'Duration Adjust',
+			description: 'Set/Adjust Duration time for cue',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Mode',
+					id: 'mode',
+					default: 'S',
+					choices: Choices.TIME_MODE,
+				},
+				{
+					type: 'dropdown',
+					label: 'Scope',
+					id: 'scope',
+					default: 'D',
+					choices: Choices.SCOPE,
+				},
+				{
+					type: 'textinput',
+					label: 'Cue Number',
+					id: 'q_num',
+					default: self.nextCue.q_num,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'N'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Cue ID',
+					id: 'q_id',
+					default: self.nextCue.q_id,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'I'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Hour',
+					id: 'hh',
+					length: 2,
+					default: 0,
+					useVariables: true,
+					regex: Regex.NUMBER,
+					isVisible: (options, data) => {
+						return options.mode === 'S'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Minute',
+					id: 'mm',
+					length: 2,
+					default: 0,
+					useVariables: true,
+					regex: Regex.NUMBER,
+					isVisible: (options, data) => {
+						return options.mode === 'S'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Seconds',
+					id: 'ss',
+					default: 0,
+					useVariables: true,
+					regex: Regex.FLOAT,
+				},
+			],
+			callback: async (action, context) => {
+				const opt = action.options
+				const scope = opt.scope
+				let cmd = '/duration'
+				let pfx = ''
+				let sfx = opt.mode == 'D' ? '/-' : opt.mode == 'I' ? '/+' : ''
+
+				switch (scope) {
+					case 'S':
+						pfx = '/cue/selected'
+						break
+					case 'N':
+						let qnum = await context.parseVariablesInString(opt.q_num.trim())
+						pfx = `/cue/${qnum}`
+						break
+					case 'I':
+						let qid = await context.parseVariablesInString(opt.q_id.trim())
+						pfx = `/cue_id/${qid}`
+				}
+
+				let s = parseFloat(await context.parseVariablesInString(opt.ss))
+				let args = []
+
+				if (opt.mode === 'S') {
+					let h = parseInt(await context.parseVariablesInString(opt.hh))
+					let m = parseInt(await context.parseVariablesInString(opt.mm))
+					if (Math.abs(h) + Math.abs(m) > 0) {
+						args.push({ type: 'i', value: h })
+						args.push({ type: 'i', value: m })
+					}
+				}
+				args.push({ type: 'f', value: s })
+
+				await sendCommand(action, pfx + cmd + sfx, args)
+			},
+		},
+
 		prewait_dec: {
 			name: 'Decrease Prewait',
 			options: [

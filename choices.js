@@ -28,7 +28,7 @@ export const SCOPE = [
 
 export const FB_SCOPE = [
 	{ id: 'D', label: 'Playhead/Next' },
-  { id: 'R', label: 'Running Cue'},
+	{ id: 'R', label: 'Running Cue' },
 	{ id: 'N', label: 'Cue Number' },
 	{ id: 'I', label: 'Cue ID' },
 ]

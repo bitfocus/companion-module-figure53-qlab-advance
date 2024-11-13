@@ -8,9 +8,9 @@ export function compileFeedbackDefinitions(self) {
 			case 'D':
 				cue = self.nextCue
 				break
-      case 'R':
-        cue = self.runningCue.uniqueID
-        break;
+			case 'R':
+				cue = self.runningCue.uniqueID
+				break
 			case 'N':
 				cue = self.cueByNum[opt.q_num?.replace(/[^\w\.]/gi, '_')]
 				break
@@ -116,6 +116,53 @@ export function compileFeedbackDefinitions(self) {
 				let cue = getScope(opt)
 
 				return self.wsCues[cue]?.isArmed
+			},
+		},
+		q_selected: {
+			type: 'boolean',
+			name: 'Cue is Selected',
+			description: 'Indicate on button when the specified cue is Selected',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Scope',
+					id: 'scope',
+					default: 'N',
+					choices: [
+						{ id: 'N', label: 'Cue Number' },
+						{ id: 'I', label: 'Cue ID' },
+					],
+				},
+				{
+					type: 'textinput',
+					label: 'Cue Number',
+					id: 'q_num',
+					default: self.nextCue.q_num,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'N'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Cue ID',
+					id: 'q_id',
+					default: self.nextCue.q_id,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'I'
+					},
+				},
+			],
+			defaultStyle: {
+				bgcolor: combineRgb(0, 0, 102),
+				color: combineRgb(255, 255, 255),
+			},
+			callback: async (feedback, context) => {
+				const opt = feedback.options
+				let cue = getScope(opt)
+
+				return self.wsCues[cue]?.isSelected
 			},
 		},
 		q_flagged: {
