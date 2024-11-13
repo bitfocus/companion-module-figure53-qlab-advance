@@ -10,12 +10,13 @@ Due to the nature and volume of information feedback and variables are only avai
 This may cause a noticible increase in network traffic.
 
 This is being updated and maintained for QLab5.
-QLab 4.7 compatibility is checked will be continued when possible.
+QLab 4.7 compatibility is checked and will be continued when possible.
 While QLab3 is detected, some features may not work.
 
 ## **Notice!**
 
 QLab versions 5.2 and onward will require version `2.1.0` or newer of this module!
+See below for OSC passcode warnings.
 
 ---
 
@@ -160,6 +161,10 @@ From QLab preferences OSC controls tab make sure you have the "Use OSC controls"
 
 QLab 5 configuration is under the **Network / OSC Access** page on the Workspace Settings window.
 ![QLab5](images/QLab5.jpg?raw=true 'QLab5')
+
+### **Note**
+
+QLab 5 creates new workspaces with a random OSC passcode which changes the module startup procedure. As a security measure, QLab will ignore any commands if an incorrect passcode is sent too many times in a row. This module has been designed to be robust and automatically recover from most network errors. To prevent QLab from locking out, this restart/retry function will stop when detecting an incorrect passcode. You will need to enter and save the correct passcode to restart the module.
 
 ### Running cue examples
 
