@@ -362,7 +362,8 @@ class QLabInstance extends InstanceBase {
 			e_mm: emm,
 			e_ss: ess,
 			e_time: eft,
-      e_secs: tElapsed
+      e_secs: tElapsed,
+      e_total: rc.elapsed,
 		})
 
 		this.checkFeedbacks('run_bg', 'any_run')
