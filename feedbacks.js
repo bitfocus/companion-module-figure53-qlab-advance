@@ -90,7 +90,7 @@ export function compileFeedbackDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue Number',
 					id: 'q_num',
-					default: self.nextCue.q_num,
+					default: self.wsCues[self.nextCue]?.q_num,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'N'
@@ -100,7 +100,7 @@ export function compileFeedbackDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue ID',
 					id: 'q_id',
-					default: self.nextCue.q_id,
+					default: self.nextCue,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'I'
@@ -181,7 +181,7 @@ export function compileFeedbackDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue Number',
 					id: 'q_num',
-					default: self.nextCue.q_num,
+					default: self.wsCues[self.nextCue]?.q_num,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'N'
@@ -191,7 +191,7 @@ export function compileFeedbackDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue ID',
 					id: 'q_id',
-					default: self.nextCue.q_id,
+					default: self.nextCue,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'I'
@@ -224,7 +224,7 @@ export function compileFeedbackDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue Number',
 					id: 'q_num',
-					default: self.nextCue.q_num,
+					default: self[self.nextCue]?.q_num,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'N'
@@ -234,7 +234,7 @@ export function compileFeedbackDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue ID',
 					id: 'q_id',
-					default: self.nextCue.q_id,
+					default: self.nextCue,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'I'
