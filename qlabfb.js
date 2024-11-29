@@ -29,7 +29,7 @@ function cueToStatusChar(cue) {
  */
 function pad0(num, len = 2) {
 	const zeros = '0'.repeat(len)
-	return (zeros + num).slice(-len)
+	return (zeros + Math.abs(num)).slice(-len)
 }
 
 var crc16b = function (data) {
@@ -297,7 +297,10 @@ class QLabInstance extends InstanceBase {
 		const tenths = this.config.useTenths ? 0 : 1
 		const rc = this.runningCue
 
-		const tElapsed = rc.elapsed // rc.duration * rc.pctElapsed
+		const tElapsed = rc.duration * rc.pctElapsed
+		// rc.elapsed not reliable as 'groups' update until duration then stop
+		// cue 'elapsed' time is total time and can be multiples of duration if cue is looped
+		// was rc.duration * rc.pctElapsed
 
 		const ehh = pad0(Math.floor(tElapsed / 3600))
 		const emm = pad0(Math.floor(tElapsed / 60) % 60)
@@ -352,11 +355,15 @@ class QLabInstance extends InstanceBase {
 			r_mm: mm,
 			r_ss: ss,
 			r_left: ft,
+      r_secs: tLeft,
+
 			e_hhmmss: ehh + ':' + emm + ':' + ess,
 			e_hh: ehh,
 			e_mm: emm,
 			e_ss: ess,
 			e_time: eft,
+      e_secs: tElapsed,
+      e_total: rc.elapsed,
 		})
 
 		this.checkFeedbacks('run_bg', 'any_run')
@@ -548,7 +555,7 @@ class QLabInstance extends InstanceBase {
 		if (0 == this.pollCount % (this.config.useTenths ? 10 : 4)) {
 			this.sendOSC('/overrideWindow', [], true)
 
-			this.sendOSC((this.cl ? '/cue_id/' + this.cl : '') + `/playhead${phID}`, [])
+			//this.sendOSC((this.cl ? '/cue_id/' + this.cl : '') + `/playhead${phID}`, [])
 
 			if (5 == this.qVer) {
 				this.sendOSC('/alwaysAudition', [], true)
