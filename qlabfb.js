@@ -555,7 +555,8 @@ class QLabInstance extends InstanceBase {
 		if (0 == this.pollCount % (this.config.useTenths ? 10 : 4)) {
 			this.sendOSC('/overrideWindow', [], true)
 
-			//this.sendOSC((this.cl ? '/cue_id/' + this.cl : '') + `/playhead${phID}`, [])
+			// still needed, QLab does not notify when playhead is cleared/reset
+			this.sendOSC((this.cl ? '/cue_id/' + this.cl : '') + `/playhead${phID}`, [])
 
 			if (5 == this.qVer) {
 				this.sendOSC('/alwaysAudition', [], true)
