@@ -2,7 +2,7 @@ import * as Colors from './colors.js'
 import * as Choices from './choices.js'
 import { Regex } from '@companion-module/base'
 
-const cueListActions = ['go', 'next', 'panic', 'previous', 'reset', 'stop', 'togglePause']
+const cueListActions = ['go', 'next', 'panic', 'panicInTime', 'previous', 'reset', 'stop', 'togglePause']
 
 // actions for QLab module
 export function compileActionDefinitions(self) {
