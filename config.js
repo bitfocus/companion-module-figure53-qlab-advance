@@ -74,48 +74,40 @@ export function GetConfigFields(self) {
 			tooltip:
 				'The passcode to controll QLab.\nLeave blank if not needed\n' + 'This is almost always required for QLab5',
 		},
+		{
+			type: 'dropdown',
+			id: 'workspace',
+			label: 'Workspace',
+			width: 12,
+			tooltip: "Select a target workspace\n(or Default/selected)",
+			default: 'default',
+			choices: [
+				{ id: 'default', label: 'Default Workspace' },
+				...Object.keys(self.wsList).reduce((res, i) => {
+					res.push({ id: i, label: self.wsList[i].displayName + ` (${i})` })
+					return res
+				}, []),
+			],
+		},
+		{
+			type: 'dropdown',
+			id: 'cuelist',
+			label: 'Cue List',
+			tooltip: 'Specific Cue List for Play Head control\n(or use Default/selected)',
+			width: 12,
+			default: 'default',
+			choices: [
+				{
+					id: 'default',
+					label: 'Default Cue List',
+				},
+				...Object.keys(self.cueList).reduce((res, i) => {
+					res.push({ id: i, label: self.wsCues[i].qName + ` (${i})` })
+					return res
+				}, []),
+			],
+		},
 	]
-
-	const wlist = {
-		type: 'dropdown',
-		id: 'workspace',
-		label: 'Workspace',
-		width: 12,
-		tooltip: "Select a workspace\nSelect 'default' for the default Workspace",
-		default: 'default',
-		choices: [{ id: 'default', label: 'Default Workspace' }],
-	}
-
-	if (Object.keys(self.wsList).length > 0) {
-		for (let w in self.wsList) {
-			wlist.choices.push({ id: w, label: self.wsList[w].displayName })
-		}
-	}
-
-	configs.push(wlist)
-
-	const clist = {
-		type: 'dropdown',
-		id: 'cuelist',
-		label: 'Specific Cue List',
-		tooltip: 'Select a specific Cue List for Play Head control',
-		width: 12,
-		default: 'default',
-		choices: [
-			{
-				id: 'default',
-				label: 'Default Cue List',
-			},
-		],
-	}
-
-	if (Object.keys(self.cueList).length > 0) {
-		for (let c in self.cueList) {
-			clist.choices.push({ id: c, label: self.wsCues[c].qName })
-		}
-	}
-
-	configs.push(clist)
 
 	return configs
 }

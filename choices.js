@@ -19,7 +19,7 @@ export const TIME_MODE = [
 	{ id: 'I', label: 'Increase by' },
 	{ id: 'D', label: 'Decrease by' },
 ]
-export const SCOPE = [
+export const CUE_SCOPE = [
 	{ id: 'D', label: 'Playhead' },
 	{ id: 'S', label: 'Selected' },
 	{ id: 'N', label: 'Cue Number' },
@@ -29,6 +29,13 @@ export const SCOPE = [
 export const FB_SCOPE = [
 	{ id: 'D', label: 'Playhead/Next' },
 	{ id: 'R', label: 'Running Cue' },
+	{ id: 'N', label: 'Cue Number' },
+	{ id: 'I', label: 'Cue ID' },
+]
+
+export const SSP_SCOPE = [
+	{ id: 'D', label: 'Default (All)' },
+	{ id: 'S', label: 'Selected' },
 	{ id: 'N', label: 'Cue Number' },
 	{ id: 'I', label: 'Cue ID' },
 ]

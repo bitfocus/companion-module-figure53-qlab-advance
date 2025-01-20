@@ -1,5 +1,6 @@
 import { combineRgb } from '@companion-module/base'
 import * as Choices from './choices.js'
+import { cleanCueNumber } from './common.js'
 
 export function compileFeedbackDefinitions(self) {
 	function getScope(opt) {
@@ -12,7 +13,7 @@ export function compileFeedbackDefinitions(self) {
 				cue = self.runningCue.uniqueID
 				break
 			case 'N':
-				cue = self.cueByNum[opt.q_num?.replace(/[^\w\.]/gi, '_')]
+				cue = self.cueByNum[cleanCueNumber(opt.q_num)]
 				break
 			case 'I':
 				cue = opt.q_id
