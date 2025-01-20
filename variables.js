@@ -29,6 +29,18 @@ export function compileVariableDefinition() {
 			variableId: 'n_type',
 		},
 		{
+			name: 'Playhead Pre Wait (seconds)',
+			variableId: 'n_preWait',
+		},
+		{
+			name: 'Playhead Post Wait (seconds)',
+			variableId: 'n_postWait',
+		},
+		{
+			name: 'Playhead Elapsed (seconds)',
+			variableId: 'n_elapsed',
+		},
+		{
 			name: 'Playhead Notes',
 			variableId: 'n_notes',
 		},
@@ -39,6 +51,18 @@ export function compileVariableDefinition() {
 		{
 			name: 'Playhead Continue Mode',
 			variableId: 'n_cont',
+		},
+		{
+			name: 'Selected Cue UniqueID (first only)',
+			variableId: 's_id',
+		},
+		{
+			name: 'Selected Cues UniqueIDs (all)',
+			variableId: 's_ids',
+		},
+		{
+			name: 'Selected Cue Count',
+			variableId: 's_count',
 		},
 		{
 			name: 'Running Cue UniqueID',

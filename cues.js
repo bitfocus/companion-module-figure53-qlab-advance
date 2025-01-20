@@ -21,6 +21,9 @@ class Cue {
 	duration = 0
 	pctElapsed = 0
   elapsed = 0
+  preWait = 0
+  postWait = 0
+  elapsed = 0
 	startedAt = -1
 	qColor = 0
 	qColorName = ''
@@ -58,15 +61,19 @@ function JSONtoCue(newCue, j, self) {
 	newCue.qParent = j.parent
 	newCue.pctElapsed = j.percentActionElapsed
   newCue.elapsed = j.actionElapsed
+  newCue.preWait = j.preWait
+  newCue.postWait = j.postWait
 	if (j.notes) {
 		newCue.Notes = j.notes.slice(0, 20)
 	}
+
 	newCue.qColor = Colors.colorRGB[j.colorName.toLowerCase().replaceAll(' ','')]
 
 	const isExistingQ = newCue.uniqueID in self.wsCues
 
 	if (isExistingQ) {
 		newCue.qOrder = self.wsCues[newCue.uniqueID].qOrder
+		newCue.isSelected = self.wsCues[newCue.uniqueID].isSelected
 	}
 
 	if (newCue.isRunning || newCue.isPaused) {

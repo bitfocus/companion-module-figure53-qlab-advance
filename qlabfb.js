@@ -7,51 +7,18 @@ import { compilePresetDefinitions } from './presets.js'
 import { compileVariableDefinition } from './variables.js'
 import { UpgradeScripts } from './upgrades.js'
 import { GetConfigFields } from './config.js'
+import { pad0, crc16b, cueToStatusChar, cleanCueNumber } from './common.js'
 import Cue from './cues.js'
 import Workspace from './workspaces.js'
 import * as Choices from './choices.js'
 
-function cueToStatusChar(cue) {
-	if (cue.isBroken) return '\u2715'
-	if (cue.isAuditioning) return '\u2772\u23F5\u2773'
-	if (cue.isRunning) return '\u23F5'
-	if (cue.isPaused) return '\u23F8'
-	if (cue.isLoaded) return '\u23FD'
-	return '\u00b7'
-}
-
-/**
- * Returns the passed integer left-padded with '0's
- * Will truncate result length is greater than 'len'
- * @param {Number} num - number to pad
- * @param {Number} [len=2] - optional length of result, defaults to 2
- * @since 2.3.0
- */
-function pad0(num, len = 2) {
-	const zeros = '0'.repeat(len)
-	return (zeros + Math.abs(num)).slice(-len)
-}
-
-var crc16b = function (data) {
-	const POLY = 0x8408
-	const XOROUT = 0
-	let crc = 0 // INIT
-
-	for (let i = 0; i < data.length; i++) {
-		crc = crc ^ data[i]
-		for (let j = 0; j < 8; j++) {
-			crc = crc & 1 ? (crc >> 1) ^ POLY : crc >> 1
-		}
-	}
-	return (crc ^ XOROUT) & 0xffff
-}
-
 class QLabInstance extends InstanceBase {
-	qCueRequest = [
+
+qCueRequest = [
 		{
 			type: 's',
 			value:
-				'["number","uniqueID","listName","type","mode","isPaused","duration","actionElapsed","parent",' +
+				'["number","uniqueID","listName","type","mode","isPaused","duration","actionElapsed", "preWait", "postWait","parent",' +
 				'"flagged","notes","autoLoad","colorName","isRunning","isAuditioning","isLoaded","armed",' +
 				'"isBroken","continueMode","percentActionElapsed","cartPosition","infiniteLoop","holdLastFrame"]',
 		},
@@ -61,6 +28,7 @@ class QLabInstance extends InstanceBase {
 		name: { desc: 'Name', id: 'qName' },
 		elapsed: { desc: 'Elapsed time of', id: 'elapsed' },
 	}
+	// list of useful cue types we're interested in
 	qTypes = [
 		'audio',
 		'mic',
@@ -150,7 +118,7 @@ class QLabInstance extends InstanceBase {
 		this.exposeVariables = config.exposeVariables || false
 	}
 
-	resetVars(doUpdate) {
+	resetVars(doUpdate = false) {
 		// play head info
 		this.nextCue = ''
 		// most recent running cue
@@ -158,25 +126,7 @@ class QLabInstance extends InstanceBase {
 
 		// clear 'variables'
 		if (doUpdate && this.useTCP) {
-      this.init_variables()
-			// let newValues = {}
-
-			// for (const [cue, cueObj] of Object.entries(this.wsCues)) {
-			// 	let qNum = cueObj.qNumber.replace(/[^\w\.]/gi, '_')
-			// 	let qName = cueObj.qName
-			// 	let qID = cueObj.uniqueID
-			// 	if (qNum && (qName || cueObj.elapsed)) {
-			// 		delete this.cueColors[qNum]
-			// 		for (const [varName, info] of Object.entries(this.otherVars)) {
-			// 			newValues[`q_${qNum}_${varName}`] = undefined
-			// 		}
-			// 	}
-			// 	for (const [varName, info] of Object.entries(this.otherVars)) {
-			// 		newValues[`id_${qID}_${varName}`] = undefined
-			// 	}
-			// }
-
-			// this.setVariableValues(newValues)
+			this.init_variables()
 		}
 		// need a valid QLab reply
 		this.needWorkspace = true
@@ -219,6 +169,9 @@ class QLabInstance extends InstanceBase {
 			n_type: nc.qType,
 			n_notes: nc.Notes,
 			n_stat: cueToStatusChar(nc),
+			n_preWait: nc.preWait,
+			n_postWait: nc.postWait,
+			n_elapsed: nc.elapsed,
 			n_cont: ['NoC', 'Con', 'Fol'][nc.continueMode],
 		})
 		this.checkFeedbacks('playhead_bg')
@@ -227,29 +180,36 @@ class QLabInstance extends InstanceBase {
 		q = q || new Cue()
 
 		const qID = q.uniqueID
-		const qNum = q.qNumber.replace(/[^\w\.]/gi, '_')
+		const qNum = cleanCueNumber(q.qNumber)
+		const qName = q.qName
 		const qType = q.qType
 		const qColor = q.qColor
 		const qElapsed = q.elapsed
+		const qSelected = q.isSelected
 		let oqNum = null
 		let oqName = null
 		let oqType = null
 		let oqColor = 0
 		let oqOrder = -1
 		let oqElapsed = 0
+		let oqSelected = false
 
 		let variableValues = {}
 		let variableDefs = []
 		let oldVariables = []
 
-		// unset old variable?
-		if (qID in this.wsCues) {
-			oqNum = this.wsCues[qID].qNumber.replace(/[^\w\.]/gi, '_')
-			oqName = this.wsCues[qID].qName
-			oqType = this.wsCues[qID].qType
-			oqColor = this.wsCues[qID].qColor
-			oqOrder = this.wsCues[qID].qOrder
-			if (oqNum != '' && oqNum != q.qNumber) {
+		const oq = this.wsCues[qID]
+
+		// update existing cue?
+		if (oq?.qNumber) {
+			oqNum = cleanCueNumber(oq.qNumber)
+			oqName = oq.qName
+			oqType = oq.qType
+			oqColor = oq.qColor
+			oqOrder = oq.qOrder
+			oqElapsed = oq.elapsed
+			oqSelected = oq.isSelected
+			if (oqNum != '' && oqNum != qNum) {
 				// cue number changed
 				let vId = `q_${oqNum}_name`
 				variableValues[vId] = undefined
@@ -260,7 +220,12 @@ class QLabInstance extends InstanceBase {
 			}
 		}
 		// set new value
-		if ((q.uniqueID != '' && q.qName != oqName) || qColor != oqColor || qElapsed != oqElapsed) {
+		if (qID != '' && (qName != oqName || qColor != oqColor || qElapsed != oqElapsed)) {
+			if (q.isPaused) {
+				q.elapsed = Math.max(q.elapsed, oqElapsed ? oqElapsed : 0)
+				q.pctElapsed = Math.max(q.pctElapsed, oq.pctElapsed ? oq.pctElapsed : 0)
+			}
+
 			for (const [varName, info] of Object.entries(this.otherVars)) {
 				if (qNum != '') {
 					let vId = `q_${qNum}_${varName}`
@@ -297,7 +262,8 @@ class QLabInstance extends InstanceBase {
 		const tenths = this.config.useTenths ? 0 : 1
 		const rc = this.runningCue
 
-		const tElapsed = rc.duration * rc.pctElapsed
+		const tElapsed = rc.elapsed
+		// rc.duration * rc.pctElapsed
 		// rc.elapsed not reliable as 'groups' update until duration then stop
 		// cue 'elapsed' time is total time and can be multiples of duration if cue is looped
 		// was rc.duration * rc.pctElapsed
@@ -355,15 +321,15 @@ class QLabInstance extends InstanceBase {
 			r_mm: mm,
 			r_ss: ss,
 			r_left: ft,
-      r_secs: tLeft,
+			r_secs: tLeft,
 
 			e_hhmmss: ehh + ':' + emm + ':' + ess,
 			e_hh: ehh,
 			e_mm: emm,
 			e_ss: ess,
 			e_time: eft,
-      e_secs: tElapsed,
-      e_total: rc.elapsed,
+			e_secs: tElapsed,
+			e_total: rc.elapsed,
 		})
 
 		this.checkFeedbacks('run_bg', 'any_run')
@@ -523,7 +489,7 @@ class QLabInstance extends InstanceBase {
 			])
 
 			this.sendOSC('/cueLists', [])
-			this.sendOSC('/selectedCues', [], true)
+			this.sendOSC('/selectedCues/uniqueIDs', [], true)
 
 			if (this.qVer < 5) {
 				this.sendOSC('/auditionWindow', [], true)
@@ -555,8 +521,9 @@ class QLabInstance extends InstanceBase {
 		if (0 == this.pollCount % (this.config.useTenths ? 10 : 4)) {
 			this.sendOSC('/overrideWindow', [], true)
 
-			// still needed, QLab does not notify when playhead is cleared/reset
-			this.sendOSC((this.cl ? '/cue_id/' + this.cl : '') + `/playhead${phID}`, [])
+			// //still needed, QLab does not notify when playhead is cleared/reset
+			// OK, my bad, missed the entire 'empty' message = no playhead
+			// this.sendOSC((this.cl ? '/cue_id/' + this.cl : '') + `/playhead${phID}`, [])
 
 			if (5 == this.qVer) {
 				this.sendOSC('/alwaysAudition', [], true)
@@ -575,6 +542,7 @@ class QLabInstance extends InstanceBase {
 			let variableValues = {}
 			const checkFeedbacks = []
 			const timeOut = now - 500
+			// TODO: use Map ?
 			for (let k in this.requestedCues) {
 				if (this.requestedCues[k] < timeOut) {
 					// no response from QLab for at least 500ms
@@ -583,7 +551,7 @@ class QLabInstance extends InstanceBase {
 					if (cueObj) {
 						// QLab sometimes sends 'reload the whole cue list'
 						// so a cue we were waiting for may have been moved/deleted between checks
-						const qNum = cueObj.qNumber.replace(/[^\w\.]/gi, '_')
+						const qNum = cleanCueNumber(cueObj.qNumber)
 						const qName = cueObj.qName
 						if (qNum && qName) {
 							delete this.cueColors[qNum]
@@ -612,7 +580,7 @@ class QLabInstance extends InstanceBase {
 		}
 
 		let rc = this.runningCue
-		if (rc && rc.elapsed > 0) {
+		if (rc && (rc.isRunning || rc.isPaused)) {
 			if (3 == this.qVer) {
 				this.sendOSC('/runningOrPausedCues', [])
 			} else {
@@ -768,7 +736,6 @@ class QLabInstance extends InstanceBase {
 	 * update list cues
 	 */
 	updateCues(jCue, stat, ql) {
-		// list of useful cue types we're interested in
 		let q = {}
 
 		if (Array.isArray(jCue)) {
@@ -866,6 +833,7 @@ class QLabInstance extends InstanceBase {
 		const junk = Object.keys(cues).length
 		const lastRun = qState(this.runningCue)
 		let runningCues = []
+		let rc = this.runningCue
 
 		Object.keys(cues).forEach((qid) => {
 			const q = cues[qid]
@@ -881,10 +849,13 @@ class QLabInstance extends InstanceBase {
 			}
 		})
 
-		runningCues.sort((a, b) => b[1] - a[1])
+		runningCues.sort((a, b) => a[1] - b[1])
+		//console.info(pad0('0',runningCues.length,'='),runningCues)
+		//console.info(runningCues.length)
+		//console.info(Object.keys(cues).length)
 
 		if (runningCues.length == 0) {
-			this.runningCue = new Cue()
+			rc = new Cue()
 			this.checkFeedbacks('any_run')
 		} else {
 			let i = 0
@@ -898,61 +869,65 @@ class QLabInstance extends InstanceBase {
 				}
 			}
 			if (i < runningCues.length) {
-				this.runningCue = cues[runningCues[i][0]]
+				rc = cues[runningCues[i][0]]
 				// to reduce network traffic, the query interval logic only asks for running 'updates'
 				// if the playback elapsed is > 0%. Sometimes, the first status response of a new running cue
 				// is exactly when the cue starts, with 0% elapsed and the countdown timer won't run.
 				// Set a new cue with 0% value to 1 here to cause at least one more query to see if the cue is
 				// actually playing.
-				if (0 == this.runningCue.pctElapsed) {
-					this.runningCue.pctElapsed = 1
+				if (0 == rc.pctElapsed) {
+					rc.pctElapsed = 1
 				}
 			}
 		}
 		// update if changed
-		if (qState(this.runningCue) != lastRun) {
+		if (qState(rc) != lastRun) {
+			this.runningCue = rc
 			this.updateRunning(true)
 		}
 	}
+
 	updateSelectedCues(c) {
 		let newHash = crc16b(JSON.stringify(c))
 		if (this.lastSel == newHash) {
 			return // no changes since last run
 		}
-		let newSel = []
+		let newSel = new Set()
+
 		// collect all unique IDs
 		const subq = (q) => {
-			newSel.push(q.uniqueID)
+			newSel.add(q.uniqueID)
 			q.cues.forEach(subq)
 		}
+
 		c.forEach(subq)
 
-		// let sel = newSel.filter((qId) => {
-		// 	return !!this.wsCues[qId]
-		// })
-
-		// newSel = sel
-
-		// set 'isSelected'
-		for (const id of newSel) {
+		newSel.forEach((id) => {
 			if (!this.wsCues[id]) {
 				this.wsCues[id] = new Cue()
 			}
 			this.sendOSC(`/cue_id/${id}/valuesForKeys`, this.qCueRequest)
 			this.requestedCues[id] = Date.now()
 			this.wsCues[id].isSelected = true
-		}
+		})
 
 		// remove anything not 'selected' anymore
-		for (const id of this.selectedCues) {
-			if (!newSel.includes(id)) {
+		this.selectedCues.forEach((id) => {
+			if (!newSel.has(id)) {
 				if (this.wsCues[id]) this.wsCues[id].isSelected = false
 			}
-		}
-		this.selectedCues = newSel
+		})
+		this.selectedCues = [...newSel]
 		this.lastSel = newHash
+		this.setVariableValues({
+			s_id: newSel.size == 0 ? '' : this.selectedCues[0],
+			s_count: newSel.size,
+			s_ids: this.selectedCues.join(':'),
+		})
 		this.checkFeedbacks('q_selected')
+		console.log('debug','Selected cues updated')
 	}
+
 	/**
 	 * process QLab 'update'
 	 */
@@ -969,10 +944,16 @@ class QLabInstance extends InstanceBase {
 		switch (ms.slice(-1)[0]) {
 			case 'playbackPosition':
 				const cl = ms[4]
-				if (message.args.length > 0) {
-					const oa = message.args[0].value
+				let oa = message.args[0]?.value || 'none'
+				this.nextCue = oa
+				this.debugLevel > 0 && this.log('debug', 'playhead: ' + oa)
+				this.sendOSC('/selectedCues/uniqueIDs', [], true)
+				this.updateNextCue()
+				this.init_actions()
+
+				if ('none' != oa) {
 					if (this.cl) {
-						// if a cue is inserted, QLab sends playback changed cue
+						// if a cue is inserted, QLab sends playback changed message
 						// before sending the new cue's id update, insert this id into
 						// the cuelist just in case so the playhead check will find it until then
 						if (!this.cueList[cl].includes(oa)) {
@@ -980,15 +961,11 @@ class QLabInstance extends InstanceBase {
 						}
 					}
 					if ((this.cl == '' || cl == this.cl) && oa !== this.nextCue) {
-						// playhead changed
-						this.nextCue = oa
-						this.debugLevel > 0 && this.log('debug', 'playhead: ' + oa)
 						this.sendOSC('/cue_id/' + oa + '/valuesForKeys', this.qCueRequest)
 						this.requestedCues[oa] = Date.now()
-						this.sendOSC('/selectedCues', [], true)
 					}
-					break
 				}
+				break
 			case '[root group of cue lists]':
 				this.sendOSC('/doubleGoWindowRemaining')
 				break
@@ -1014,6 +991,8 @@ class QLabInstance extends InstanceBase {
 				}
 				break
 			case 'dashboard': // lighting, ignore for now
+				// apparently, a dashboard update includes selected cues
+				this.sendOSC('/selectedCues/uniqueIDs', [], true)
 				break
 			default:
 				if (ms.length == 3 && 'workspace' == ms[1]) {
@@ -1093,6 +1072,7 @@ class QLabInstance extends InstanceBase {
 					}
 					this.setVariableValues({ ws_id: Object.keys(this.wsList)[0] })
 					this.needWorkspace = false
+					this.init_actions()
 				}
 				break
 			case 'connect':
@@ -1156,7 +1136,7 @@ class QLabInstance extends InstanceBase {
 					this.needWorkspace = this.qVer > 3 && this.useTCP
 				}
 				break
-			case 'uniqueID':
+			case 'uniqueID': // only asked for playhead
 				if (j.data) {
 					this.nextCue = j.data
 					this.updateNextCue()
@@ -1164,6 +1144,7 @@ class QLabInstance extends InstanceBase {
 				}
 				break
 			case 'selectedCues': // selected cues
+			case 'uniqueIDs':
 				if (j.data) {
 					this.updateSelectedCues(j.data)
 				}
@@ -1178,6 +1159,7 @@ class QLabInstance extends InstanceBase {
 						// playhead changed due to cue list change in QLab
 						if (playheadId == 'none') {
 							this.nextCue = ''
+							this.sendOSC('/selectedCues/uniqueIDs', [], true)
 						} else {
 							this.nextCue = playheadId
 							this.sendOSC('/cue_id/' + j.data + '/children')
@@ -1194,6 +1176,7 @@ class QLabInstance extends InstanceBase {
 						this.updateCues(q.cues, 'l', q.uniqueID)
 					}
 					this.sendOSC('/cue/active/valuesForKeys', qr)
+					this.init_actions()
 				}
 				break
 			case 'children':

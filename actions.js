@@ -1,5 +1,6 @@
 import * as Colors from './colors.js'
 import * as Choices from './choices.js'
+import { cleanCueNumber } from './common.js'
 import { Regex } from '@companion-module/base'
 
 const cueListActions = ['go', 'next', 'panic', 'panicInTime', 'previous', 'reset', 'stop', 'togglePause']
@@ -14,11 +15,13 @@ export function compileActionDefinitions(self) {
 	 * @param {string} args.type - OSC argument type 's','i','f', etc.
 	 * @param {object} args.value - OSC argument value, should match type
 	 */
-	const sendCommand = async (action, cmd, args) => {
+	const sendCommand = async (action, cmd, args, no_cueList) => {
 		args = args ?? []
+		no_cueList = no_cueList ?? false
 		let global = ['/auditionWindow', '/alwaysAudition', '/overrideWindow'].includes(cmd)
 
-		if (self.cl && cueListActions.includes(action.actionId)) {
+		// some actions will pre-attach a cue list ID, which may be different than the module config cue list
+		if (!no_cueList && self.cl && cueListActions.includes(action.actionId)) {
 			cmd = '/cue_id/' + self.cl + cmd
 		}
 
@@ -39,7 +42,7 @@ export function compileActionDefinitions(self) {
 	 * Format time argument for OSC
 	 * @param {Object} action - action object from callback, must have a 'time' option
 	 * @param {Object} context - context object from callback
-	 * @returns {OSCArgument} OSC formatted argument for tim
+	 * @returns {OSCArgument} OSC formatted argument for time
 	 */
 	const getTimeArg = async (action, context) => {
 		let optTime = await context.parseVariablesInString(action.options.time)
@@ -95,13 +98,13 @@ export function compileActionDefinitions(self) {
 					label: 'Scope',
 					id: 'scope',
 					default: 'D',
-					choices: Choices.SCOPE,
+					choices: Choices.CUE_SCOPE,
 				},
 				{
 					type: 'textinput',
 					label: 'Cue Number',
 					id: 'q_num',
-					default: self.nextCue.q_num,
+					default: self.wsCues[self.nextCue]?.qNumber,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'N'
@@ -111,7 +114,7 @@ export function compileActionDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue ID',
 					id: 'q_id',
-					default: self.nextCue.q_id,
+					default: self.wsCues[self.nextCue]?.uniqueID,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'I'
@@ -148,13 +151,13 @@ export function compileActionDefinitions(self) {
 					label: 'Scope',
 					id: 'scope',
 					default: 'D',
-					choices: Choices.SCOPE,
+					choices: Choices.CUE_SCOPE,
 				},
 				{
 					type: 'textinput',
 					label: 'Cue Number',
 					id: 'q_num',
-					default: self.nextCue.q_num,
+					default: self.wsCues[self.nextCue]?.qNumber,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'N'
@@ -164,7 +167,7 @@ export function compileActionDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue ID',
 					id: 'q_id',
-					default: self.nextCue.q_id,
+					default: self.wsCues[self.nextCue]?.uniqueID,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'I'
@@ -201,13 +204,13 @@ export function compileActionDefinitions(self) {
 					label: 'Scope',
 					id: 'scope',
 					default: 'D',
-					choices: Choices.SCOPE,
+					choices: Choices.CUE_SCOPE,
 				},
 				{
 					type: 'textinput',
 					label: 'Cue Number',
 					id: 'q_num',
-					default: self.nextCue.q_num,
+					default: self.wsCues[self.nextCue]?.qNumber,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'N'
@@ -217,7 +220,7 @@ export function compileActionDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue ID',
 					id: 'q_id',
-					default: self.nextCue.q_id,
+					default: self.wsCues[self.nextCue]?.uniqueID,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'I'
@@ -261,13 +264,13 @@ export function compileActionDefinitions(self) {
 					label: 'Scope',
 					id: 'scope',
 					default: 'D',
-					choices: Choices.SCOPE,
+					choices: Choices.CUE_SCOPE,
 				},
 				{
 					type: 'textinput',
 					label: 'Cue Number',
 					id: 'q_num',
-					default: self.nextCue.q_num,
+					default: self.wsCues[self.nextCue]?.qNumber,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'N'
@@ -277,7 +280,7 @@ export function compileActionDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue ID',
 					id: 'q_id',
-					default: self.nextCue.q_id,
+					default: self.wsCues[self.nextCue]?.uniqueID,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'I'
@@ -313,7 +316,7 @@ export function compileActionDefinitions(self) {
 					id: 'ss',
 					default: 0,
 					useVariables: true,
-					regex: Regex.FLOAT,
+					regex: Regex.SIGNED_FLOAT,
 				},
 			],
 			callback: async (action, context) => {
@@ -370,7 +373,7 @@ export function compileActionDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue Number',
 					id: 'q_num',
-					default: self.nextCue.q_num,
+					default: self.wsCues[self.nextCue]?.qNumber,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'N'
@@ -380,7 +383,7 @@ export function compileActionDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue ID',
 					id: 'q_id',
-					default: self.nextCue.q_id,
+					default: self.wsCues[self.nextCue]?.uniqueID,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'I'
@@ -461,7 +464,7 @@ export function compileActionDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue Number',
 					id: 'q_num',
-					default: self.nextCue.q_num,
+					default: self.wsCues[self.nextCue]?.qNumber,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'N'
@@ -471,7 +474,7 @@ export function compileActionDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue ID',
 					id: 'q_id',
-					default: self.nextCue.q_id,
+					default: self.wsCues[self.nextCue]?.uniqueID,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'I'
@@ -487,7 +490,7 @@ export function compileActionDefinitions(self) {
 				switch (scope) {
 					case 'D':
 						pfx = '/cue/playhead/'
-						cmd = self.nextCue.isPaused ? 'resume' : 'pause'
+						cmd = self.wsCues[self.nextCue]?.isPaused ? 'resume' : 'pause'
 						break
 					case 'R':
 						let rc = self.runningCue
@@ -512,6 +515,114 @@ export function compileActionDefinitions(self) {
 			options: [],
 			callback: async (action, context) => {
 				await sendCommand(action, '/cue/selected/stop')
+			},
+		},
+		new_panic: {
+			name: 'Panic Cue(s)',
+			description: 'Panic cues, with optional time override',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Workspace',
+					id: 'ws',
+					default: '',
+					useVariables: true,
+					choices: [
+						{ id: '', label: 'Default' },
+						...Object.keys(self.wsList).reduce((res, i) => {
+							res.push({ id: i, label: self.wsList[i].displayName + ` (${i})` })
+							return res
+						}, []),
+					],
+				},
+				{
+					type: 'dropdown',
+					label: 'Cue List',
+					id: 'cl',
+					default: '',
+					useVariables: true,
+					choices: [
+						{ id: '', label: 'Default' },
+						...Object.keys(self.cueList).reduce((res, i) => {
+							res.push({ id: i, label: self.wsCues[i].qName + ` (${i})` })
+							return res
+						}, []),
+					],
+				},
+				{
+					type: 'checkbox',
+					label: 'Custom Time?',
+					id: 'myTime',
+					default: false,
+				},
+				{
+					type: 'textinput',
+					tooltip: 'Panic/Fade time in seconds, can be fractional',
+					label: 'Time (in Seconds)',
+					id: 'time',
+					default: 1,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.myTime
+					}
+				},
+				{
+					type: 'dropdown',
+					label: 'Scope',
+					id: 'scope',
+					default: 'D',
+					choices: Choices.SSP_SCOPE,
+				},
+				{
+					type: 'textinput',
+					label: 'Cue Number',
+					id: 'q_num',
+					default: self.wsCues[self.nextCue]?.qNumber,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'N'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Cue ID',
+					id: 'q_id',
+					default: self.wsCues[self.nextCue]?.uniqueID,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'I'
+					},
+				},
+			],
+			callback: async (action, context) => {
+				const opt = action.options
+				const scope = opt.scope
+				const ws = opt.ws == '' ? '' : await context.parseVariablesInString(opt.ws)
+				const cl = opt.cl == '' ? '' : await context.parseVariablesInString(opt.cl)
+				const args = opt.myTime == '' ? [] : await getTimeArg(action, context)
+				let cmd = '/panic' + (opt.myTime ? 'InTime': '')
+				let pfx = ''
+
+				switch (scope) {
+					case 'S':
+						pfx = '/cue/selected'
+						break
+					case 'N':
+						let qnum = await context.parseVariablesInString(opt.q_num.trim())
+						pfx = `/cue/${qnum}`
+						break
+					case 'I':
+						let qid = await context.parseVariablesInString(opt.q_id.trim())
+						pfx = `/cue_id/${qid}`
+				}
+				if (cl != '') {
+					pfx = `/cue_id/${cl}` + pfx
+				}
+				if (ws != '') {
+					pfx = `/workspace/${ws}` + pfx
+				}
+
+				await sendCommand(action, pfx + cmd, args, true)
 			},
 		},
 		panic: {
@@ -573,7 +684,7 @@ export function compileActionDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue',
 					id: 'cue',
-					default: self.nextCue.qNumber,
+					default: self.wsCues[self.nextCue]?.qNumber,
 					useVariables: true,
 				},
 			],
@@ -922,13 +1033,13 @@ export function compileActionDefinitions(self) {
 					label: 'Scope',
 					id: 'scope',
 					default: 'D',
-					choices: Choices.SCOPE,
+					choices: Choices.CUE_SCOPE,
 				},
 				{
 					type: 'textinput',
 					label: 'Cue Number',
 					id: 'q_num',
-					default: self.nextCue.q_num,
+					default: self.wsCues[self.nextCue]?.qNumber,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'N'
@@ -938,7 +1049,7 @@ export function compileActionDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue ID',
 					id: 'q_id',
-					default: self.nextCue.q_id,
+					default: self.wsCues[self.nextCue]?.uniqueID,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'I'
@@ -975,8 +1086,8 @@ export function compileActionDefinitions(self) {
 		},
 
 		new_prewait: {
-			name: 'Prewait Adjust',
-			description: 'Set/Adjust Prewait time for cue',
+			name: 'Adjust Pre wait',
+			description: 'Set/Adjust Prewait time',
 			options: [
 				{
 					type: 'dropdown',
@@ -990,13 +1101,13 @@ export function compileActionDefinitions(self) {
 					label: 'Scope',
 					id: 'scope',
 					default: 'D',
-					choices: Choices.SCOPE,
+					choices: Choices.CUE_SCOPE,
 				},
 				{
 					type: 'textinput',
 					label: 'Cue Number',
 					id: 'q_num',
-					default: self.nextCue.q_num,
+					default: self.wsCues[self.nextCue]?.qNumber,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'N'
@@ -1006,7 +1117,7 @@ export function compileActionDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue ID',
 					id: 'q_id',
-					default: self.nextCue.q_id,
+					default: self.wsCues[self.nextCue]?.uniqueID,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'I'
@@ -1042,7 +1153,7 @@ export function compileActionDefinitions(self) {
 					id: 'ss',
 					default: 0,
 					useVariables: true,
-					regex: Regex.FLOAT,
+					regex: Regex.SIGNED_FLOAT,
 				},
 			],
 			callback: async (action, context) => {
@@ -1082,8 +1193,8 @@ export function compileActionDefinitions(self) {
 			},
 		},
 		new_duration: {
-			name: 'Duration Adjust',
-			description: 'Set/Adjust Duration time for cue',
+			name: 'Adjust Duration',
+			description: 'Set/Adjust Duration time',
 			options: [
 				{
 					type: 'dropdown',
@@ -1097,13 +1208,13 @@ export function compileActionDefinitions(self) {
 					label: 'Scope',
 					id: 'scope',
 					default: 'D',
-					choices: Choices.SCOPE,
+					choices: Choices.CUE_SCOPE,
 				},
 				{
 					type: 'textinput',
 					label: 'Cue Number',
 					id: 'q_num',
-					default: self.nextCue.q_num,
+					default: self.wsCues[self.nextCue]?.qNumber,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'N'
@@ -1113,7 +1224,7 @@ export function compileActionDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue ID',
 					id: 'q_id',
-					default: self.nextCue.q_id,
+					default: self.wsCues[self.nextCue]?.uniqueID,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'I'
@@ -1149,13 +1260,120 @@ export function compileActionDefinitions(self) {
 					id: 'ss',
 					default: 0,
 					useVariables: true,
-					regex: Regex.FLOAT,
+					regex: Regex.SIGNED_FLOAT,
 				},
 			],
 			callback: async (action, context) => {
 				const opt = action.options
 				const scope = opt.scope
 				let cmd = '/duration'
+				let pfx = ''
+				let sfx = opt.mode == 'D' ? '/-' : opt.mode == 'I' ? '/+' : ''
+
+				switch (scope) {
+					case 'S':
+						pfx = '/cue/selected'
+						break
+					case 'N':
+						let qnum = await context.parseVariablesInString(opt.q_num.trim())
+						pfx = `/cue/${qnum}`
+						break
+					case 'I':
+						let qid = await context.parseVariablesInString(opt.q_id.trim())
+						pfx = `/cue_id/${qid}`
+				}
+
+				let s = parseFloat(await context.parseVariablesInString(opt.ss))
+				let args = []
+
+				if (opt.mode === 'S') {
+					let h = parseInt(await context.parseVariablesInString(opt.hh))
+					let m = parseInt(await context.parseVariablesInString(opt.mm))
+					if (Math.abs(h) + Math.abs(m) > 0) {
+						args.push({ type: 'i', value: h })
+						args.push({ type: 'i', value: m })
+					}
+				}
+				args.push({ type: 'f', value: s })
+
+				await sendCommand(action, pfx + cmd + sfx, args)
+			},
+		},
+		new_postwait: {
+			name: 'Adjust Post wait',
+			description: 'Set/Adjust Postwait time',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Mode',
+					id: 'mode',
+					default: 'S',
+					choices: Choices.TIME_MODE,
+				},
+				{
+					type: 'dropdown',
+					label: 'Scope',
+					id: 'scope',
+					default: 'D',
+					choices: Choices.CUE_SCOPE,
+				},
+				{
+					type: 'textinput',
+					label: 'Cue Number',
+					id: 'q_num',
+					default: self.wsCues[self.nextCue]?.qNumber,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'N'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Cue ID',
+					id: 'q_id',
+					default: self.wsCues[self.nextCue]?.uniqueID,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'I'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Hour',
+					id: 'hh',
+					length: 2,
+					default: 0,
+					useVariables: true,
+					regex: Regex.NUMBER,
+					isVisible: (options, data) => {
+						return options.mode === 'S'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Minute',
+					id: 'mm',
+					length: 2,
+					default: 0,
+					useVariables: true,
+					regex: Regex.NUMBER,
+					isVisible: (options, data) => {
+						return options.mode === 'S'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Seconds',
+					id: 'ss',
+					default: 0,
+					useVariables: true,
+					regex: Regex.SIGNED_FLOAT,
+				},
+			],
+			callback: async (action, context) => {
+				const opt = action.options
+				const scope = opt.scope
+				let cmd = '/postWait'
 				let pfx = ''
 				let sfx = opt.mode == 'D' ? '/-' : opt.mode == 'I' ? '/+' : ''
 
@@ -1399,7 +1617,7 @@ export function compileActionDefinitions(self) {
 					label: 'Scope',
 					id: 'scope',
 					default: 'D',
-					choices: Choices.SCOPE,
+					choices: Choices.CUE_SCOPE,
 				},
 				{
 					type: 'dropdown',
@@ -1412,7 +1630,7 @@ export function compileActionDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue Number',
 					id: 'q_num',
-					default: self.nextCue.q_num,
+					default: self.wsCues[self.nextCue]?.qNumber,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'N'
@@ -1422,7 +1640,7 @@ export function compileActionDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue ID',
 					id: 'q_id',
-					default: self.nextCue.q_id,
+					default: self.wsCues[self.nextCue]?.uniqueID,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'I'
@@ -1446,7 +1664,7 @@ export function compileActionDefinitions(self) {
 						case 'N':
 							let qnum = await context.parseVariablesInString(opt.q_num.trim())
 							pfx = `/cue/${qnum}`
-							newVal = setToggle(self.wsCues[self.cueByNum[qnum.replace(/[^\w\.]/gi, '_')]]?.isArmed, req)
+							newVal = setToggle(self.wsCues[self.cueByNum[cleanCueNumber(qnum)]]?.isArmed, req)
 							break
 						case 'I':
 							let qid = await context.parseVariablesInString(opt.q_id.trim())
@@ -1455,7 +1673,7 @@ export function compileActionDefinitions(self) {
 							break
 						default:
 							pfx = '/cue/playhead'
-							newVal = setToggle(self.wsCues[self.nextCue].isArmed, req)
+							newVal = setToggle(self.wsCues[self.nextCue]?.isArmed, req)
 					}
 				} catch {
 					return // bad cue number, id, no playhead, no selection
@@ -1476,7 +1694,7 @@ export function compileActionDefinitions(self) {
 					label: 'Scope',
 					id: 'scope',
 					default: 'D',
-					choices: Choices.SCOPE,
+					choices: Choices.CUE_SCOPE,
 				},
 				{
 					type: 'dropdown',
@@ -1489,7 +1707,7 @@ export function compileActionDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue Number',
 					id: 'q_num',
-					default: self.nextCue.q_num,
+					default: self.wsCues[self.nextCue]?.qNumber,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'N'
@@ -1499,7 +1717,7 @@ export function compileActionDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue ID',
 					id: 'q_id',
-					default: self.nextCue.q_id,
+					default: self.wsCues[self.nextCue]?.uniqueID,
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.scope === 'I'
@@ -1523,7 +1741,7 @@ export function compileActionDefinitions(self) {
 						case 'N':
 							let qnum = await context.parseVariablesInString(opt.q_num.trim())
 							pfx = `/cue/${qnum}`
-							newVal = setToggle(self.wsCues[self.cueByNum[qnum.replace(/[^\w\.]/gi, '_')]]?.isFlagged, req)
+							newVal = setToggle(self.wsCues[self.cueByNum[cleanCueNumber(qnum)]]?.isFlagged, req)
 							break
 						case 'I':
 							let qid = await context.parseVariablesInString(opt.q_id.trim())
@@ -1532,7 +1750,7 @@ export function compileActionDefinitions(self) {
 							break
 						default:
 							pfx = '/cue/playhead'
-							newVal = setToggle(self.wsCues[self.nextCue].isFlagged, req)
+							newVal = setToggle(self.wsCues[self.nextCue]?.isFlagged, req)
 					}
 				} catch {
 					return // bad cue number, id, no playhead, no selection
@@ -1557,7 +1775,7 @@ export function compileActionDefinitions(self) {
 				},
 			],
 			callback: async (action, context) => {
-				const nc = self.wsCues[self.nextCue]
+				const nc = self.wsCues[self.wsCues[self.selectedCues[0]]]
 				if (!!nc) {
 					return
 				}
@@ -1579,7 +1797,7 @@ export function compileActionDefinitions(self) {
 				},
 			],
 			callback: async (action, context) => {
-				const nc = self.wsCues[self.nextCue]
+				const nc = self.wsCues[self.selectedCues[0]]
 				if (!nc) {
 					return
 				}
@@ -1618,7 +1836,7 @@ export function compileActionDefinitions(self) {
 				},
 			],
 			callback: async (action, context) => {
-				const nc = self.wsCues[self.nextCue]
+				const nc = self.wsCues[self.selectedCues[0]]
 				if (!!nc) {
 					return
 				}
@@ -1640,7 +1858,7 @@ export function compileActionDefinitions(self) {
 				},
 			],
 			callback: async (action, context) => {
-				const nc = self.wsCues[self.nextCue]
+				const nc = self.wsCues[self.selectedCues[0]]
 				if (!!nc) {
 					return
 				}
