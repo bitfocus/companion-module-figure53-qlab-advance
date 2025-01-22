@@ -627,7 +627,7 @@ qCueRequest = [
 			this.qSocket.open()
 
 			this.qSocket.on('error', (err) => {
-				this.debugLevel > 0 && this.log('debug', 'Error: ' + err)
+				this.debugLevel > 0 && console.log('debug', 'Error: ' + err.message + '\n' + err.stack)
 				this.connecting = false
 				if (!this.hasError) {
 					this.log('error', 'Error: ' + err.message)
@@ -949,7 +949,7 @@ qCueRequest = [
 				this.debugLevel > 0 && this.log('debug', 'playhead: ' + oa)
 				this.sendOSC('/selectedCues/uniqueIDs', [], true)
 				this.updateNextCue()
-				this.init_actions()
+				//this.init_actions()
 
 				if ('none' != oa) {
 					if (this.cl) {
@@ -1181,7 +1181,7 @@ qCueRequest = [
 				break
 			case 'children':
 				if (j.data) {
-					let uniqueID = ma.substr(14, 36)
+					let uniqueID = ma.split('/')[5] // substr(17, 36)
 					this.updateCues(j.data, 'u', uniqueID)
 				}
 				break
