@@ -387,7 +387,7 @@ qCueRequest = [
 	 * @since 2.0.0
 	 */
 	sendOSC(node, arg = [], bare) {
-		const ws = bare ? '' : this.ws
+		const ws = bare ? '' : this.ws == 'default' ? '' : this.ws
 
 		if (!this.useTCP) {
 			let host = ''
@@ -952,10 +952,10 @@ qCueRequest = [
 				//this.init_actions()
 
 				if ('none' != oa) {
-					if (this.cl) {
+					if (cl) {
 						// if a cue is inserted, QLab sends playback changed message
-						// before sending the new cue's id update, insert this id into
-						// the cuelist just in case so the playhead check will find it until then
+						// before sending the new cue's id updates, insert this id into
+						// the cuelist just in case so the playhead check will find something until then
 						if (!this.cueList[cl].includes(oa)) {
 							this.cueList[cl].push(oa)
 						}
@@ -1020,7 +1020,7 @@ qCueRequest = [
 	 * process QLab 'reply'
 	 */
 	readReply(message) {
-		let ws = this.ws
+		//let ws = this.ws
 		const ma = message.address
 		const mn = ma.split('/').slice(1)
 		let j = {}
@@ -1067,7 +1067,7 @@ qCueRequest = [
 					this.updateStatus(InstanceStatus.UnknownWarning, 'No Workspaces')
 				} else {
 					for (const w of j.data) {
-						ws = new Workspace(w)
+						const ws = new Workspace(w)
 						this.wsList[ws.uniqueID] = ws
 					}
 					this.setVariableValues({ ws_id: Object.keys(this.wsList)[0] })
@@ -1087,7 +1087,7 @@ qCueRequest = [
 				} else if (j.data == 'error') {
 					this.needPasscode = false
 					this.needWorkspace = true
-					this.updateStatus(InstanceStatus.UnknownWarning, 'No Workspaces')
+					this.updateStatus(InstanceStatus.UnknownWarning, `Configured Workspace ID ${this.config.workspace} not open`)
 				} else if (j.data == 'ok:') {
 					this.needPasscode = false
 					this.needWorkspace = false
@@ -1181,7 +1181,8 @@ qCueRequest = [
 				break
 			case 'children':
 				if (j.data) {
-					let uniqueID = ma.split('/')[5] // substr(17, 36)
+					// extract cue list id
+					let uniqueID = ma.split('/')[ma.includes('/workspace') ? 5 : 3] // substr(17, 36)
 					this.updateCues(j.data, 'u', uniqueID)
 				}
 				break
