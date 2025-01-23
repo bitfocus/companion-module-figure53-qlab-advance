@@ -13,8 +13,7 @@ import Workspace from './workspaces.js'
 import * as Choices from './choices.js'
 
 class QLabInstance extends InstanceBase {
-
-qCueRequest = [
+	qCueRequest = [
 		{
 			type: 's',
 			value:
@@ -27,6 +26,7 @@ qCueRequest = [
 	otherVars = {
 		name: { desc: 'Name', id: 'qName' },
 		elapsed: { desc: 'Elapsed time of', id: 'elapsed' },
+		id: { desc: 'Unique ID of', id: 'uniqueID' },
 	}
 	// list of useful cue types we're interested in
 	qTypes = [
@@ -237,10 +237,11 @@ qCueRequest = [
 					this.cueColors[qNum] = q.qColor
 					this.cueByNum[qNum] = qID
 				}
-
-				let vId = `id_${qID}_${varName}`
-				variableValues[vId] = q[info.id] || 0 // .qName
-				variableDefs.push({ variableId: vId, name: `${info.desc} of cue ID '${qID}'` })
+				if (varName != 'id') {
+					let vId = `id_${qID}_${varName}`
+					variableValues[vId] = q[info.id] || 0 // .qName
+					variableDefs.push({ variableId: vId, name: `${info.desc} of cue ID '${qID}'` })
+				}
 			}
 			this.checkFeedbacks(this.fb2check)
 		}
@@ -925,7 +926,7 @@ qCueRequest = [
 			s_ids: this.selectedCues.join(':'),
 		})
 		this.checkFeedbacks('q_selected')
-		console.log('debug','Selected cues updated')
+		console.log('debug', 'Selected cues updated')
 	}
 
 	/**
