@@ -24,9 +24,10 @@ class QLabInstance extends InstanceBase {
 	]
 	fb2check = ['q_run', 'qid_run', 'any_run', 'q_armed', 'q_bg', 'qid_bg', 'q_flagged', 'q_paused']
 	otherVars = {
-		name: { desc: 'Name', id: 'qName' },
-		elapsed: { desc: 'Elapsed time of', id: 'elapsed' },
-		id: { desc: 'Unique ID of', id: 'uniqueID' },
+		name: { desc: 'Name', id: 'qName', type: 's' },
+		elapsed: { desc: 'Elapsed time', id: 'elapsed', type: 'n' },
+		id: { desc: 'Unique ID', id: 'uniqueID', type: 's' },
+		num: { desc: 'Cue Number', id: 'qNumber', type: 's' },
 	}
 	// list of useful cue types we're interested in
 	qTypes = [
@@ -227,9 +228,9 @@ class QLabInstance extends InstanceBase {
 			}
 
 			for (const [varName, info] of Object.entries(this.otherVars)) {
-				if (qNum != '') {
+				if (qNum != '' && varName != 'num') {
 					let vId = `q_${qNum}_${varName}`
-					variableValues[vId] = q[info.id] || 0 // .qName
+					variableValues[vId] = q[info.id] || (info.type == 's' ? '' : 0) // .qName
 					variableDefs.push({
 						variableId: vId,
 						name: `${info.desc} of cue number '${qNum}'`,
@@ -239,7 +240,7 @@ class QLabInstance extends InstanceBase {
 				}
 				if (varName != 'id') {
 					let vId = `id_${qID}_${varName}`
-					variableValues[vId] = q[info.id] || 0 // .qName
+					variableValues[vId] = q[info.id] || (info.type == 's' ? '' : 0) // .qName
 					variableDefs.push({ variableId: vId, name: `${info.desc} of cue ID '${qID}'` })
 				}
 			}
