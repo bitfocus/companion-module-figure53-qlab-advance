@@ -13,8 +13,7 @@ import Workspace from './workspaces.js'
 import * as Choices from './choices.js'
 
 class QLabInstance extends InstanceBase {
-
-qCueRequest = [
+	qCueRequest = [
 		{
 			type: 's',
 			value:
@@ -27,6 +26,7 @@ qCueRequest = [
 	otherVars = {
 		name: { desc: 'Name', id: 'qName' },
 		elapsed: { desc: 'Elapsed time of', id: 'elapsed' },
+		id: { desc: 'Unique ID of', id: 'uniqueID' },
 	}
 	// list of useful cue types we're interested in
 	qTypes = [
@@ -237,10 +237,11 @@ qCueRequest = [
 					this.cueColors[qNum] = q.qColor
 					this.cueByNum[qNum] = qID
 				}
-
-				let vId = `id_${qID}_${varName}`
-				variableValues[vId] = q[info.id] || 0 // .qName
-				variableDefs.push({ variableId: vId, name: `${info.desc} of cue ID '${qID}'` })
+				if (varName != 'id') {
+					let vId = `id_${qID}_${varName}`
+					variableValues[vId] = q[info.id] || 0 // .qName
+					variableDefs.push({ variableId: vId, name: `${info.desc} of cue ID '${qID}'` })
+				}
 			}
 			this.checkFeedbacks(this.fb2check)
 		}
@@ -387,7 +388,7 @@ qCueRequest = [
 	 * @since 2.0.0
 	 */
 	sendOSC(node, arg = [], bare) {
-		const ws = bare ? '' : this.ws
+		const ws = bare ? '' : this.ws == 'default' ? '' : this.ws
 
 		if (!this.useTCP) {
 			let host = ''
@@ -925,7 +926,7 @@ qCueRequest = [
 			s_ids: this.selectedCues.join(':'),
 		})
 		this.checkFeedbacks('q_selected')
-		console.log('debug','Selected cues updated')
+		console.log('debug', 'Selected cues updated')
 	}
 
 	/**
@@ -952,10 +953,10 @@ qCueRequest = [
 				//this.init_actions()
 
 				if ('none' != oa) {
-					if (this.cl) {
+					if (cl) {
 						// if a cue is inserted, QLab sends playback changed message
-						// before sending the new cue's id update, insert this id into
-						// the cuelist just in case so the playhead check will find it until then
+						// before sending the new cue's id updates, insert this id into
+						// the cuelist just in case so the playhead check will find something until then
 						if (!this.cueList[cl].includes(oa)) {
 							this.cueList[cl].push(oa)
 						}
@@ -1020,7 +1021,7 @@ qCueRequest = [
 	 * process QLab 'reply'
 	 */
 	readReply(message) {
-		let ws = this.ws
+		//let ws = this.ws
 		const ma = message.address
 		const mn = ma.split('/').slice(1)
 		let j = {}
@@ -1067,7 +1068,7 @@ qCueRequest = [
 					this.updateStatus(InstanceStatus.UnknownWarning, 'No Workspaces')
 				} else {
 					for (const w of j.data) {
-						ws = new Workspace(w)
+						const ws = new Workspace(w)
 						this.wsList[ws.uniqueID] = ws
 					}
 					this.setVariableValues({ ws_id: Object.keys(this.wsList)[0] })
@@ -1087,7 +1088,7 @@ qCueRequest = [
 				} else if (j.data == 'error') {
 					this.needPasscode = false
 					this.needWorkspace = true
-					this.updateStatus(InstanceStatus.UnknownWarning, 'No Workspaces')
+					this.updateStatus(InstanceStatus.UnknownWarning, `Configured Workspace ID ${this.config.workspace} not open`)
 				} else if (j.data == 'ok:') {
 					this.needPasscode = false
 					this.needWorkspace = false
@@ -1181,7 +1182,8 @@ qCueRequest = [
 				break
 			case 'children':
 				if (j.data) {
-					let uniqueID = ma.split('/')[5] // substr(17, 36)
+					// extract cue list id
+					let uniqueID = ma.split('/')[ma.includes('/workspace') ? 5 : 3] // substr(17, 36)
 					this.updateCues(j.data, 'u', uniqueID)
 				}
 				break
