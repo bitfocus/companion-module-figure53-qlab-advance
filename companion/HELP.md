@@ -136,6 +136,7 @@ Commands implemented:
 | **$(INSTANCENAME:q\_{num}\_elapsed)** | Elapsed time in seconds cue number {num}. See below for certain restrictions.                                    |
 | **$(INSTANCENAME:id\_{ID}\_elapsed)** | Elapsed time in seconds of cue ID {ID}. See below for certain restrictions.                                      |
 | **$(INSTANCENAME:q\_{num}\_id)**      | Unique ID of cue number {num}. See below for certain restrictions.                                               |
+| **$(INSTANCENAME:id\_{ID}\_num)**     | Cue number cue ID {ID}. May be blank. See below for certain restrictions.                                                      |
 
 To use these, replace INSTANCENAME with the name of your module instance which starts as `qlabfb` unless you change it.
 
