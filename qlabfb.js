@@ -59,6 +59,7 @@ class QLabInstance extends InstanceBase {
 		'memo',
 		'script',
 	]
+	cueListActions = ['go', 'next', 'panic', 'panicInTime', 'previous', 'reset', 'stop', 'togglePause']
 
 	constructor(internal) {
 		super(internal)
@@ -68,7 +69,8 @@ class QLabInstance extends InstanceBase {
 		this.needPasscode = false
 		this.passcodeOK = false
 		this.useTCP = false
-		this.qVer = 4
+		this.qVer = 5
+		this.phID = 'ID'
 		this.hasError = false
 		this.disabled = true
 		this.pollCount = 0
@@ -380,6 +382,38 @@ class QLabInstance extends InstanceBase {
 		}
 	}
 	/**
+	 * Sends a command to QLab
+	 * @param {Object} action - action object from callback
+	 * @param {string} cmd - OSC command address to send to QLab
+	 * @param {Object[]} args - optional OSC arguments to command
+	 * @param {string} args.type - OSC argument type 's','i','f', etc.
+	 * @param {object} args.value - OSC argument value, should match type
+	 */
+	sendCommand = async (action, cmd, args, no_cueList) => {
+		args = args ?? []
+		no_cueList = no_cueList ?? false
+		let global = ['/auditionWindow', '/alwaysAudition', '/overrideWindow'].includes(cmd)
+
+		// some actions will pre-attach a cue list ID, which may be different than the module config cue list
+		if (!no_cueList && this.cl && this.cueListActions.includes(action.actionId)) {
+			cmd = '/cue_id/' + this.cl + cmd
+		}
+
+		if (this.useTCP && !this.ready) {
+			this.log('debug', `Not connected to ${this.config.host}`)
+		} else if (cmd !== undefined) {
+			this.log('debug', `sending ${cmd} ${JSON.stringify(args)} to ${this.config.host}`)
+			// everything except 'auditionWindow' and 'overrideWindow' works on a specific workspace
+			this.sendOSC(cmd, args, global)
+		}
+		// QLab does not send window updates so ask for status
+		if (this.useTCP && global) {
+			this.sendOSC(cmd, [], true)
+			//this.sendOSC('/cue/playhead/valuesForKeys', this.qCueRequest)
+		}
+	}
+
+	/**
 	 * Sends an OSC command to QLab
 	 * @param {string} node - OSC Node/Address
 	 * @param {Object[]} [arg] - optional arguments
@@ -481,7 +515,7 @@ class QLabInstance extends InstanceBase {
 
 			// request variable/feedback info
 			// get list of running cues
-			this.sendOSC('/cue/playhead/uniqueID', [])
+			this.sendOSC((this.cl ? '/cue_id/' + this.cl : '') + `/playhead${this.phID}`, [])
 			this.sendOSC('/updates', [])
 			this.sendOSC('/updates', [
 				{
@@ -518,7 +552,6 @@ class QLabInstance extends InstanceBase {
 	 */
 	rePulse() {
 		const now = Date.now()
-		const phID = this.qVer < 5 ? 'Id' : 'ID'
 
 		if (0 == this.pollCount % (this.config.useTenths ? 10 : 4)) {
 			this.sendOSC('/overrideWindow', [], true)
@@ -891,18 +924,19 @@ class QLabInstance extends InstanceBase {
 
 	updateSelectedCues(c) {
 		let newHash = crc16b(JSON.stringify(c))
-		if (this.lastSel == newHash) {
-			return // no changes since last run
-		}
+		// if (this.lastSel == newHash) {
+		// 	return // no changes since last run
+		// }
 		let newSel = new Set()
+		const cl = this.cl
 
 		// collect all unique IDs
 		const subq = (q) => {
-			newSel.add(q.uniqueID)
-			q.cues.forEach(subq)
+			if (cl == '' || cl == this.wsCues[q]?.qList) newSel.add(q.uniqueID)
+			q.cues.forEach(subq, this)
 		}
 
-		c.forEach(subq)
+		c.forEach(subq, this)
 
 		newSel.forEach((id) => {
 			if (!this.wsCues[id]) {
@@ -947,13 +981,15 @@ class QLabInstance extends InstanceBase {
 			case 'playbackPosition':
 				const cl = ms[4]
 				let oa = message.args[0]?.value || 'none'
-				this.nextCue = oa
 				this.debugLevel > 0 && this.log('debug', 'playhead: ' + oa)
+
 				this.sendOSC('/selectedCues/uniqueIDs', [], true)
-				this.updateNextCue()
 				//this.init_actions()
 
-				if ('none' != oa) {
+				if ('none' == oa) {
+					this.nextCue = ''
+					this.updateNextCue()
+				} else {
 					if (cl) {
 						// if a cue is inserted, QLab sends playback changed message
 						// before sending the new cue's id updates, insert this id into
@@ -965,6 +1001,8 @@ class QLabInstance extends InstanceBase {
 					if ((this.cl == '' || cl == this.cl) && oa !== this.nextCue) {
 						this.sendOSC('/cue_id/' + oa + '/valuesForKeys', this.qCueRequest)
 						this.requestedCues[oa] = Date.now()
+						this.nextCue = oa
+						this.updateNextCue()
 					}
 				}
 				break
@@ -1142,7 +1180,7 @@ class QLabInstance extends InstanceBase {
 				if (j.data) {
 					this.nextCue = j.data
 					this.updateNextCue()
-					this.sendOSC('/cue/playhead/valuesForKeys', qr)
+					this.sendOSC(`/cue_id/${j.data}/valuesForKeys`, qr)
 				}
 				break
 			case 'selectedCues': // selected cues
@@ -1154,16 +1192,15 @@ class QLabInstance extends InstanceBase {
 			case 'playheadId': // pre q5
 			case 'playheadID': // q5
 				if (j.data) {
-					const playheadId = j.data
 					const uniqueID = j.data // ma.substr(14, 36)
 					delete this.requestedCues[uniqueID]
-					if ((cl == '' || uniqueID == cl) && this.nextCue != playheadId) {
+					if ((cl == '' || uniqueID == cl) && this.nextCue != uniqueID) {
 						// playhead changed due to cue list change in QLab
-						if (playheadId == 'none') {
+						if (uniqueID == 'none') {
 							this.nextCue = ''
 							this.sendOSC('/selectedCues/uniqueIDs', [], true)
 						} else {
-							this.nextCue = playheadId
+							this.nextCue = uniqueID
 							this.sendOSC('/cue_id/' + j.data + '/children')
 						}
 						this.updateNextCue()

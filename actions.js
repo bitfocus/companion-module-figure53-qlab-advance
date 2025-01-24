@@ -3,41 +3,10 @@ import * as Choices from './choices.js'
 import { cleanCueNumber } from './common.js'
 import { Regex } from '@companion-module/base'
 
-const cueListActions = ['go', 'next', 'panic', 'panicInTime', 'previous', 'reset', 'stop', 'togglePause']
-
 // actions for QLab module
 export function compileActionDefinitions(self) {
-	/**
-	 *
-	 * @param {Object} action - action object from callback
-	 * @param {string} cmd - OSC command address to send to QLab
-	 * @param {Object[]} args - optional OSC arguments to command
-	 * @param {string} args.type - OSC argument type 's','i','f', etc.
-	 * @param {object} args.value - OSC argument value, should match type
-	 */
-	const sendCommand = async (action, cmd, args, no_cueList) => {
-		args = args ?? []
-		no_cueList = no_cueList ?? false
-		let global = ['/auditionWindow', '/alwaysAudition', '/overrideWindow'].includes(cmd)
 
-		// some actions will pre-attach a cue list ID, which may be different than the module config cue list
-		if (!no_cueList && self.cl && cueListActions.includes(action.actionId)) {
-			cmd = '/cue_id/' + self.cl + cmd
-		}
-
-		if (self.useTCP && !self.ready) {
-			self.log('debug', `Not connected to ${self.config.host}`)
-		} else if (cmd !== undefined) {
-			self.log('debug', `sending ${cmd} ${JSON.stringify(args)} to ${self.config.host}`)
-			// everything except 'auditionWindow' and 'overrideWindow' works on a specific workspace
-			self.sendOSC(cmd, args, global)
-		}
-		// QLab does not send window updates so ask for status
-		if (self.useTCP && global) {
-			self.sendOSC(cmd, [], true)
-			self.sendOSC('/cue/playhead/valuesForKeys', self.qCueRequest)
-		}
-	}
+	const sendCommand = self.sendCommand
 	/**
 	 * Format time argument for OSC
 	 * @param {Object} action - action object from callback, must have a 'time' option
