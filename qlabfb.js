@@ -266,11 +266,10 @@ class QLabInstance extends InstanceBase {
 		const tenths = this.config.useTenths ? 0 : 1
 		const rc = this.runningCue
 
-		const tElapsed = rc.elapsed
-		// rc.duration * rc.pctElapsed
+		const tElapsed = rc.duration * rc.pctElapsed
 		// rc.elapsed not reliable as 'groups' update until duration then stop
 		// cue 'elapsed' time is total time and can be multiples of duration if cue is looped
-		// was rc.duration * rc.pctElapsed
+		// TRT is in 'e_total'
 
 		const ehh = pad0(Math.floor(tElapsed / 3600))
 		const emm = pad0(Math.floor(tElapsed / 60) % 60)
@@ -911,7 +910,7 @@ class QLabInstance extends InstanceBase {
 				// Set a new cue with 0% value to 1 here to cause at least one more query to see if the cue is
 				// actually playing.
 				if (0 == rc.pctElapsed) {
-					rc.pctElapsed = 1
+					rc.pctElapsed = .01
 				}
 			}
 		}
@@ -924,9 +923,9 @@ class QLabInstance extends InstanceBase {
 
 	updateSelectedCues(c) {
 		let newHash = crc16b(JSON.stringify(c))
-		// if (this.lastSel == newHash) {
-		// 	return // no changes since last run
-		// }
+		if (this.lastSel == newHash) {
+			return // no changes since last run
+		}
 		let newSel = new Set()
 		const cl = this.cl
 
@@ -950,7 +949,7 @@ class QLabInstance extends InstanceBase {
 		// remove anything not 'selected' anymore
 		this.selectedCues.forEach((id) => {
 			if (!newSel.has(id)) {
-				if (this.wsCues[id]) this.wsCues[id].isSelected = false
+				if (this.wsCues[id]) thfis.wsCues[id].isSelected = false
 			}
 		})
 		this.selectedCues = [...newSel]
