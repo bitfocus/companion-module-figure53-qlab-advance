@@ -949,7 +949,7 @@ class QLabInstance extends InstanceBase {
 		// remove anything not 'selected' anymore
 		this.selectedCues.forEach((id) => {
 			if (!newSel.has(id)) {
-				if (this.wsCues[id]) thfis.wsCues[id].isSelected = false
+				if (this.wsCues[id]) this.wsCues[id].isSelected = false
 			}
 		})
 		this.selectedCues = [...newSel]
