@@ -524,7 +524,7 @@ class QLabInstance extends InstanceBase {
 			])
 
 			this.sendOSC('/cueLists', [])
-			this.sendOSC('/selectedCues/uniqueIDs', [], true)
+			this.sendOSC('/selectedCues', [], true)
 
 			if (this.qVer < 5) {
 				this.sendOSC('/auditionWindow', [], true)
@@ -909,8 +909,8 @@ class QLabInstance extends InstanceBase {
 				// is exactly when the cue starts, with 0% elapsed and the countdown timer won't run.
 				// Set a new cue with 0% value to 1 here to cause at least one more query to see if the cue is
 				// actually playing.
-				if (0 == rc.pctElapsed) {
-					rc.pctElapsed = .01
+				if (0 == rc.pctElapsed && rc.isRunning) {
+					rc.pctElapsed = .001
 				}
 			}
 		}
@@ -932,7 +932,7 @@ class QLabInstance extends InstanceBase {
 		// collect all unique IDs
 		const subq = (q) => {
 			if (cl == '' || cl == this.wsCues[q]?.qList) newSel.add(q.uniqueID)
-			q.cues.forEach(subq, this)
+			q.cues?.forEach(subq, this)
 		}
 
 		c.forEach(subq, this)
@@ -982,7 +982,7 @@ class QLabInstance extends InstanceBase {
 				let oa = message.args[0]?.value || 'none'
 				this.debugLevel > 0 && this.log('debug', 'playhead: ' + oa)
 
-				this.sendOSC('/selectedCues/uniqueIDs', [], true)
+				this.sendOSC('/selectedCues', [], true)
 				//this.init_actions()
 
 				if ('none' == oa) {
@@ -1031,7 +1031,7 @@ class QLabInstance extends InstanceBase {
 				break
 			case 'dashboard': // lighting, ignore for now
 				// apparently, a dashboard update includes selected cues
-				this.sendOSC('/selectedCues/uniqueIDs', [], true)
+				this.sendOSC('/selectedCues', [], true)
 				break
 			default:
 				if (ms.length == 3 && 'workspace' == ms[1]) {
@@ -1197,7 +1197,7 @@ class QLabInstance extends InstanceBase {
 						// playhead changed due to cue list change in QLab
 						if (uniqueID == 'none') {
 							this.nextCue = ''
-							this.sendOSC('/selectedCues/uniqueIDs', [], true)
+							this.sendOSC('/selectedCues', [], true)
 						} else {
 							this.nextCue = uniqueID
 							this.sendOSC('/cue_id/' + j.data + '/children')
