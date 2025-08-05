@@ -148,9 +148,5 @@ export function compileVariableDefinition() {
 			name: 'Running Cue Color (HEX code)',
 			variableId: 'r_color',
 		},
-		{
-			name: 'Current Cue Number Color (HEX code)',
-			variableId: 'c_color',
-		},
 	]
 }

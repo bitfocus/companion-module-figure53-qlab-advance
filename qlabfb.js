@@ -159,12 +159,10 @@ class QLabInstance extends InstanceBase {
 		this.goDisabled = false
 		this.goAfter = 0
 		this.minGo = 0
-		this.currentCueColor = 0
 		this.checkFeedbacks()
 		this.updateQVars()
 		this.updateNextCue()
 		this.updatePlaying()
-		this.updateCurrentCueColor()
 		this.wrongPasscode = ''
 		this.wrongPasscodeAt = 0
 		this.loggedErrors = []
@@ -249,9 +247,6 @@ class QLabInstance extends InstanceBase {
 					})
 					this.cueColors[qNum] = q.qColor
 					this.cueByNum[qNum] = qID
-					// Update current cue color for the most recently updated cue
-					this.currentCueColor = q.qColor
-					this.updateCurrentCueColor()
 				}
 				if (varName != 'id') {
 					let vId = `id_${qID}_${varName}`
@@ -352,11 +347,6 @@ class QLabInstance extends InstanceBase {
 		this.checkFeedbacks('run_bg', 'any_run')
 	}
 
-	updateCurrentCueColor() {
-		this.setVariableValues({
-			c_color: this.rgbToHex(this.currentCueColor),
-		})
-	}
 
 	async configUpdated(config) {
 		this.config = config
