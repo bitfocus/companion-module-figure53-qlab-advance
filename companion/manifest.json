@@ -3,7 +3,7 @@
 	"name": "figure53-qlab-advance",
 	"shortname": "qlabfb",
 	"description": "QLab plugin for Companion with feedback",
-	"version": "0.0.0",
+	"version": "2.11.4",
 	"license": "MIT",
 	"repository": "git+https://github.com/bitfocus/companion-module-figure53-qlab-advance.git",
 	"bugs": "https://github.com/bitfocus/companion-module-figure53-qlab-advance/issues",
@@ -21,7 +21,7 @@
 	"runtime": {
 		"type": "node18",
 		"api": "nodejs-ipc",
-		"apiVersion": "0.0.0",
+		"apiVersion": "1.8.0",
 		"entrypoint": "../qlabfb.js"
 	},
 	"manufacturer": "Figure 53",

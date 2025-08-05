@@ -7,3 +7,4 @@ DEBUG-PACKAGE
 DEBUG-PACKAGED
 actions_old.js
 .yarn/install-state.gz
+node_modules

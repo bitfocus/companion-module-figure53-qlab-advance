@@ -140,5 +140,17 @@ export function compileVariableDefinition() {
 			name: 'Number of miscellaneous QLab Errors',
 			variableId: 'errs',
 		},
+		{
+			name: 'Playhead Cue Color (HEX code)',
+			variableId: 'n_color',
+		},
+		{
+			name: 'Running Cue Color (HEX code)',
+			variableId: 'r_color',
+		},
+		{
+			name: 'Current Cue Number Color (HEX code)',
+			variableId: 'c_color',
+		},
 	]
 }

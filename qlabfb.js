@@ -89,6 +89,13 @@ class QLabInstance extends InstanceBase {
 		}
 	}
 
+	rgbToHex(rgb) {
+		if (!rgb || rgb === 0) return '#000000'
+		// Convert RGB integer to hex string
+		const hex = rgb.toString(16).padStart(6, '0')
+		return `#${hex}`
+	}
+
 	applyConfig(config) {
 		let ws = config.workspace || 'default'
 		let cl = config.cuelist || 'default'
@@ -152,10 +159,12 @@ class QLabInstance extends InstanceBase {
 		this.goDisabled = false
 		this.goAfter = 0
 		this.minGo = 0
+		this.currentCueColor = 0
 		this.checkFeedbacks()
 		this.updateQVars()
 		this.updateNextCue()
 		this.updatePlaying()
+		this.updateCurrentCueColor()
 		this.wrongPasscode = ''
 		this.wrongPasscodeAt = 0
 		this.loggedErrors = []
@@ -176,6 +185,7 @@ class QLabInstance extends InstanceBase {
 			n_postWait: nc.postWait,
 			n_elapsed: nc.elapsed,
 			n_cont: ['NoC', 'Con', 'Fol'][nc.continueMode],
+			n_color: this.rgbToHex(nc.qColor),
 		})
 		this.checkFeedbacks('playhead_bg')
 	}
@@ -239,6 +249,9 @@ class QLabInstance extends InstanceBase {
 					})
 					this.cueColors[qNum] = q.qColor
 					this.cueByNum[qNum] = qID
+					// Update current cue color for the most recently updated cue
+					this.currentCueColor = q.qColor
+					this.updateCurrentCueColor()
 				}
 				if (varName != 'id') {
 					let vId = `id_${qID}_${varName}`
@@ -333,10 +346,18 @@ class QLabInstance extends InstanceBase {
 			e_time: eft,
 			e_secs: tElapsed,
 			e_total: rc.elapsed,
+			r_color: this.rgbToHex(rc.qColor),
 		})
 
 		this.checkFeedbacks('run_bg', 'any_run')
 	}
+
+	updateCurrentCueColor() {
+		this.setVariableValues({
+			c_color: this.rgbToHex(this.currentCueColor),
+		})
+	}
+
 	async configUpdated(config) {
 		this.config = config
 		this.applyConfig(config)
