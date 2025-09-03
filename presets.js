@@ -304,7 +304,7 @@ export function compilePresetDefinitions(self) {
 				down: [
 					{
 						actionId: 'previous',
-						options: {},
+						options: { seq: false },
 					},
 				],
 				up: [],
@@ -330,7 +330,59 @@ export function compilePresetDefinitions(self) {
 				down: [
 					{
 						actionId: 'next',
-						options: {},
+						options: { seq: false },
+					},
+				],
+				up: [],
+			},
+		],
+		feedbacks: [],
+	}
+
+	presets['cuelist-previous-sequence'] = {
+		type: 'button',
+		category: 'CueList',
+		name: 'Previous Sequence',
+		style: {
+			text: '',
+			png64: Icons.ICON_PREV_SEQ,
+			pngalignment: 'center:center',
+			size: '18',
+			color: combineRgb(255, 255, 255),
+			bgcolor: 0,
+		},
+		steps: [
+			{
+				down: [
+					{
+						actionId: 'previous',
+						options: { seq: true },
+					},
+				],
+				up: [],
+			},
+		],
+		feedbacks: [],
+	}
+
+	presets['cuelist-next-sequence'] = {
+		type: 'button',
+		category: 'CueList',
+		name: 'Next Sequence',
+		style: {
+			text: '',
+			png64: Icons.ICON_NEXT_SEQ,
+			pngalignment: 'center:center',
+			size: '18',
+			color: combineRgb(255, 255, 255),
+			bgcolor: 0,
+		},
+		steps: [
+			{
+				down: [
+					{
+						actionId: 'next',
+						options: { seq: true },
 					},
 				],
 				up: [],

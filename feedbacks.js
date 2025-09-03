@@ -3,7 +3,7 @@ import * as Choices from './choices.js'
 import { cleanCueNumber } from './common.js'
 
 export function compileFeedbackDefinitions(self) {
-	function getScope(opt) {
+	async function getScope(opt,ctx) {
 		let cue
 		switch (opt.scope) {
 			case 'D':
@@ -13,10 +13,10 @@ export function compileFeedbackDefinitions(self) {
 				cue = self.runningCue.uniqueID
 				break
 			case 'N':
-				cue = self.cueByNum[cleanCueNumber(opt.q_num)]
+				cue = self.cueByNum[cleanCueNumber(await ctx.parseVariablesInString(opt.q_num))]
 				break
 			case 'I':
-				cue = opt.q_id
+				cue = await ctx.parseVariablesInString(opt.q_id)
 		}
 		return cue
 	}
@@ -53,7 +53,7 @@ export function compileFeedbackDefinitions(self) {
 				},
 			],
 			callback: (feedback, context) => {
-				const bg = self.cueColors[feedback.options.cue.replace(/[^\w\.]/gi, '_')]
+				const bg = self.cueColors[cleanCueNumber(feedback.options.cue)]
 				return { bgcolor: bg || 0 }
 			},
 		},
@@ -114,7 +114,7 @@ export function compileFeedbackDefinitions(self) {
 			},
 			callback: async (feedback, context) => {
 				const opt = feedback.options
-				let cue = getScope(opt)
+				let cue = getScope(opt,context)
 
 				return self.wsCues[cue]?.isArmed
 			},
@@ -161,7 +161,7 @@ export function compileFeedbackDefinitions(self) {
 			},
 			callback: async (feedback, context) => {
 				const opt = feedback.options
-				let cue = getScope(opt)
+				let cue = getScope(opt,context)
 
 				return self.wsCues[cue]?.isSelected
 			},
@@ -205,7 +205,7 @@ export function compileFeedbackDefinitions(self) {
 			},
 			callback: async (feedback, context) => {
 				const opt = feedback.options
-				let cue = getScope(opt)
+				let cue = getScope(opt,context)
 				return self.wsCues[cue]?.isFlagged
 			},
 		},
@@ -248,7 +248,7 @@ export function compileFeedbackDefinitions(self) {
 			},
 			callback: async (feedback, context) => {
 				const opt = feedback.options
-				let cue = getScope(opt)
+				let cue = getScope(opt,context)
 
 				return self.wsCues[cue]?.isPaused
 			},
@@ -272,7 +272,7 @@ export function compileFeedbackDefinitions(self) {
 			},
 			callback: (feedback, context) => {
 				const opt = feedback.options
-				const rqID = self.cueByNum[opt.cue.replace(/[^\w\.]/gi, '_')]
+				const rqID = self.cueByNum[cleanCueNumber(opt.cue)]
 				const rq = self.wsCues[rqID]
 				return rq && rq.isRunning
 			},
@@ -295,7 +295,6 @@ export function compileFeedbackDefinitions(self) {
 			},
 			callback: (feedback, context) => {
 				const opt = feedback.options
-				// const rqID = self.cueByNum[opt.cue.replace(/[^\w\.]/gi,'_')];
 				const rq = self.wsCues[opt.cueID]
 				return rq && rq.isRunning
 			},

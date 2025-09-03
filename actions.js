@@ -5,7 +5,7 @@ import { Regex } from '@companion-module/base'
 
 // actions for QLab module
 export function compileActionDefinitions(self) {
-
+	
 	const sendCommand = self.sendCommand
 	/**
 	 * Format time argument for OSC
@@ -386,16 +386,32 @@ export function compileActionDefinitions(self) {
 		},
 		previous: {
 			name: 'Previous Cue',
-			options: [],
+			options: [
+				{
+					type: 'checkbox',
+					label: 'Sequence?',
+					id: 'seq',
+					default: false,
+				},
+			],
 			callback: async (action, context) => {
-				await sendCommand(action, '/playhead/previous')
+				const seq = !!action.options.seq ? 'Sequence' : ''
+				await sendCommand(action, '/playhead/previous' + seq)
 			},
 		},
 		next: {
 			name: 'Next Cue',
-			options: [],
+			options: [
+				{
+					type: 'checkbox',
+					label: 'Sequence?',
+					id: 'seq',
+					default: false,
+				},
+			],
 			callback: async (action, context) => {
-				await sendCommand(action, '/playhead/next')
+				const seq = !!action.options.seq ? 'Sequence' : ''
+				await sendCommand(action, '/playhead/next' + seq)
 			},
 		},
 		pause: {
@@ -416,7 +432,7 @@ export function compileActionDefinitions(self) {
 			name: 'Toggle Pause',
 			options: [],
 			callback: async (action, context) => {
-				await sendCommand(action, '/cue/selected/togglePause')
+				await sendCommand(action, '/cue/active/togglePause')
 			},
 		},
 		new_togglePause: {
@@ -533,7 +549,7 @@ export function compileActionDefinitions(self) {
 					useVariables: true,
 					isVisible: (options, data) => {
 						return options.myTime
-					}
+					},
 				},
 				{
 					type: 'dropdown',
@@ -569,7 +585,7 @@ export function compileActionDefinitions(self) {
 				const ws = opt.ws == '' ? '' : await context.parseVariablesInString(opt.ws)
 				const cl = opt.cl == '' ? '' : await context.parseVariablesInString(opt.cl)
 				const args = opt.myTime == '' ? [] : await getTimeArg(action, context)
-				let cmd = '/panic' + (opt.myTime ? 'InTime': '')
+				let cmd = '/panic' + (opt.myTime ? 'InTime' : '')
 				let pfx = ''
 
 				switch (scope) {
