@@ -28,6 +28,7 @@ class QLabInstance extends InstanceBase {
 		elapsed: { desc: 'Elapsed time', id: 'elapsed', type: 'n' },
 		id: { desc: 'Unique ID', id: 'uniqueID', type: 's' },
 		num: { desc: 'Cue Number', id: 'qNumber', type: 's' },
+		type: { desc: 'Cue Type', id: 'qType', type: 's' },
 	}
 	// list of useful cue types we're interested in
 	qTypes = [
@@ -463,7 +464,7 @@ class QLabInstance extends InstanceBase {
 			this.log('debug', 'Workspace needs a passcode')
 			this.wrongPasscode = null
 			this.wrongPasscodeAt = Date.now()
-			//this.sendOSC('/connect', [])
+			this.sendOSC('/connect', [])
 			if (this.timer !== undefined) {
 				clearTimeout(this.timer)
 				this.timer = undefined
@@ -515,13 +516,17 @@ class QLabInstance extends InstanceBase {
 			// request variable/feedback info
 			// get list of running cues
 			this.sendOSC((this.cl ? '/cue_id/' + this.cl : '') + `/playhead${this.phID}`, [])
-			this.sendOSC('/updates', [])
-			this.sendOSC('/updates', [
-				{
-					type: 'i',
-					value: 1,
-				},
-			])
+			this.sendOSC('/updates', [], this.qVer >= 5)
+			this.sendOSC(
+				'/updates',
+				[
+					{
+						type: 'i',
+						value: 1,
+					},
+				],
+				this.qVer >= 5
+			)
 
 			this.sendOSC('/cueLists', [])
 			this.sendOSC('/selectedCues', [], true)
@@ -750,7 +755,7 @@ class QLabInstance extends InstanceBase {
 			this.qSocket.on('message', (message, timetag, info) => {
 				const node = message.address.split('/')
 				this.debugLevel > 0 &&
-					this.log('debug', 'received ' + JSON.stringify(message) + `from ${this.qSocket.options.address}`)
+					this.log('debug', 'Received ' + JSON.stringify(message) + ` from ${this.qSocket.options?.address}`)
 				if ('update' == node[1]) {
 					// debug("readUpdate");
 					this.readUpdate(message)
@@ -910,7 +915,7 @@ class QLabInstance extends InstanceBase {
 				// Set a new cue with 0% value to 1 here to cause at least one more query to see if the cue is
 				// actually playing.
 				if (0 == rc.pctElapsed && rc.isRunning) {
-					rc.pctElapsed = .001
+					rc.pctElapsed = 0.001
 				}
 			}
 		}
@@ -960,7 +965,7 @@ class QLabInstance extends InstanceBase {
 			s_ids: this.selectedCues.join(':'),
 		})
 		this.checkFeedbacks('q_selected')
-		console.log('debug', 'Selected cues updated')
+		//console.log('debug', 'Selected cues updated')
 	}
 
 	/**
@@ -1126,7 +1131,14 @@ class QLabInstance extends InstanceBase {
 				} else if (j.data == 'error') {
 					this.needPasscode = false
 					this.needWorkspace = true
-					this.updateStatus(InstanceStatus.UnknownWarning, `Configured Workspace ID ${this.config.workspace} not open`)
+					if ('default' != this.config.workspace) {
+						// 	this.updateStatus(InstanceStatus.UnknownWarning, `No Workspaces`)
+						// } else {
+						this.updateStatus(
+							InstanceStatus.UnknownWarning,
+							`Configured Workspace ID ${this.config.workspace} not open`
+						)
+					}
 				} else if (j.data == 'ok:') {
 					this.needPasscode = false
 					this.needWorkspace = false
