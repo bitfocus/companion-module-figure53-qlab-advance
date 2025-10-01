@@ -114,7 +114,7 @@ export function compileFeedbackDefinitions(self) {
 			},
 			callback: async (feedback, context) => {
 				const opt = feedback.options
-				let cue = getScope(opt,context)
+				let cue = await getScope(opt,context)
 
 				return self.wsCues[cue]?.isArmed
 			},
@@ -161,7 +161,7 @@ export function compileFeedbackDefinitions(self) {
 			},
 			callback: async (feedback, context) => {
 				const opt = feedback.options
-				let cue = getScope(opt,context)
+				let cue = await getScope(opt,context)
 
 				return self.wsCues[cue]?.isSelected
 			},
@@ -205,7 +205,7 @@ export function compileFeedbackDefinitions(self) {
 			},
 			callback: async (feedback, context) => {
 				const opt = feedback.options
-				let cue = getScope(opt,context)
+				let cue = await getScope(opt,context)
 				return self.wsCues[cue]?.isFlagged
 			},
 		},
@@ -248,7 +248,7 @@ export function compileFeedbackDefinitions(self) {
 			},
 			callback: async (feedback, context) => {
 				const opt = feedback.options
-				let cue = getScope(opt,context)
+				let cue = await getScope(opt,context)
 
 				return self.wsCues[cue]?.isPaused
 			},
