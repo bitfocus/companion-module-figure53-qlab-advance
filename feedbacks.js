@@ -339,7 +339,7 @@ export function compileFeedbackDefinitions(self) {
 
 				if (self.goDisabled && options.goMode == '0') {
 					return true
-				} else if (options.goMode == '1') {
+				} else if (!self.goDisabled && options.goMode == '1') {
 					return true
 				} else {
 					return false
