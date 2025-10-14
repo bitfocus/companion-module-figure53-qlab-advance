@@ -17,7 +17,11 @@
 			"email": "per.roine@gmail.com"
 		}
 	],
-	"legacyIds": ["qlab-advance", "qlab", "figure53-qlab"],
+	"legacyIds": [
+		"qlab-advance",
+		"qlab",
+		"figure53-qlab"
+	],
 	"runtime": {
 		"type": "node18",
 		"api": "nodejs-ipc",
@@ -25,6 +29,11 @@
 		"entrypoint": "../qlabfb.js"
 	},
 	"manufacturer": "Figure 53",
-	"products": ["QLab with feedback"],
-	"keywords": ["Software", "Media Server"]
+	"products": [
+		"QLab with feedback"
+	],
+	"keywords": [
+		"Software",
+		"Media Server"
+	]
 }
