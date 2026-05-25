@@ -1021,6 +1021,7 @@ class QLabInstance extends InstanceBase {
 				}
 				break
 			case '[root group of cue lists]':
+			case '__root__':									//QL 5.5+
 				this.sendOSC('/doubleGoWindowRemaining')
 				break
 			case 'disconnect':
