@@ -348,7 +348,6 @@ class QLabInstance extends InstanceBase {
 		this.checkFeedbacks('run_bg', 'any_run')
 	}
 
-
 	async configUpdated(config) {
 		this.config = config
 		this.applyConfig(config)
@@ -1022,6 +1021,7 @@ class QLabInstance extends InstanceBase {
 				}
 				break
 			case '[root group of cue lists]':
+			case '__root__':									//QL 5.5+
 				this.sendOSC('/doubleGoWindowRemaining')
 				break
 			case 'disconnect':
@@ -1087,7 +1087,7 @@ class QLabInstance extends InstanceBase {
 		try {
 			j = JSON.parse(message.args[0].value)
 		} catch (error) {
-			/* ingnore errors */
+			/* ignore errors */
 		}
 
 		if ('error' == j.status) {
@@ -1194,6 +1194,7 @@ class QLabInstance extends InstanceBase {
 						this.config.useTenths ? 100 : 250
 					)
 				} else {
+					this.phID = this.qVer < 5 ? 'Id' : 'ID'
 					this.init_presets()
 					this.needWorkspace = this.qVer > 3 && this.useTCP
 				}
