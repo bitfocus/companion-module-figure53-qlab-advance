@@ -5,7 +5,6 @@ import { Regex } from '@companion-module/base'
 
 // actions for QLab module
 export function compileActionDefinitions(self) {
-	
 	const sendCommand = self.sendCommand
 	/**
 	 * Format time argument for OSC
@@ -1043,7 +1042,7 @@ export function compileActionDefinitions(self) {
 					type: 'textinput',
 					label: 'Name',
 					id: 'q_name',
-					ueVariables: true,
+					useVariables: true,
 				},
 			],
 			callback: async (action, context) => {
