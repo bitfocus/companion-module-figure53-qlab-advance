@@ -348,7 +348,6 @@ class QLabInstance extends InstanceBase {
 		this.checkFeedbacks('run_bg', 'any_run')
 	}
 
-
 	async configUpdated(config) {
 		this.config = config
 		this.applyConfig(config)
@@ -1087,7 +1086,7 @@ class QLabInstance extends InstanceBase {
 		try {
 			j = JSON.parse(message.args[0].value)
 		} catch (error) {
-			/* ingnore errors */
+			/* ignore errors */
 		}
 
 		if ('error' == j.status) {
