@@ -1193,6 +1193,7 @@ class QLabInstance extends InstanceBase {
 						this.config.useTenths ? 100 : 250
 					)
 				} else {
+					this.phID = this.qVer < 5 ? 'Id' : 'ID'
 					this.init_presets()
 					this.needWorkspace = this.qVer > 3 && this.useTCP
 				}
