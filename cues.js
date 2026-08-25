@@ -31,6 +31,7 @@ class Cue {
 	qParent = ''
 	qList = ''
 	Notes = ''
+	audioPatchName = ''
 
 	constructor(j, self) {
 		if (j != undefined) {
@@ -63,6 +64,7 @@ function JSONtoCue(newCue, j, self) {
   newCue.elapsed = j.actionElapsed
   newCue.preWait = j.preWait
   newCue.postWait = j.postWait
+	newCue.audioPatchName = j.audioOutputPatchName || ''
 	if (j.notes) {
 		newCue.Notes = j.notes.slice(0, 20)
 	}
