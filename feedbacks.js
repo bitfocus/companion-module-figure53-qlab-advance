@@ -166,6 +166,39 @@ export function compileFeedbackDefinitions(self) {
 				return self.wsCues[cue]?.isSelected
 			},
 		},
+		sel_audio_patch: {
+			type: 'advanced',
+			name: 'Selected Cue Audio Output Patch (text)',
+			description: "Show the selected cue's audio output patch name as button text",
+			options: [],
+			callback: (feedback, context) => {
+				const cue = self.wsCues[self.selectedCues[0]]
+				return { text: cue ? cue.audioPatchName : '' }
+			},
+		},
+		q_audio_patch: {
+			type: 'boolean',
+			name: 'Selected Cue Audio Output Patch Matches',
+			description: "Indicate on button when the selected cue's audio output patch matches the specified name",
+			options: [
+				{
+					type: 'textinput',
+					label: 'Patch Name',
+					id: 'patch',
+					default: '',
+					useVariables: true,
+				},
+			],
+			defaultStyle: {
+				bgcolor: combineRgb(0, 102, 0),
+				color: combineRgb(255, 255, 255),
+			},
+			callback: async (feedback, context) => {
+				const target = await context.parseVariablesInString(feedback.options.patch)
+				const cue = self.wsCues[self.selectedCues[0]]
+				return !!cue && cue.audioPatchName === target
+			},
+		},
 		q_flagged: {
 			type: 'boolean',
 			name: 'Cue is Flagged',
