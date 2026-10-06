@@ -569,6 +569,30 @@ export function compilePresetDefinitions(self) {
 		feedbacks: [],
 	}
 
+	presets['cuelist-preview'] = {
+		type: 'button',
+		category: 'CueList',
+		name: 'Preview',
+		style: {
+			text: 'Preview',
+			size: '18',
+			color: combineRgb(255, 255, 255),
+			bgcolor: 0,
+		},
+		steps: [
+			{
+				down: [
+					{
+						actionID: 'preview',
+						options: {},
+					},
+				],
+				up: [],
+			},
+		],
+		feedbacks: [],
+	}
+
 	// Workspace Overrides
 
 	let dSteps = []
