@@ -545,7 +545,7 @@ export function compilePresetDefinitions(self) {
 		feedbacks: [],
 	}
 
-		presets['cuelist-audition-preview'] = {
+	presets['cuelist-audition-preview'] = {
 		type: 'button',
 		category: 'CueList',
 		name: 'Audition Preview',
