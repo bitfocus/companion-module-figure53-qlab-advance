@@ -127,6 +127,20 @@ class QLabInstance extends InstanceBase {
 
 		this.useTCP = config.useTCP
 		this.exposeVariables = config.exposeVariables || false
+
+		// Resolve the target QLab computer into this.host / this.port.
+		// A selected Bonjour device is stored by Companion as 'address:port'.
+		// 'Manual' (or configs from before Bonjour support) leaves bonjour_host empty,
+		// so the manually entered host/port are used as before.
+		if (config.bonjour_host) {
+			// split at the last ':' so IPv6 addresses stay intact
+			const sep = config.bonjour_host.lastIndexOf(':')
+			this.host = sep > 0 ? config.bonjour_host.slice(0, sep) : config.bonjour_host
+			this.port = sep > 0 ? config.bonjour_host.slice(sep + 1) : 53000
+		} else {
+			this.host = config.host
+			this.port = config.port
+		}
 	}
 
 	resetVars(doUpdate = false) {
@@ -410,9 +424,9 @@ class QLabInstance extends InstanceBase {
 		}
 
 		if (this.useTCP && !this.ready) {
-			this.log('debug', `Not connected to ${this.config.host}`)
+			this.log('debug', `Not connected to ${this.host}`)
 		} else if (cmd !== undefined) {
-			this.log('debug', `sending ${cmd} ${JSON.stringify(args)} to ${this.config.host}`)
+			this.log('debug', `sending ${cmd} ${JSON.stringify(args)} to ${this.host}`)
 			// everything except 'auditionWindow' and 'overrideWindow' works on a specific workspace
 			this.sendOSC(cmd, args, global)
 		}
@@ -437,8 +451,8 @@ class QLabInstance extends InstanceBase {
 
 		if (!this.useTCP) {
 			let host = ''
-			if (this.config.host !== undefined && this.config.host !== '') {
-				host = this.config.host
+			if (this.host !== undefined && this.host !== '') {
+				host = this.host
 			}
 			if (this.config.passcode !== undefined && this.config.passcode !== '') {
 				this.oscSend(host, 53000, ws + '/connect', {
@@ -491,7 +505,7 @@ class QLabInstance extends InstanceBase {
 			this.sendOSC('/workspaces', [], true)
 			if (this.config.passcode != '') {
 				if (this.config.passcode != this.wrongPasscode) {
-					this.log('debug', 'sending passcode to ' + this.config.host)
+					this.log('debug', 'sending passcode to ' + this.host)
 					this.sendOSC('/connect', [
 						{
 							type: 's',
@@ -651,13 +665,13 @@ class QLabInstance extends InstanceBase {
 			delete this.qSocket
 		}
 
-		if (this.config.host) {
+		if (this.host) {
 			if (this.useTCP) {
 				this.qSocket = new OSC.TCPSocketPort({
 					localAddress: '0.0.0.0',
 					localPort: 0, // 53000 + this.port_offset,
-					address: this.config.host,
-					port: this.config.port,
+					address: this.host,
+					port: this.port,
 					metadata: true,
 				})
 				this.connecting = true
@@ -666,7 +680,8 @@ class QLabInstance extends InstanceBase {
 					localAddress: '0.0.0.0',
 					// QLab only sends UDP responses to port 53001
 					localPort: 53001, // 53000 + this.port_offset,
-					remoteAddress: this.config.host,
+					remoteAddress: this.host,
+					// UDP always uses 53000, this.port (manual or Bonjour) only applies to TCP
 					remotePort: 53000,
 					metadata: true,
 				})
@@ -743,7 +758,7 @@ class QLabInstance extends InstanceBase {
 				this.ready = true
 				this.connecting = false
 				this.hasError = false
-				this.log('info', 'Connecting to QLab:' + this.config.host)
+				this.log('info', 'Connecting to QLab:' + this.host)
 				if (this.useTCP) {
 					this.updateStatus(InstanceStatus.UnknownWarning, 'No Workspaces')
 					this.needWorkspace = true
