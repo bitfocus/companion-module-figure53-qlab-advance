@@ -19,16 +19,17 @@ class QLabInstance extends InstanceBase {
 			value:
 				'["number","uniqueID","listName","type","mode","isPaused","duration","actionElapsed", "preWait", "postWait","parent",' +
 				'"flagged","notes","autoLoad","colorName","isRunning","isAuditioning","isLoaded","armed",' +
-				'"isBroken","continueMode","percentActionElapsed","cartPosition","infiniteLoop","holdLastFrame"]',
+				'"isBroken","continueMode","percentActionElapsed","cartPosition","infiniteLoop","holdLastFrame","audioOutputPatchName"]',
 		},
 	]
-	fb2check = ['q_run', 'qid_run', 'any_run', 'q_armed', 'q_bg', 'qid_bg', 'q_flagged', 'q_paused']
+	fb2check = ['q_run', 'qid_run', 'any_run', 'q_armed', 'q_bg', 'qid_bg', 'q_flagged', 'q_paused', 'sel_audio_patch', 'q_audio_patch']
 	otherVars = {
 		name: { desc: 'Name', id: 'qName', type: 's' },
 		elapsed: { desc: 'Elapsed time', id: 'elapsed', type: 'n' },
 		id: { desc: 'Unique ID', id: 'uniqueID', type: 's' },
 		num: { desc: 'Cue Number', id: 'qNumber', type: 's' },
 		type: { desc: 'Cue Type', id: 'qType', type: 's' },
+		patch: { desc: 'Audio Output Patch', id: 'audioPatchName', type: 's' },
 	}
 	// list of useful cue types we're interested in
 	qTypes = [
@@ -198,6 +199,7 @@ class QLabInstance extends InstanceBase {
 		const qColor = q.qColor
 		const qElapsed = q.elapsed
 		const qSelected = q.isSelected
+		const qPatch = q.audioPatchName
 		let oqNum = null
 		let oqName = null
 		let oqType = null
@@ -205,6 +207,7 @@ class QLabInstance extends InstanceBase {
 		let oqOrder = -1
 		let oqElapsed = 0
 		let oqSelected = false
+		let oqPatch = ''
 
 		let variableValues = {}
 		let variableDefs = []
@@ -221,6 +224,7 @@ class QLabInstance extends InstanceBase {
 			oqOrder = oq.qOrder
 			oqElapsed = oq.elapsed
 			oqSelected = oq.isSelected
+			oqPatch = oq.audioPatchName
 			if (oqNum != '' && oqNum != qNum) {
 				// cue number changed
 				let vId = `q_${oqNum}_name`
@@ -232,7 +236,7 @@ class QLabInstance extends InstanceBase {
 			}
 		}
 		// set new value
-		if (qID != '' && (qName != oqName || qColor != oqColor || qElapsed != oqElapsed)) {
+		if (qID != '' && (qName != oqName || qColor != oqColor || qElapsed != oqElapsed || qPatch != oqPatch)) {
 			if (q.isPaused) {
 				q.elapsed = Math.max(q.elapsed, oqElapsed ? oqElapsed : 0)
 				q.pctElapsed = Math.max(q.pctElapsed, oq.pctElapsed ? oq.pctElapsed : 0)
@@ -254,6 +258,9 @@ class QLabInstance extends InstanceBase {
 					variableValues[vId] = q[info.id] || (info.type == 's' ? '' : 0) // .qName
 					variableDefs.push({ variableId: vId, name: `${info.desc} of cue ID '${qID}'` })
 				}
+			}
+			if (qID == this.selectedCues[0]) {
+				variableValues.s_patch = qPatch || ''
 			}
 			this.checkFeedbacks(this.fb2check)
 		}
@@ -973,8 +980,9 @@ class QLabInstance extends InstanceBase {
 			s_id: newSel.size == 0 ? '' : this.selectedCues[0],
 			s_count: newSel.size,
 			s_ids: this.selectedCues.join(':'),
+			s_patch: this.wsCues[this.selectedCues[0]]?.audioPatchName || '',
 		})
-		this.checkFeedbacks('q_selected')
+		this.checkFeedbacks('q_selected', 'sel_audio_patch', 'q_audio_patch')
 		//console.log('debug', 'Selected cues updated')
 	}
 

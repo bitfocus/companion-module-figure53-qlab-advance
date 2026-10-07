@@ -65,6 +65,10 @@ export function compileVariableDefinition() {
 			variableId: 's_count',
 		},
 		{
+			name: 'Selected Cue Audio Output Patch (first only)',
+			variableId: 's_patch',
+		},
+		{
 			name: 'Running Cue UniqueID',
 			variableId: 'r_id',
 		},
