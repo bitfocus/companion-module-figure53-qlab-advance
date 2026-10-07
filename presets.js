@@ -521,6 +521,78 @@ export function compilePresetDefinitions(self) {
 		feedbacks: [],
 	}
 
+	presets['cuelist-audition-go'] = {
+		type: 'button',
+		category: 'CueList',
+		name: 'Audition GO',
+		style: {
+			text: 'Audition\\nGO',
+			size: '18',
+			color: combineRgb(255, 255, 255),
+			bgcolor: 0,
+		},
+		steps: [
+			{
+				down: [
+					{
+						actionID: 'audition_go',
+						options: {},
+					},
+				],
+				up: [],
+			},
+		],
+		feedbacks: [],
+	}
+
+	presets['cuelist-audition-preview'] = {
+		type: 'button',
+		category: 'CueList',
+		name: 'Audition Preview',
+		style: {
+			text: 'Audition\\nPreview',
+			size: '18',
+			color: combineRgb(255, 255, 255),
+			bgcolor: 0,
+		},
+		steps: [
+			{
+				down: [
+					{
+						actionID: 'audition_preview',
+						options: {},
+					},
+				],
+				up: [],
+			},
+		],
+		feedbacks: [],
+	}
+
+	presets['cuelist-preview'] = {
+		type: 'button',
+		category: 'CueList',
+		name: 'Preview',
+		style: {
+			text: 'Preview',
+			size: '18',
+			color: combineRgb(255, 255, 255),
+			bgcolor: 0,
+		},
+		steps: [
+			{
+				down: [
+					{
+						actionID: 'preview',
+						options: {},
+					},
+				],
+				up: [],
+			},
+		],
+		feedbacks: [],
+	}
+
 	// Workspace Overrides
 
 	let dSteps = []
