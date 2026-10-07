@@ -35,5 +35,11 @@
 	"keywords": [
 		"Software",
 		"Media Server"
-	]
+	],
+	"bonjourQueries": {
+		"bonjour_host": {
+			"type": "qlab",
+			"protocol": "tcp"
+		}
+	}
 }
