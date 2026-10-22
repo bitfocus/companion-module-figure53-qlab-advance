@@ -223,9 +223,13 @@ class QLabInstance extends InstanceBase {
 			oqSelected = oq.isSelected
 			if (oqNum != '' && oqNum != qNum) {
 				// cue number changed
-				let vId = `q_${oqNum}_name`
-				variableValues[vId] = undefined
-				oldVariables.push(vId)
+				for (const varName of Object.keys(this.otherVars)) {
+					if (varName != 'num') {
+						let vId = `q_${oqNum}_${varName}`
+						variableValues[vId] = undefined
+						oldVariables.push(vId)
+					}
+				}
 				this.cueColors[oqNum] = 0
 				delete this.cueByNum[oqNum]
 				oqName = ''
@@ -259,13 +263,21 @@ class QLabInstance extends InstanceBase {
 		}
 
 		if (this.exposeVariables) {
-			if (variableDefs.length) {
-				//remove old qNum's
-				this.variableDefs.filter((variableId) => {
-					return !oldVariables.includes(variableId)
-				})
-				this.variableDefs = [...this.variableDefs, ...variableDefs]
-				this.setVariableDefinitions(this.variableDefs)
+			let defsChanged = false
+			//remove old qNum's
+			for (const vId of oldVariables) {
+				defsChanged = this.cueVariableDefs.delete(vId) || defsChanged
+			}
+			// only add definitions not already known,
+			// otherwise every elapsed time update would add duplicates
+			for (const def of variableDefs) {
+				if (!this.cueVariableDefs.has(def.variableId)) {
+					this.cueVariableDefs.set(def.variableId, def)
+					defsChanged = true
+				}
+			}
+			if (defsChanged) {
+				this.setVariableDefinitions([...this.variableDefs, ...this.cueVariableDefs.values()])
 			}
 		}
 		this.setVariableValues(variableValues)
@@ -382,6 +394,8 @@ class QLabInstance extends InstanceBase {
 		}
 	}
 	init_variables() {
+		// per cue variable definitions (q_<num>_*, id_<uniqueID>_*), keyed by variableId
+		this.cueVariableDefs = new Map()
 		if (this.useTCP) {
 			this.variableDefs = compileVariableDefinition(this)
 			this.setVariableDefinitions(this.variableDefs)
