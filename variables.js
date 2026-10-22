@@ -53,6 +53,10 @@ export function compileVariableDefinition() {
 			variableId: 'n_cont',
 		},
 		{
+			name: 'Playhead Cue Main Level (dB)',
+			variableId: 'n_lvl_main',
+		},
+		{
 			name: 'Selected Cue UniqueID (first only)',
 			variableId: 's_id',
 		},
@@ -63,6 +67,10 @@ export function compileVariableDefinition() {
 		{
 			name: 'Selected Cue Count',
 			variableId: 's_count',
+		},
+		{
+			name: 'Selected Cue Main Level (dB, first only)',
+			variableId: 's_lvl_main',
 		},
 		{
 			name: 'Running Cue UniqueID',

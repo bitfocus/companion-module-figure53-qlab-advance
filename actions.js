@@ -1,6 +1,6 @@
 import * as Colors from './colors.js'
 import * as Choices from './choices.js'
-import { cleanCueNumber } from './common.js'
+import { cleanCueNumber, parseChannelList } from './common.js'
 import { Regex } from '@companion-module/base'
 
 // actions for QLab module
@@ -1387,6 +1387,139 @@ export function compileActionDefinitions(self) {
 				args.push({ type: 'f', value: s })
 
 				await sendCommand(action, pfx + cmd + sfx, args)
+			},
+		},
+		new_level: {
+			name: 'Adjust Audio Level',
+			description: 'Set/Adjust the Main or Output level(s) of an Audio, Mic, Video or Fade cue',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Mode',
+					id: 'mode',
+					default: 'I',
+					choices: Choices.LEVEL_MODE,
+				},
+				{
+					type: 'dropdown',
+					label: 'Scope',
+					id: 'scope',
+					default: 'S',
+					choices: Choices.LEVEL_SCOPE,
+				},
+				{
+					type: 'textinput',
+					label: 'Cue Number',
+					id: 'q_num',
+					default: self.wsCues[self.nextCue]?.qNumber,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'N'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Cue ID',
+					id: 'q_id',
+					default: self.wsCues[self.nextCue]?.uniqueID,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'I'
+					},
+				},
+				{
+					type: 'dropdown',
+					label: 'Level',
+					id: 'chan',
+					default: 'M',
+					choices: Choices.LEVEL_CHANNEL,
+				},
+				{
+					type: 'textinput',
+					label: 'Output channel(s)',
+					id: 'outputs',
+					tooltip: 'Cue output numbers, separated by commas.\nRanges are allowed, for example 1,2,5-8',
+					default: '1,2',
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.chan === 'O'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Decibels',
+					id: 'db',
+					tooltip: 'Level or step in dB, decimals allowed.\nIn Set mode, -inf silences the level',
+					default: '1',
+					useVariables: true,
+				},
+				{
+					type: 'checkbox',
+					label: 'Live?',
+					id: 'live',
+					tooltip:
+						'Change only the live level of a playing cue: the cue is not modified,\n' +
+						'and the level returns to its saved value when the cue starts again or on Reset.\n' +
+						'Requires only Control access. QLab 5 only.\n' +
+						'Otherwise the saved cue level is changed, which also applies to a playing cue\n' +
+						'(requires Edit access)',
+					default: false,
+				},
+			],
+			callback: async (action, context) => {
+				const opt = action.options
+				let pfx = ''
+
+				switch (opt.scope) {
+					case 'D':
+						pfx = '/cue/playhead'
+						break
+					case 'R':
+						pfx = '/cue/active'
+						break
+					case 'N':
+						let qnum = await context.parseVariablesInString(opt.q_num.trim())
+						pfx = `/cue/${qnum}`
+						break
+					case 'I':
+						let qid = await context.parseVariablesInString(opt.q_id.trim())
+						pfx = `/cue_id/${qid}`
+						break
+					default:
+						pfx = '/cue/selected'
+				}
+
+				const chans =
+					opt.chan === 'O' ? parseChannelList(await context.parseVariablesInString(opt.outputs)) : [0]
+				if (chans.length == 0) {
+					self.log('warn', `Adjust Audio Level: no valid output channels in '${opt.outputs}'`)
+					return
+				}
+
+				const dbStr = (await context.parseVariablesInString(String(opt.db))).trim()
+				// whole value must be a number, parseFloat would accept '-3 + 1' as -3
+				const db = dbStr === '' ? NaN : Number(dbStr)
+				let arg
+
+				if (isFinite(db)) {
+					arg = { type: 'f', value: db }
+				} else if (opt.mode === 'S' && /^-inf/i.test(dbStr)) {
+					// QLab sets -inf when given any string
+					arg = { type: 's', value: '-inf' }
+				} else {
+					self.log('warn', `Adjust Audio Level: invalid level '${dbStr}'`)
+					return
+				}
+
+				const sfx = opt.mode == 'D' ? '/-' : opt.mode == 'I' ? '/+' : ''
+				// 'live' must be last, after any '/+' or '/-'
+				const live = opt.live && self.qVer >= 5 ? '/live' : ''
+
+				for (const ch of chans) {
+					await sendCommand(action, `${pfx}/level/0/${ch}${sfx}${live}`, arg)
+				}
+				// QLab does not send an update for level changes made by OSC
+				self.refreshLevels()
 			},
 		},
 

@@ -77,6 +77,7 @@ Contributions for development and maintenance of this open source module are alw
 | **Decrease Start Time**       | Decreases the Start Time by given time for the selected cue.                                                                                                                                                                                             |
 | **Increase End Time**         | Increases the End Time by given time for the selected cue.                                                                                                                                                                                               |
 | **Decrease End Time**         | Decreases the End Time by given time for the selected cue.                                                                                                                                                                                               |
+| **Adjust Audio Level**        | Set, increase, or decrease the Main level or Output channel level(s) of an Audio, Mic, Video, or Fade cue. Target the Selected, Playhead, Running, Cue Number, or Cue ID cue. Output channels are a list such as `1,2,5-8`. In Set mode, `-inf` silences the level. By default the saved cue level is changed, as with the faders in the Inspector, which also applies to a playing cue; this needs Edit access. **Live** changes only the live level of a playing cue: the cue is not modified, and the level returns to its saved value when the cue starts again or on Reset; this needs only Control access. |
 | **Set/Unset Infinite Loop**   | Set / Unset the Infinite Loop property of the selected cue.                                                                                                                                                                                              |
 | **Set/Unset Hold last frame** | Set / Unset the Hold last frame property of the selected cue.                                                                                                                                                                                            |
 | **Set/Unset Arm**             | Set / Unset the Arm property of the selected cue.                                                                                                                                                                                                        |
@@ -131,6 +132,10 @@ Commands implemented:
 | **$(INSTANCENAME:s_count)**           | Number of cues currently selected                                                                                |
 | **$(INSTANCENAME:s_id)**              | Unique ID of the selected cue (or the first ID if more than one cue is selected)                                 |
 | **$(INSTANCENAME:s_ids)**             | List of Unique IDs of all cues selected, separated by ':'                                                        |
+| **$(INSTANCENAME:s_lvl_main)**        | Main level (dB) of the selected cue (first only). `None` if no cue is selected or it has no audio levels       |
+| **$(INSTANCENAME:s\_lvl\_{n})**         | Level (dB) of output channel {n} of the selected cue (first only), for example `s_lvl_1`                         |
+| **$(INSTANCENAME:n_lvl_main)**        | Main level (dB) of the Playhead cue. `None` if there is no Playhead cue or it has no audio levels                |
+| **$(INSTANCENAME:n\_lvl\_{n})**         | Level (dB) of output channel {n} of the Playhead cue, for example `n_lvl_1`                                      |
 | **$(INSTANCENAME:c_color)**           | Current cue Color as HEX RRGGBB                                                                                  |
 | **$(INSTANCENAME:min_go)**            | Current value of double-go protection (in seconds)                                                               |
 | **$(INSTANCENAME:q\_{num}\_name)**    | Name of cue number {num}. See below for certain restrictions.                                                    |
@@ -182,6 +187,14 @@ QLab can run many cues at the same time while Stream Deck has a limited number o
 - Using a video show... 5 slide cues overlap to build a final image. After 5 'GO's all 5 cues are 'Running' resulting in a 5 picture overlay. The last 'GO' cue in the sequence will be the 'Running' cue.
 - Now add 2 more screens with more images. Each transition (1 image for each screen) is now placed in a _run all_ Group cue for list management. After the 5 group cues are run, QLab will show 20 cues active, 5 slides for each screen plus the 5 group cues. The last 'GO' **Group** cue will be the 'Running' cue.
 - If the last 'GO' Group cue is _enter then run each_, the most recent 'GO' cue in the group will be the 'Running' cue.
+
+### Audio level variables
+
+The level variables show the saved level of the cue, as in the Inspector, or the live level while the cue is playing, which is what is currently heard (QLab 5).
+Levels are read when the selected or playhead cue changes, when QLab reports a change to the cue
+(e.g. editing the level in the Inspector), and right after an **Adjust Audio Level** action.
+QLab does not report level changes made by OSC from other programs, or by Fade cues during playback,
+so the levels of these cues are also checked once per second. Cues without audio levels are not checked.
 
 ### Cue Numbers / IDs
 
