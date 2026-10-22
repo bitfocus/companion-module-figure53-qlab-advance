@@ -23,7 +23,7 @@
 		"figure53-qlab"
 	],
 	"runtime": {
-		"type": "node18",
+		"type": "node22",
 		"api": "nodejs-ipc",
 		"apiVersion": "0.0.0",
 		"entrypoint": "../qlabfb.js"
