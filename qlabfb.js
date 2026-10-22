@@ -7,7 +7,7 @@ import { compilePresetDefinitions } from './presets.js'
 import { compileVariableDefinition } from './variables.js'
 import { UpgradeScripts } from './upgrades.js'
 import { GetConfigFields } from './config.js'
-import { pad0, crc16b, cueToStatusChar, cleanCueNumber } from './common.js'
+import { pad0, crc16b, cueToStatusChar, cleanCueNumber, formatLevel } from './common.js'
 import Cue from './cues.js'
 import Workspace from './workspaces.js'
 import * as Choices from './choices.js'
@@ -61,6 +61,14 @@ class QLabInstance extends InstanceBase {
 		'script',
 	]
 	cueListActions = ['go', 'next', 'panic', 'panicInTime', 'previous', 'reset', 'stop', 'togglePause']
+	// cues shown in the audio level variables, by variable prefix
+	lvlCues = { s_lvl: '', n_lvl: '' }
+	// last values set for the level variables, by variable prefix
+	lvlVals = {}
+	// true if the cue has audio levels, by variable prefix
+	lvlHas = {}
+	// level change addresses that QLab refused (cue without audio levels)
+	lvlErrors = new Set()
 
 	constructor(internal) {
 		super(internal)
@@ -75,6 +83,7 @@ class QLabInstance extends InstanceBase {
 		this.hasError = false
 		this.disabled = true
 		this.pollCount = 0
+		this.minVolume = -60
 		this.wrongPasscode = ''
 		this.loggedErrors = []
 		this.debugLevel = process.env.DEVELOPER ? 2 : 0
@@ -160,6 +169,11 @@ class QLabInstance extends InstanceBase {
 		this.goDisabled = false
 		this.goAfter = 0
 		this.minGo = 0
+		for (const prefix in this.lvlCues) {
+			this.lvlCues[prefix] = ''
+			this.lvlHas[prefix] = false
+			this.setLevelVars(prefix, null)
+		}
 		this.checkFeedbacks()
 		this.updateQVars()
 		this.updateNextCue()
@@ -167,6 +181,7 @@ class QLabInstance extends InstanceBase {
 		this.wrongPasscode = ''
 		this.wrongPasscodeAt = 0
 		this.loggedErrors = []
+		this.lvlErrors.clear()
 		this.selectedCues = []
 	}
 
@@ -186,7 +201,110 @@ class QLabInstance extends InstanceBase {
 			n_cont: ['NoC', 'Con', 'Fol'][nc.continueMode],
 			n_color: this.rgbToHex(nc.qColor),
 		})
+		this.trackLevels('n_lvl', this.nextCue)
 		this.checkFeedbacks('playhead_bg')
+	}
+
+	/**
+	 * Ask QLab for the output levels of a cue:
+	 * the live levels while it plays (what is heard), otherwise the saved levels
+	 * (QLab resets the live levels to the saved ones when a cue starts)
+	 * @param {string} id - cue unique ID
+	 * @since 2.16.0
+	 */
+	requestLevels(id) {
+		if (id && this.useTCP && this.ready) {
+			const q = this.wsCues[id]
+			const live = this.qVer >= 5 && (q?.isRunning || q?.isPaused)
+			this.sendOSC(`/cue_id/${id}/sliderLevels` + (live ? '/live' : ''))
+		}
+	}
+
+	/**
+	 * Re-read the levels of all cues shown in the level variables
+	 * @param {boolean} [hasLevels=false] - only cues known to have audio levels
+	 * @since 2.16.0
+	 */
+	refreshLevels(hasLevels = false) {
+		const ids = new Set()
+		for (const [prefix, id] of Object.entries(this.lvlCues)) {
+			if (!hasLevels || this.lvlHas[prefix]) {
+				ids.add(id)
+			}
+		}
+		ids.forEach((id) => this.requestLevels(id))
+	}
+
+	/**
+	 * Follow a (new) cue with a set of level variables
+	 * @param {string} prefix - variable prefix ('s_lvl', 'n_lvl')
+	 * @param {string} id - cue unique ID, or '' for none
+	 * @since 2.16.0
+	 */
+	trackLevels(prefix, id) {
+		if (this.lvlCues[prefix] != id) {
+			this.lvlCues[prefix] = id
+			this.lvlHas[prefix] = false
+			// don't show the levels of the previous cue
+			this.setLevelVars(prefix, id ? undefined : null)
+			this.requestLevels(id)
+		}
+	}
+
+	/**
+	 * Set the level variables
+	 * @param {string} prefix - variable prefix ('s_lvl', 'n_lvl')
+	 * @param {number[]} levels - [main, output 1, output 2, ...] in dB,
+	 * 		null if no cue or the cue has no audio levels, undefined if not known yet
+	 * @since 2.16.0
+	 */
+	setLevelVars(prefix, levels) {
+		const old = this.lvlVals[prefix] || {}
+		const vals = {}
+		const variableValues = {}
+
+		if (levels?.length) {
+			vals[`${prefix}_main`] = formatLevel(levels[0], this.minVolume)
+			levels.slice(1).forEach((db, i) => {
+				vals[`${prefix}_${i + 1}`] = formatLevel(db, this.minVolume)
+			})
+		} else {
+			const txt = levels === undefined ? '' : 'None'
+			vals[`${prefix}_main`] = txt
+			// QLab 5 cues have 128 outputs
+			for (let i = 1; i <= 128; i++) {
+				vals[`${prefix}_${i}`] = txt
+			}
+		}
+		// levels are polled, only send what changed
+		for (const vId of new Set([...Object.keys(old), ...Object.keys(vals)])) {
+			const v = vals[vId] ?? ''
+			if (old[vId] !== v) {
+				variableValues[vId] = v
+			}
+		}
+		this.lvlVals[prefix] = vals
+		if (Object.keys(variableValues).length) {
+			this.setVariableValues(variableValues)
+		}
+	}
+
+	/**
+	 * process QLab reply to 'sliderLevels'
+	 * @since 2.16.0
+	 */
+	readLevels(j) {
+		const addr = j.address.split('/')
+		const i = addr.indexOf('cue_id')
+		if (i < 0) return
+
+		const levels = 'ok' == j.status && Array.isArray(j.data) ? j.data : null
+		for (const [prefix, id] of Object.entries(this.lvlCues)) {
+			if (id == addr[i + 1]) {
+				this.lvlHas[prefix] = !!levels
+				this.setLevelVars(prefix, levels)
+			}
+		}
 	}
 	updateQVars(q) {
 		q = q || new Cue()
@@ -551,6 +669,9 @@ class QLabInstance extends InstanceBase {
 			this.sendOSC('/showMode', [])
 			this.sendOSC('/liveFadePreview', [], true)
 			this.sendOSC('/settings/general/minGoTime')
+			if (this.qVer >= 5) {
+				this.sendOSC('/settings/audio/minVolume')
+			}
 			for (const o in Choices.OVERRIDE) {
 				this.sendOSC('/overrides/' + Choices.OVERRIDE[o].id, [], true)
 			}
@@ -584,6 +705,8 @@ class QLabInstance extends InstanceBase {
 			if (3 == this.qVer) {
 				this.sendOSC('/showMode', [])
 			}
+			// QLab does not send updates for level changes by OSC or Fade cues
+			this.refreshLevels(true)
 		}
 		this.pollCount++
 
@@ -974,6 +1097,7 @@ class QLabInstance extends InstanceBase {
 			s_count: newSel.size,
 			s_ids: this.selectedCues.join(':'),
 		})
+		this.trackLevels('s_lvl', this.selectedCues[0] || '')
 		this.checkFeedbacks('q_selected')
 		//console.log('debug', 'Selected cues updated')
 	}
@@ -1066,6 +1190,9 @@ class QLabInstance extends InstanceBase {
 					// If there is no response after a few pulses
 					// we delete our copy of the cue
 					this.requestedCues[uniqueID] = Date.now()
+					if (Object.values(this.lvlCues).includes(uniqueID)) {
+						this.requestLevels(uniqueID)
+					}
 				} else {
 					this.log('debug', `====> unknown OSC message: ${ma} ` + JSON.stringify(message.args))
 				}
@@ -1091,10 +1218,31 @@ class QLabInstance extends InstanceBase {
 		}
 
 		if ('error' == j.status) {
+			if (mn.includes('sliderLevels')) {
+				// cue has no audio levels
+				this.readLevels(j)
+				return
+			}
+			if (mn.includes('level')) {
+				// level change sent to a cue without audio levels
+				if (!this.lvlErrors.has(j.address)) {
+					this.lvlErrors.add(j.address)
+					this.log('info', `Adjust Audio Level: cue has no audio levels (${j.address})`)
+				}
+				return
+			}
 			// qlab 5.3+ returns an error when asked '/cue/active/valuesForKeys'
 			// if no cue is active.
 			if (!['valuesForKeys', 'uniqueID'].includes(mn.slice(-1)[0])) {
 				this.logError(j.address)
+			}
+			return
+		}
+		if ('denied' == j.status && mn.includes('level')) {
+			// saved level changes need Edit access, the passcode may still be correct
+			if (!this.lvlErrors.has(j.address)) {
+				this.lvlErrors.add(j.address)
+				this.log('warn', `Adjust Audio Level: denied, the passcode needs Edit access (${j.address})`)
 			}
 			return
 		}
@@ -1296,6 +1444,18 @@ class QLabInstance extends InstanceBase {
 			case 'minGoTime':
 				this.minGo = j.data
 				this.setVariableValues({ min_go: (Math.round(j.data * 100) / 100).toFixed(2) })
+				break
+			case 'sliderLevels': // pre q5
+			case 'live': // q5 'sliderLevels/live'
+				if (mn.includes('sliderLevels')) {
+					this.readLevels(j)
+				}
+				break
+			case 'minVolume':
+				if (!isNaN(parseFloat(j.data))) {
+					this.minVolume = parseFloat(j.data)
+					this.refreshLevels()
+				}
 				break
 			case 'doubleGoWindowRemaining':
 				const goLeft = Math.round(j.data * 1000)
