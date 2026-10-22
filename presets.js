@@ -1424,6 +1424,70 @@ export function compilePresetDefinitions(self) {
 		feedbacks: [],
 	}
 
+	// Audio level presets
+	const levelAction = (mode, db) => {
+		return {
+			actionId: 'new_level',
+			options: {
+				mode: mode,
+				scope: 'S',
+				chan: 'M',
+				outputs: '1,2',
+				db: db,
+				live: false,
+			},
+		}
+	}
+
+	presets['level-selected-main-dial'] = {
+		type: 'button',
+		category: 'Audio Level',
+		name: 'Selected Cue Main Level (rotary)',
+		options: {
+			rotaryActions: true,
+		},
+		style: {
+			text: `Main dB\\n$(${self.label}:s_lvl_main)`,
+			size: '14',
+			color: combineRgb(255, 255, 255),
+			bgcolor: combineRgb(0, 60, 0),
+		},
+		steps: [
+			{
+				down: [],
+				up: [],
+				rotate_left: [levelAction('D', '1')],
+				rotate_right: [levelAction('I', '1')],
+			},
+		],
+		feedbacks: [],
+	}
+
+	for (const [mode, db, label] of [
+		['I', '1', '+1 dB'],
+		['D', '1', '-1 dB'],
+		['S', '0', '0 dB'],
+	]) {
+		presets[`level-selected-main-${mode}${db}`] = {
+			type: 'button',
+			category: 'Audio Level',
+			name: `Selected Cue Main Level ${mode == 'S' ? 'Set ' : ''}${label}`,
+			style: {
+				text: `Main ${label}\\n$(${self.label}:s_lvl_main)`,
+				size: '14',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 60, 0),
+			},
+			steps: [
+				{
+					down: [levelAction(mode, db)],
+					up: [],
+				},
+			],
+			feedbacks: [],
+		}
+	}
+
 	for (let c of Colors.colorName) {
 		presets[`edit-cue-color-${c.id}`] = {
 			type: 'button',
