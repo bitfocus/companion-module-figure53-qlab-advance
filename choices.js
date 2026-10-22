@@ -40,6 +40,25 @@ export const SSP_SCOPE = [
 	{ id: 'I', label: 'Cue ID' },
 ]
 
+export const LEVEL_SCOPE = [
+	{ id: 'S', label: 'Selected' },
+	{ id: 'D', label: 'Playhead' },
+	{ id: 'R', label: 'Running Cue(s)' },
+	{ id: 'N', label: 'Cue Number' },
+	{ id: 'I', label: 'Cue ID' },
+]
+
+export const LEVEL_MODE = [
+	{ id: 'S', label: 'Set Level' },
+	{ id: 'I', label: 'Increase by' },
+	{ id: 'D', label: 'Decrease by' },
+]
+
+export const LEVEL_CHANNEL = [
+	{ id: 'M', label: 'Main' },
+	{ id: 'O', label: 'Output channel(s)' },
+]
+
 export const TOGGLE = [
 	{ id: 1, label: 'On' },
 	{ id: 0, label: 'Off' },
