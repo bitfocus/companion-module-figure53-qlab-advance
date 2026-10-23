@@ -223,15 +223,19 @@ class QLabInstance extends InstanceBase {
 			oqSelected = oq.isSelected
 			if (oqNum != '' && oqNum != qNum) {
 				// cue number changed
-				for (const varName of Object.keys(this.otherVars)) {
-					if (varName != 'num') {
-						let vId = `q_${oqNum}_${varName}`
-						variableValues[vId] = undefined
-						oldVariables.push(vId)
+				// leave the old number alone if another cue has already taken it (e.g. two cues swapped numbers)
+				const oqNumOwner = this.cueByNum[oqNum]
+				if (oqNumOwner === undefined || oqNumOwner === qID) {
+					for (const varName of Object.keys(this.otherVars)) {
+						if (varName != 'num') {
+							let vId = `q_${oqNum}_${varName}`
+							variableValues[vId] = undefined
+							oldVariables.push(vId)
+						}
 					}
+					this.cueColors[oqNum] = 0
+					delete this.cueByNum[oqNum]
 				}
-				this.cueColors[oqNum] = 0
-				delete this.cueByNum[oqNum]
 				oqName = ''
 			}
 		}
@@ -277,10 +281,31 @@ class QLabInstance extends InstanceBase {
 				}
 			}
 			if (defsChanged) {
-				this.setVariableDefinitions([...this.variableDefs, ...this.cueVariableDefs.values()])
+				this.queueVariableDefinitions()
 			}
 		}
 		this.setVariableValues(variableValues)
+	}
+
+	/**
+	 * Send the full variable definition list (static + per cue) at most once per 250ms,
+	 * so loading a cue list does not rebuild the host's variable list once per cue
+	 */
+	queueVariableDefinitions() {
+		if (this.varDefsTimer !== undefined) return
+		this.varDefsTimer = setTimeout(() => {
+			delete this.varDefsTimer
+			if (!this.disabled && this.useTCP) {
+				this.setVariableDefinitions([...this.variableDefs, ...this.cueVariableDefs.values()])
+			}
+		}, 250)
+	}
+
+	clearVariableDefinitionsTimer() {
+		if (this.varDefsTimer !== undefined) {
+			clearTimeout(this.varDefsTimer)
+			delete this.varDefsTimer
+		}
 	}
 
 	updateRunning() {
@@ -394,6 +419,8 @@ class QLabInstance extends InstanceBase {
 		}
 	}
 	init_variables() {
+		// the full list is sent below, drop any queued per cue update
+		this.clearVariableDefinitionsTimer()
 		// per cue variable definitions (q_<num>_*, id_<uniqueID>_*), keyed by variableId
 		this.cueVariableDefs = new Map()
 		if (this.useTCP) {
@@ -1353,6 +1380,7 @@ class QLabInstance extends InstanceBase {
 	async destroy() {
 		this.disabled = true
 		this.resetVars(true)
+		this.clearVariableDefinitionsTimer()
 		if (this.timer !== undefined) {
 			clearTimeout(this.timer)
 			delete this.timer
