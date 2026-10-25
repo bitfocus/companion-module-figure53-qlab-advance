@@ -394,13 +394,14 @@ class QLabInstance extends InstanceBase {
 		this.init_presets()
 		this.init_variables()
 		this.init_feedbacks()
+		// build presets last to prevent 'missing action/feedback' errors from core module check
+		this.init_presets()
 	}
 
 	async init(config) {
 		this.config = config
 
 		this.disabled = false
-		this.updateStatus(InstanceStatus.Connecting)
 
 		await this.configUpdated(config)
 	}
