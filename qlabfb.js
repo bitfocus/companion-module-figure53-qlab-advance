@@ -66,7 +66,6 @@ class QLabInstance extends InstanceBase {
 		super(internal)
 
 		this.instanceOptions.disableVariableValidation = true
-		this.connecting = false
 		this.needPasscode = false
 		this.passcodeOK = false
 		this.useTCP = false
@@ -682,8 +681,10 @@ class QLabInstance extends InstanceBase {
 	init_osc() {
 		const ws = this.ws
 
-		if (this.connecting) {
-			return
+		if (this.timer !== undefined) {
+			// a new connection supersedes any pending reconnect
+			clearTimeout(this.timer)
+			this.timer = undefined
 		}
 
 		if (this.qSocket) {
@@ -701,7 +702,6 @@ class QLabInstance extends InstanceBase {
 					port: this.config.port,
 					metadata: true,
 				})
-				this.connecting = true
 			} else {
 				this.qSocket = new OSC.UDPPort({
 					localAddress: '0.0.0.0',
@@ -714,11 +714,13 @@ class QLabInstance extends InstanceBase {
 				this.updateStatus(InstanceStatus.Ok, 'UDP Mode')
 			}
 
+			// a replaced socket can still report events (e.g. its final 'close'); ignore those
+			const sock = this.qSocket
 			this.qSocket.open()
 
 			this.qSocket.on('error', (err) => {
+				if (sock !== this.qSocket) return
 				this.debugLevel > 0 && console.log('debug', 'Error: ' + err.message + '\n' + err.stack)
-				this.connecting = false
 				if (!this.hasError) {
 					this.log('error', 'Error: ' + err.message)
 					this.updateStatus(InstanceStatus.UnknownError, "Can't connect to QLab " + err.message)
@@ -742,10 +744,10 @@ class QLabInstance extends InstanceBase {
 			})
 
 			this.qSocket.on('close', () => {
+				if (sock !== this.qSocket) return
 				if (!this.hasError && this.ready) {
 					this.log('error', 'TCP Connection to QLab Closed')
 				}
-				this.connecting = false
 				if (this.ready) {
 					this.needWorkspace = true
 					this.needPasscode = false
@@ -781,8 +783,8 @@ class QLabInstance extends InstanceBase {
 			})
 
 			this.qSocket.on('ready', () => {
+				if (sock !== this.qSocket) return
 				this.ready = true
-				this.connecting = false
 				this.hasError = false
 				this.log('info', 'Connecting to QLab:' + this.config.host)
 				if (this.useTCP) {
@@ -804,6 +806,7 @@ class QLabInstance extends InstanceBase {
 			})
 
 			this.qSocket.on('message', (message, timetag, info) => {
+				if (sock !== this.qSocket) return
 				const node = message.address.split('/')
 				this.debugLevel > 0 &&
 					this.log('debug', 'Received ' + JSON.stringify(message) + ` from ${this.qSocket.options?.address}`)
