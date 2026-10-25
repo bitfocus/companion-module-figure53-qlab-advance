@@ -402,7 +402,6 @@ class QLabInstance extends InstanceBase {
 		this.resetVars()
 		this.init_osc()
 		this.init_actions()
-		this.init_presets()
 		this.init_variables()
 		this.init_feedbacks()
 		// build presets last to prevent 'missing action/feedback' errors from core module check
@@ -413,6 +412,7 @@ class QLabInstance extends InstanceBase {
 		this.config = config
 
 		this.disabled = false
+		this.updateStatus(InstanceStatus.Connecting)
 
 		await this.configUpdated(config)
 	}
@@ -1077,7 +1077,7 @@ class QLabInstance extends InstanceBase {
 				}
 				break
 			case '[root group of cue lists]':
-			case '__root__':									//QL 5.5+
+			case '__root__': //QL 5.5+
 				this.sendOSC('/doubleGoWindowRemaining')
 				break
 			case 'disconnect':
