@@ -75,6 +75,47 @@ export function compileFeedbackDefinitions(self) {
 				return { bgcolor: bg || 0 }
 			},
 		},
+		q_bg_color: {
+			type: 'advanced',
+			name: 'Cue color for background',
+			description: 'Use QLab color of specified cue as background',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Scope',
+					id: 'scope',
+					default: 'N',
+					choices: Choices.FB_SCOPE,
+				},
+				{
+					type: 'textinput',
+					label: 'Cue Number',
+					id: 'q_num',
+					useVariables: true,
+					default: self.wsCues[self.nextCue]?.q_num,
+					isVisible: (options, data) => {
+						return options.scope === 'N'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Cue ID',
+					id: 'q_id',
+					useVariables: true,
+					default: self.nextCue,
+					isVisible: (options, data) => {
+						return options.scope === 'I'
+					},
+				},
+			],
+			callback: async (feedback, context) => {
+				const opt = feedback.options
+				const cue = await getScope(opt, context)
+				const bg = cue && self.wsCues[cue]?.qColor
+
+				return { bgcolor: bg || 0 }
+			},
+		},
 		q_armed: {
 			type: 'boolean',
 			name: 'Cue is Armed',
@@ -251,6 +292,50 @@ export function compileFeedbackDefinitions(self) {
 				let cue = await getScope(opt,context)
 
 				return self.wsCues[cue]?.isPaused
+			},
+		},
+		q_running: {
+			type: 'boolean',
+			name: 'Cue is Running',
+			description: 'Indicate on button when the specified cue is Running',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Scope',
+					id: 'scope',
+					default: 'N',
+					choices: Choices.FB_SCOPE,
+				},
+				{
+					type: 'textinput',
+					label: 'Cue Number',
+					id: 'q_num',
+					default: self[self.nextCue]?.q_num,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'N'
+					},
+				},
+				{
+					type: 'textinput',
+					label: 'Cue ID',
+					id: 'q_id',
+					default: self.nextCue,
+					useVariables: true,
+					isVisible: (options, data) => {
+						return options.scope === 'I'
+					},
+				},
+			],
+			defaultStyle: {
+				bgcolor: combineRgb(0, 102, 0),
+				color: combineRgb(255, 255, 255),
+			},
+			callback: async (feedback, context) => {
+				const opt = feedback.options
+				let cue = await getScope(opt, context)
+
+				return self.wsCues[cue]?.isRunning
 			},
 		},
 
