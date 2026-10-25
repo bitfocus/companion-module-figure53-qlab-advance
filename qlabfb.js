@@ -659,7 +659,7 @@ class QLabInstance extends InstanceBase {
 			}
 
 			this.setVariableValues(variableValues)
-			if (checkFeedbacks.size > 0) {
+			if (checkFeedbacks.length > 0) {
 				this.checkFeedbacks(...checkFeedbacks)
 			}
 		}
@@ -830,7 +830,7 @@ class QLabInstance extends InstanceBase {
 
 		if (Array.isArray(jCue)) {
 			const idCount = {}
-			const dupIds = false
+			let dupIds = false
 			jCue.forEach((j, i) => {
 				q = new Cue(j, this)
 				q.qOrder = i
