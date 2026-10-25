@@ -22,7 +22,18 @@ class QLabInstance extends InstanceBase {
 				'"isBroken","continueMode","percentActionElapsed","cartPosition","infiniteLoop","holdLastFrame"]',
 		},
 	]
-	fb2check = ['q_run', 'qid_run', 'any_run', 'q_armed', 'q_bg', 'qid_bg', 'q_flagged', 'q_paused']
+	fb2check = [
+		'q_run',
+		'qid_run',
+		'any_run',
+		'q_armed',
+		'q_bg',
+		'qid_bg',
+		'q_flagged',
+		'q_paused',
+		'q_running',
+		'q_bg_color',
+	]
 	otherVars = {
 		name: { desc: 'Name', id: 'qName', type: 's' },
 		elapsed: { desc: 'Elapsed time', id: 'elapsed', type: 'n' },
