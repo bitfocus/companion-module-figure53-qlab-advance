@@ -3,7 +3,7 @@ import * as Choices from './choices.js'
 import { cleanCueNumber } from './common.js'
 
 export function compileFeedbackDefinitions(self) {
-	async function getScope(opt,ctx) {
+	async function getScope(opt, ctx) {
 		let cue
 		switch (opt.scope) {
 			case 'D':
@@ -49,11 +49,13 @@ export function compileFeedbackDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue Number',
 					id: 'cue',
+					useVariables: true,
 					default: '',
 				},
 			],
-			callback: (feedback, context) => {
-				const bg = self.cueColors[cleanCueNumber(feedback.options.cue)]
+			callback: async (feedback, ctx) => {
+				const tc = cleanCueNumber(await ctx.parseVariablesInString(feedback.options.cue))
+				const bg = self.cueColors[tc]
 				return { bgcolor: bg || 0 }
 			},
 		},
@@ -66,11 +68,12 @@ export function compileFeedbackDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue ID',
 					id: 'cueId',
+					useVariables: true,
 					default: self.nextCue,
 				},
 			],
-			callback: (feedback, context) => {
-				const tc = self.wsCues[feedback.options.cueId]
+			callback: async (feedback, ctx) => {
+				const tc = self.wsCues[await ctx.parseVariablesInString(feedback.options.cueId)]
 				const bg = tc && tc.qColor
 				return { bgcolor: bg || 0 }
 			},
@@ -155,7 +158,7 @@ export function compileFeedbackDefinitions(self) {
 			},
 			callback: async (feedback, context) => {
 				const opt = feedback.options
-				let cue = await getScope(opt,context)
+				let cue = await getScope(opt, context)
 
 				return self.wsCues[cue]?.isArmed
 			},
@@ -202,7 +205,7 @@ export function compileFeedbackDefinitions(self) {
 			},
 			callback: async (feedback, context) => {
 				const opt = feedback.options
-				let cue = await getScope(opt,context)
+				let cue = await getScope(opt, context)
 
 				return self.wsCues[cue]?.isSelected
 			},
@@ -246,7 +249,7 @@ export function compileFeedbackDefinitions(self) {
 			},
 			callback: async (feedback, context) => {
 				const opt = feedback.options
-				let cue = await getScope(opt,context)
+				let cue = await getScope(opt, context)
 				return self.wsCues[cue]?.isFlagged
 			},
 		},
@@ -289,7 +292,7 @@ export function compileFeedbackDefinitions(self) {
 			},
 			callback: async (feedback, context) => {
 				const opt = feedback.options
-				let cue = await getScope(opt,context)
+				let cue = await getScope(opt, context)
 
 				return self.wsCues[cue]?.isPaused
 			},
@@ -348,6 +351,7 @@ export function compileFeedbackDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue Number',
 					id: 'cue',
+					useVariables: true,
 					default: '',
 				},
 			],
@@ -355,9 +359,9 @@ export function compileFeedbackDefinitions(self) {
 				bgcolor: combineRgb(102, 0, 0),
 				color: combineRgb(255, 255, 255),
 			},
-			callback: (feedback, context) => {
+			callback: async (feedback, ctx) => {
 				const opt = feedback.options
-				const rqID = self.cueByNum[cleanCueNumber(opt.cue)]
+				const rqID = self.cueByNum[cleanCueNumber(await ctx.parseVariablesInString(opt.cue))]
 				const rq = self.wsCues[rqID]
 				return rq && rq.isRunning
 			},
@@ -371,6 +375,7 @@ export function compileFeedbackDefinitions(self) {
 					type: 'textinput',
 					label: 'Cue ID',
 					id: 'cueID',
+					useVariables: true,
 					default: self.nextCue,
 				},
 			],
@@ -378,9 +383,9 @@ export function compileFeedbackDefinitions(self) {
 				bgcolor: combineRgb(204, 0, 204),
 				color: combineRgb(255, 255, 255),
 			},
-			callback: (feedback, context) => {
+			callback: async (feedback, ctx) => {
 				const opt = feedback.options
-				const rq = self.wsCues[opt.cueID]
+				const rq = self.wsCues[await ctx.parseVariablesInString(opt.cueID)]
 				return rq && rq.isRunning
 			},
 		},
