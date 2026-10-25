@@ -262,7 +262,7 @@ class QLabInstance extends InstanceBase {
 					variableDefs.push({ variableId: vId, name: `${info.desc} of cue ID '${qID}'` })
 				}
 			}
-			this.checkFeedbacks(this.fb2check)
+			this.checkFeedbacks(...this.fb2check)
 		}
 
 		if (this.exposeVariables) {
