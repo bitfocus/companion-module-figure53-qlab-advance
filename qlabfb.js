@@ -924,11 +924,10 @@ class QLabInstance extends InstanceBase {
 	 */
 	updatePlaying() {
 		function qState(q) {
-			return crc16b(JSON.stringify(q))
-			// let ret = q.uniqueID + ':'
-			// ret += q.isBroken ? '0' : q.isRunning ? '1' : q.isPaused ? '2' : q.isLoaded ? '3' : q.isAuditioning ? '4' : 5
-			// ret += ':' + q.duration + ':' + q.pctElapsed
-			// return ret
+			// weird 'string' decoding issue: somehow returns the same crc if the only
+			// difference is isRunning and isPaused are the only difference
+			let j = Buffer.from(JSON.stringify(q), 'latin1')
+			return crc16b(j)
 		}
 
 		let hasGroup = false
