@@ -15,11 +15,22 @@ export function GetConfigFields(self) {
 				'Controls <a href="https://qlab.app" target="_new">QLab</a> by Figure 53.' +
 				'<br>Feedback and variables require TCP<br>which will increase network traffic.',
 		},
+		// Lists QLab computers announced via Bonjour (_qlab._tcp, see bonjourQueries in manifest.json).
+		// Companion always offers 'Manual' here, which leaves this empty and shows host/port below.
+		{
+			type: 'bonjour-device',
+			id: 'bonjour_host',
+			label: 'QLab Computer',
+			width: 12,
+			tooltip: 'QLab computers found on the network\nSelect Manual to enter Host/IP and Port',
+		},
 		{
 			type: 'textinput',
 			id: 'host',
 			label: 'Target Host/IP',
 			width: 6,
+			// only needed when no Bonjour device is selected
+			isVisible: (options) => !options['bonjour_host'],
 			tooltip: 'The Hostname or IP of the computer running QLab',
 			regex: REGEX_IP_OR_HOST,
 		},
@@ -28,6 +39,8 @@ export function GetConfigFields(self) {
 			id: 'port',
 			label: 'Target Port',
 			width: 6,
+			// Bonjour provides the port as well
+			isVisible: (options) => !options['bonjour_host'],
 			tooltip: 'Port number configured on QLab\nto access the workspace',
 			default: 53000,
 			regex: Regex.PORT,
