@@ -344,7 +344,7 @@ export function compileFeedbackDefinitions(self) {
 
 		q_run: {
 			type: 'boolean',
-			name: 'Indicate Cue is running',
+			name: 'Indicate Cue Number is running',
 			description: 'Indicate on button when the specified cue is running',
 			options: [
 				{
